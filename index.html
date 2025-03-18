@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- <link rel="icon" type="image/svg+xml" href="/logo.svg" /> -->
+    <title>%VITE_APP_NAME%</title>
+    <meta key="title" content="%VITE_APP_NAME%, Your second brain." property="og:title" />
+    <meta content="%VITE_APP_NAME%" property="og:description" />
+    <meta content="%VITE_APP_NAME%" name="description" />
+    <meta
+      key="viewport"
+      content="viewport-fit=cover, width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+      name="viewport"
+    />
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Brew">
+    <meta name="theme-color" content="#18181b" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link href="/favicon.ico" rel="icon" />
+    <link rel="manifest" href="/manifest.json" crossorigin="use-credentials">
+    <link rel="apple-touch-icon" href="/favicon.ico">
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.10.0/styles/github-dark.min.css"> -->
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+
+  <script>
+    const moduleScripts = document.querySelectorAll('script[type="module"]');
+    if (moduleScripts) {
+      moduleScripts.forEach(script => {
+        // 监听加载失败
+        script.addEventListener('error', () => {
+          console.warn(`检测到 JS 资源加载失败：${script.src}`);
+          // 强制刷新页面，绕过缓存
+          const retryTimes = sessionStorage.getItem('script_retry_times')
+  
+          if (retryTimes && Number(retryTimes) > 3) {
+            console.error('重试次数过多，停止重试');
+            return;
+          }
+          sessionStorage.setItem('script_retry_times', retryTimes ? Number(retryTimes) + 1 : 1);
+          
+          window.location.reload(true);
+        });
+      });
+    }
+      
+  </script>
+</html>

@@ -1,0 +1,8 @@
+{
+    "name": "Brew",
+    "display": "standalone",
+    "theme_color": "#18181b",
+    "short_name": "Brew",
+    "start_url": "/",
+    "prefer_related_applications": true
+}

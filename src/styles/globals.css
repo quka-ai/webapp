@@ -1,0 +1,129 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+::-webkit-scrollbar {
+    display: none;
+    /* 隐藏滚动条 */
+}
+
+ [type='text']:focus,
+ [type='email']:focus,
+ [type='url']:focus,
+ [type='password']:focus,
+ [type='number']:focus,
+ [type='date']:focus,
+ [type='datetime-local']:focus,
+ [type='month']:focus,
+ [type='search']:focus,
+ [type='tel']:focus,
+ [type='time']:focus,
+ [type='week']:focus,
+ [multiple]:focus,
+ textarea:focus,
+ select:focus,
+ .outline-none {
+     outline: 0px !important;
+     outline-offset: 0px !important;
+     box-shadow: none !important;
+ }
+
+.markdown-body option li,
+.markdown-body ul li,
+.markdown-body ol li {
+    list-style-type: disc !important;
+    list-style-position: inside !important;
+    padding-inline-start: 20px !important;
+}
+
+.markdown-body ol li p,
+.markdown-body ul li p {
+    display: inline !important;
+}
+
+.markdown-body ol,
+.markdown-body ul {
+    white-space-collapse: collapse !important;
+    white-space: normal !important;
+    padding-inline-start: 0 !important;
+}
+
+/* 避免主题切换导致 代码块抖动的问题，主要在于 padding: 1em，在代码块主题样式更换时，同时需要调整该内容 */
+pre code.hljs {
+    display: block;
+    overflow-x: auto;
+    padding: 1em;
+}
+
+.journal__todo ul {
+    margin-left: calc(10px * var(--level, 0)); /* 动态缩进 */
+}
+
+/* 手动设置层级 */
+.journal__todo ul:nth-child(2) {
+    --level: 1;
+}
+.journal__todo ul:nth-child(3) {
+    --level: 2;
+}
+.journal__todo ul:nth-child(4) {
+    --level: 3;
+}
+
+/* latin-ext */
+@font-face {
+    font-family: 'Audiowide';
+    font-style: normal;
+    font-weight: 400;
+    src: url(font/l7gdbjpo0cum0ckerWCdmA_OMRlABolM.woff2) format('woff2');
+    unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+        U+A720-A7FF;
+}
+/* latin */
+@font-face {
+    font-family: 'Audiowide';
+    font-style: normal;
+    font-weight: 400;
+    src: url(font/l7gdbjpo0cum0ckerWCdlg_OMRlABg.woff2) format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+.header-text {
+    font-family:
+        Audiowide,
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        blinkmacsystemfont,
+        'Segoe UI',
+        roboto,
+        'Helvetica Neue',
+        arial,
+        'Noto Sans',
+        sans-serif,
+        'Apple Color Emoji',
+        'Segoe UI Emoji',
+        'Segoe UI Symbol',
+        'Noto Color Emoji';
+}
+
+.markdown-body code {
+    text-wrap: wrap;
+}
+
+.markdown-body table {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+@media (max-width: 650px) {
+    .markdown-body video {
+        max-width: 60%;
+    }
+}
+
+@media (min-width: 651px) {
+    .markdown-body video {
+        max-width: 30%;
+    }
+}

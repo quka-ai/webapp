@@ -1,0 +1,27 @@
+{
+    "printWidth": 200,
+    "eslintIntegration": true,
+    "stylelintIntegration": true,
+    "tabWidth": 4,
+    "semi": true,
+    "singleQuote": true,
+    "arrowParens": "avoid",
+    "htmlWhitespaceSensitivity": "ignore",
+    "javascript.format.insertSpaceBeforeFunctionParenthesis": true,
+    "files.insertFinalNewline": true,
+    "useTabs": false,
+    "endOfLine": "auto",
+    "ignorePath": ".ignore",
+    "trailingComma": "none",
+    "plugins": [
+        "@trivago/prettier-plugin-sort-imports"
+    ],
+    "importOrderSeparation": true,
+    "importOrderSortSpecifiers": true,
+    "importOrderCaseInsensitive": true,
+    "importOrder": [
+        "<THIRD_PARTY_MODULES>",
+        "^[./]",
+        "^@/(.*)$"
+    ]
+}
