@@ -230,6 +230,7 @@
 .editor .image-tool__caption {
     @apply rounded-xl;
     @apply !border-foreground-200;
+    @apply relative;
 }
 
 video {

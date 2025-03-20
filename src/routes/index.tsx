@@ -113,7 +113,7 @@ const routes = createBrowserRouter([
                 path: '/',
                 element: (
                     <PreLogin init>
-                        <IndexPage />
+                        <Login />
                     </PreLogin>
                 )
             },

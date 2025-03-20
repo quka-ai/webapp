@@ -1,5 +1,4 @@
 import axios, { AxiosError } from 'axios';
-import { UNSAFE_ErrorResponseImpl } from 'react-router-dom';
 import { toast } from 'sonner';
 
 import i18n from '@/lib/i18n';

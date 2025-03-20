@@ -1,3 +1,4 @@
+// !!! TODO !!!
 import { Button, User } from '@heroui/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -7,7 +8,7 @@ import { GetSharedKnowledge, type SharedKnowledge } from '@/apis/share';
 import { Editor } from '@/components/editor/index';
 import ShareHeader from '@/pages/share/components/header';
 
-export default function () {
+export default function SpaceLnadingPage() {
     const { t } = useTranslation();
     const [knowledge, setKnowledge] = useState<SharedKnowledge>();
     const { token } = useParams();
@@ -15,7 +16,7 @@ export default function () {
     const [isLoading, setIsLoading] = useState(true);
     const loadKnowledge = useCallback(async () => {
         if (!token) {
-            return 
+            return;
         }
         setIsLoading(true);
         try {
