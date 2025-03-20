@@ -33,9 +33,9 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 
 import { GetJournal, Journal, UpsertJournal } from '@/apis/journal';
-import { GetTimeRangeLiteKnowledges } from '@/apis/knowledge';
+import { GetTimeRangeLiteKnowledges, KnowledgeLite } from '@/apis/knowledge';
 import KnowledgeAITaskList from '@/components/ai-tasks-list';
-import { Editor } from '@/components/editor/index';
+import { Editor, EditorRefObject } from '@/components/editor/index';
 import KnowledgeDrawer from '@/components/knowledge-drawer';
 import KnowledgeModal from '@/components/knowledge-modal';
 import { toast } from '@/hooks/use-toast';
@@ -97,7 +97,7 @@ export default function Component() {
     const navigate = useNavigate();
 
     const [journal, setJournal] = useState<Journal>({});
-    const [blocks, setBlocks] = useState<OutputData>();
+    const [blocks, setBlocks] = useState<OutputData>("");
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -324,7 +324,7 @@ export default function Component() {
         [journalTodos]
     );
 
-    const [knowledges, setKnowledges] = useState();
+    const [knowledges, setKnowledges] = useState<KnowledgeLite[]>([]);
     const getTodayKnowledges = useCallback(
         async (st: number, et: number) => {
             try {
@@ -358,7 +358,7 @@ export default function Component() {
         [viewKnowledge]
     );
 
-    const editor = useRef();
+    const editor = useRef<EditorRefObject>();
 
     function onJournalTodoChanged(data: OutputData, targetId: string, index: number[]) {
         const block = data.blocks.find(block => block.id === targetId);

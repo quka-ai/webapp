@@ -15,6 +15,9 @@ const ShareSessionPage = function () {
 
     const [isLoading, setIsLoading] = useState(true);
     const loadSession = useCallback(async () => {
+        if (!token) {
+            return
+        }
         setIsLoading(true);
         try {
             let data = await GetSharedSession(token);
@@ -74,15 +77,15 @@ const ShareSessionPage = function () {
                                 <main className="h-full w-full relative gap-4 py-3 flex flex-col justify-center items-center">
                                     <ScrollShadow hideScrollBar className="w-full py-6 flex-grow items-center">
                                         <div className="w-full m-auto max-w-[760px] overflow-hidden relative flex flex-col gap-6">
-                                            {session.messages.map(({ key, role, message, complete }) => (
+                                            {session.messages.map(({ id, role, message, complete }) => (
                                                 <MessageCard
-                                                    key={key}
+                                                    key={id}
                                                     avatar={role === 2 ? <LogoIcon /> : <Avatar src={session.user.avatar} />}
                                                     message={message}
-                                                    messageClassName={role === 'user' ? 'bg-content2 text-content2-foreground !py-3 w-full' : 'w-full'}
+                                                    messageClassName={role === 1 ? 'bg-content2 text-content2-foreground !py-3 w-full' : 'w-full'}
                                                     // showFeedback={role === 'assistant'}
                                                     status={complete === 1 ? 'success' : 'failed'}
-                                                    role={role}
+                                                    role={role === 1 ? 'user' : 'assistant'}
                                                 />
                                             ))}
                                         </div>

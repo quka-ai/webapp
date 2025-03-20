@@ -12,7 +12,13 @@ import { usePlan } from '@/hooks/use-plan';
 import SpaceUserSetting from '@/pages/dashboard/space-setting/user-setting';
 import spaceStore from '@/stores/space';
 
-const Setting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>(({ className, space, onClose, ...props }, ref) => {
+export interface SpaceSettingCardProps {
+    className?:string 
+    space:UserSpace 
+    onClose?: () => void
+}
+
+const Setting = React.forwardRef<HTMLDivElement, SpaceSettingCardProps>(({ className, space, onClose, ...props }, ref) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
 

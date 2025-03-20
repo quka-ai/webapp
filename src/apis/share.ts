@@ -1,7 +1,5 @@
 import instance from './request';
 
-import userStore from '@/stores/user';
-
 export interface SharedKnowledge {
     user_id: string;
     user_name: string;
@@ -31,6 +29,19 @@ export async function CreateKnowledgeShareURL(spaceID: string, embeddingURL: str
     let resp = await instance.post(`/space/${spaceID}/knowledge/share`, {
         embedding_url: embeddingURL,
         knowledge_id: knowledgeID
+    });
+
+    return resp.data.data;
+}
+
+export interface CreateSpaceShareURLResponse {
+    token: string; 
+    url: string
+}
+
+export async function CreateSpaceShareURL(spaceID: string, embeddingURL: string): Promise<CreateSpaceShareURLResponse> {
+    let resp = await instance.post(`/space/${spaceID}/share`, {
+        embedding_url: embeddingURL,
     });
 
     return resp.data.data;
@@ -80,6 +91,7 @@ export interface SharedSessionMessage {
     session_id: string;
     complete: number;
     message_type: number;
+    message: string;
 }
 
 export interface SharedSessionDetail {

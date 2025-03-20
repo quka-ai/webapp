@@ -1,5 +1,5 @@
-import { Button, cn, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Popover, PopoverContent, PopoverTrigger, Skeleton, Spacer, Textarea } from '@heroui/react';
-import React, { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from 'react';
+import { Button, cn, Input,  Popover, PopoverContent, PopoverTrigger, Spacer, Textarea } from '@heroui/react';
+import React, {  useCallback,  useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -10,11 +10,9 @@ import { loadUserSpaces } from '@/stores/space';
 interface ProfileSettingCardProps {
     className?: string;
     space: UserSpace;
-    className?: string;
-    label: string;
     variant?: string;
     radius?: string;
-    onClose: () => void;
+    onClose?: () => void;
 }
 
 const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>(({ className, space, onClose, ...props }, ref) => {
@@ -39,7 +37,7 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
                 await loadUserSpaces();
 
                 navigate('/dashboard');
-                onClose();
+                onClose && onClose();
             } catch (e: any) {
                 console.error(e);
             }

@@ -8,7 +8,7 @@ import Marker from '@editorjs/marker';
 import Quote from '@editorjs/quote';
 import Table from '@editorjs/table';
 import { Skeleton } from '@heroui/react';
-import { forwardRef, memo, useEffect, useImperativeHandle, useState } from 'react';
+import { forwardRef, memo, Ref, useEffect, useImperativeHandle, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import showdown from 'showdown';
 import { useSnapshot } from 'valtio';
@@ -93,8 +93,13 @@ export interface EditorProps {
     onValueChange?: () => void;
 }
 
+export interface EditorRefObject {
+    reRender:(data: OutputData)=>void;
+    update:(id: string, data: BlockToolData)=>void
+}
+
 export const Editor = memo(
-    forwardRef(({ data, dataType = '', autofocus = false, placeholder, readOnly, className, onValueChange }: EditorProps, ref: any) => {
+    forwardRef(({ data, dataType = '', autofocus = false, placeholder, readOnly, className, onValueChange }: EditorProps, ref: Ref<EditorRefObject>) => {
         const { t } = useTranslation();
         const [isReady, setIsReady] = useState(false);
         const { toast } = useToast();
@@ -159,12 +164,12 @@ export const Editor = memo(
                             await editor.blocks.renderFromHTML(htmlDoms);
                         } catch (e: any) {
                             console.error('editor render error', e);
-                            await editor.render([
+                            await editor.render({blocks: [
                                 {
                                     type: 'paragraph',
                                     data: { text: data || '' }
                                 }
-                            ]);
+                            ]});
                         }
                 }
             };
