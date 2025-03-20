@@ -35,7 +35,7 @@ export const setUserAccessToken = (token: string) => {
     localStorage.setItem('access_token', token);
 };
 
-export const setUserLoginToken = (token: strint) => {
+export const setUserLoginToken = (token: string) => {
     userStore.loginToken = token;
     localStorage.setItem('login_token', token);
 };
