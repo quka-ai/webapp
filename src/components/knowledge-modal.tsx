@@ -154,7 +154,7 @@ const ViewKnowledge = memo(
                 }
                 setSaveLoading(false);
             }
-        });
+        }, [editor]);
 
         const { userIsPro } = usePlan();
         const navigate = useNavigate();
@@ -188,13 +188,14 @@ const ViewKnowledge = memo(
                                                     } catch (e: any) {
                                                         console.error(e);
                                                     }
+                                                    return ""
                                                 }}
                                             />
                                         )}
                                     </ModalHeader>
                                     <ModalBody className="w-full flex flex-col items-center px-6 overflow-y-auto">
                                         {isEdit ? (
-                                            <KnowledgeEdit ref={editor} hideSubmit classNames={{ editor: '!mx-0' }} knowledge={knowledge} onChange={onChangeFunc} />
+                                            <KnowledgeEdit ref={editor} hideSubmit classNames={{ base:"", editor: '!mx-0' }} knowledge={knowledge} onChange={onChangeFunc} />
                                         ) : (
                                             <KnowledgeView knowledge={knowledge} />
                                         )}
@@ -205,7 +206,7 @@ const ViewKnowledge = memo(
                                                 {t('Close')} {canEsc && <Kbd>Esc</Kbd>}
                                             </Button>
                                         ) : (
-                                            <ButtonGroup variant="flat" size="base" className="mb-4">
+                                            <ButtonGroup variant="flat" size="md" className="mb-4">
                                                 <Button isDisabled={knowledge.stage !== 3} onPress={changeEditable}>
                                                     {(() => {
                                                         if (knowledge.stage == 1) {
@@ -222,7 +223,7 @@ const ViewKnowledge = memo(
                                                     })()}
                                                 </Button>
                                                 {isEdit ? (
-                                                    <Button color="primary" onPress={submit}>
+                                                    <Button color="primary" onPress={submit} isLoading={saveLoading}>
                                                         {t('Save')}
                                                     </Button>
                                                 ) : (
@@ -263,7 +264,7 @@ const ViewKnowledge = memo(
                                     </ModalBody>
                                     <ModalFooter className="flex justify-center">
                                         <Skeleton>
-                                            <ButtonGroup variant="flat" size="base">
+                                            <ButtonGroup variant="flat" size="md">
                                                 <Button />
                                                 <Button />
                                                 <Button />
