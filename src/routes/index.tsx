@@ -118,11 +118,6 @@ const routes = createBrowserRouter([
                 )
             },
             {
-                index: true,
-                path: '/test',
-                element: <TestIframe />
-            },
-            {
                 path: '/login',
                 element: (
                     <PreLogin>
