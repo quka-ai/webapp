@@ -1,6 +1,5 @@
+import { Button, Divider, Input, Link } from '@heroui/react';
 import { Icon } from '@iconify/react';
-import { Button, Divider, Input, Link } from "@heroui/react";
-import { AxiosError } from 'axios';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -141,10 +140,6 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
         setLoading(false);
     }
 
-    const navigateToForgot = useCallback(() => {
-        navigate('/forgot/password');
-    });
-
     const [useSelfHost, setUseSelfHost] = useState(false);
 
     const [email, setEmail] = useState('');
@@ -154,6 +149,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
         setLoading(true);
         try {
             const resp = await Login(email, md5(password));
+
             setCurrentSelectedSpace('');
             setUserSpaces([]);
             setUserLoginToken(resp.token);

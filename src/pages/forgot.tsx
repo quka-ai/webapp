@@ -1,5 +1,5 @@
+import { Alert, Button, Checkbox, Input, Link } from '@heroui/react';
 import { Icon } from '@iconify/react';
-import { Alert, Button, Checkbox, Input, Link } from "@heroui/react";
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -57,7 +57,7 @@ export default function Component() {
                             👋
                         </span>
                     </p>
-                    <div className="flex flex-col gap-4" validationbehavior="native">
+                    <div className="flex flex-col gap-4">
                         <Input
                             isRequired
                             label={t('Email Address')}

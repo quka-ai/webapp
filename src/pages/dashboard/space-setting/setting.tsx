@@ -1,24 +1,20 @@
-import { Button, Tab, Tabs } from '@heroui/react';
-import { Icon } from '@iconify/react';
-import React, { useMemo } from 'react';
+import { Tab, Tabs } from '@heroui/react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useSnapshot } from 'valtio';
 
 import ProfileSetting from './profile-setting';
 
 //import UserManagement from './user-management';
 import { usePlan } from '@/hooks/use-plan';
 import SpaceUserSetting from '@/pages/dashboard/space-setting/user-setting';
-import spaceStore from '@/stores/space';
 
 export interface SpaceSettingCardProps {
-    className?:string 
-    space:UserSpace 
-    onClose?: () => void
+    space: UserSpace;
+    onClose?: () => void;
 }
 
-const Setting = React.forwardRef<HTMLDivElement, SpaceSettingCardProps>(({ className, space, onClose, ...props }, ref) => {
+const Setting = React.forwardRef<HTMLDivElement, SpaceSettingCardProps>(({ space, onClose, ...props }, ref) => {
     const { t } = useTranslation();
     const navigate = useNavigate();
 

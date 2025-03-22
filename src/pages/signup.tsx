@@ -117,13 +117,13 @@ export default function Component({ changeMode }: { changeMode: (v: string) => v
         }
 
         sendVerifyEmail(email)
-            .then(res => {
+            .then(() => {
                 toast.success(t('Notify'), {
                     description: t('Please check your email for the verification code')
                 });
                 paginate(1);
             })
-            .finally(res => {
+            .finally(() => {
                 setIsLoading(false);
             });
     };
@@ -169,20 +169,28 @@ export default function Component({ changeMode }: { changeMode: (v: string) => v
             return (
                 <span
                     className="text-sm text-primary cursor-pointer"
+                    tabIndex={0}
                     onClick={() => {
                         sendVerifyEmail(email);
+                    }}
+                    onKeyDown={e => {
+                        if (e.key === 'Enter') {
+                            sendVerifyEmail(email);
+                        }
                     }}
                 >
                     {t('ResendEmail')}
                 </span>
             );
         }
-        return <span></span>;
+
+        return <span />;
     }, [isSendVerifyEmail, email, resendEmailGap]);
 
     const handleSignUpSubmit = async () => {
         if (verifyCode === '') {
             setIsVerifyCodeValid(t('NotEmpty'));
+
             return;
         }
         setIsVerifyCodeValid('');
