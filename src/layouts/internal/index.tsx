@@ -176,7 +176,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                     <div className="flex items-center justify-between">
                         <Link color="foreground" href="/" className="cursor-pointer">
                             <div className="flex items-center gap-2 px-2">
-                                <LogoIcon size={40} />
+                                <LogoIcon size={36} />
 
                                 <span className="text-lg font-bold header-text">{Name}</span>
                             </div>

@@ -254,7 +254,7 @@ const WorkBar = memo(function WorkBar({ spaceid, onSubmit, isShowCreate, onShowC
 
 export default WorkBar;
 
-const FileTask = memo(() => {
+const FileTask = memo(function FileTask() {
     const { t } = useTranslation();
     function init() {
         setChunkFile({});

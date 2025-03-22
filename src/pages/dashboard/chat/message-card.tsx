@@ -123,7 +123,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
                         shape="circle"
                     >
                         {avatar ? (
-                            <Avatar icon={avatar} size={isMobile ? 'sm' : 'base'} />
+                            avatar
                         ) : (
                             <Skeleton className="rounded-full">
                                 <Avatar />

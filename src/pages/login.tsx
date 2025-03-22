@@ -28,11 +28,9 @@ export default function Component() {
         >
             {/* Brand Logo */}
             <div className="absolute left-10 top-10">
-                <div className="flex items-center">
-                    <Link href="/">
-                        <LogoIcon className="text-white mr-2" size={34} />
-                        <p className="font-medium text-white">{Name}</p>
-                    </Link>
+                <div className="flex items-center gap-2">
+                    <LogoIcon className="text-white" size={34} />
+                    <p className="font-medium text-white">{Name}</p>
                 </div>
             </div>
 

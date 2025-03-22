@@ -9,6 +9,7 @@ import { useSnapshot } from 'valtio';
 import { GenChatMessageID, GetChatSessionHistory, GetMessageExt, MessageDetail, NamedChatSession, SendMessage } from '@/apis/chat';
 import KnowledgeModal from '@/components/knowledge-modal';
 import { LogoIcon, Name } from '@/components/logo';
+import { useMedia } from '@/hooks/use-media';
 import useUserAvatar from '@/hooks/use-user-avatar';
 import { FireTowerMsg } from '@/lib/firetower';
 import MessageCard, { type MessageExt } from '@/pages/dashboard/chat/message-card';
@@ -476,6 +477,8 @@ export default function Chat() {
         [viewKnowledge]
     );
 
+    const { isMobile } = useMedia();
+
     return (
         <>
             <div className="overflow-hidden w-full h-full flex flex-col relative px-3">
@@ -485,7 +488,7 @@ export default function Chat() {
                             {messages.map(({ key, role, message, attach, status, ext }) => (
                                 <MessageCard
                                     key={key}
-                                    avatar={role === 'assistant' ? <LogoIcon /> : <Avatar src={userAvatar} />}
+                                    avatar={role === 'assistant' ? <LogoIcon size={isMobile ? '30' : '38'} /> : <Avatar src={userAvatar} size={isMobile ? 'sm' : 'base'} />}
                                     message={message}
                                     attach={attach}
                                     messageClassName={role === 'user' ? 'bg-content2 text-content2-foreground !py-3 w-full px-3' : 'px-1 w-full'}
