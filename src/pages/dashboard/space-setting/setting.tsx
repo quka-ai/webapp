@@ -3,7 +3,6 @@ import { Icon } from '@iconify/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useSnapshot } from 'valtio';
 
 import ProfileSetting from './profile-setting';
 import SpaceUserApplications from './user-applications';
@@ -13,7 +12,6 @@ import ShareButton from '@/components/share-button';
 //import UserManagement from './user-management';
 import { usePlan } from '@/hooks/use-plan';
 import SpaceUserSetting from '@/pages/dashboard/space-setting/user-setting';
-import spaceStore from '@/stores/space';
 
 export interface SpaceSettingCardProps {
     onClose?: () => void;
