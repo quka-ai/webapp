@@ -124,6 +124,7 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
     );
 
     const [isRemoveLoading, setIsRemoveLoading] = useState(false);
+    const { userInfo } = useSnapshot(userStore);
 
     const renderCell = useCallback(
         (item: SpaceUser, columnKey: string) => {
@@ -167,26 +168,28 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
                 case 'actions':
                     return (
                         <div className="relative flex justify-end items-center gap-2">
-                            <Popover showArrow offset={10}>
-                                <PopoverTrigger>
-                                    <Button size="sm" variant="ghost">
-                                        {t('Remove')}
-                                    </Button>
-                                </PopoverTrigger>
-                                <PopoverContent>
-                                    <Button
-                                        color="warning"
-                                        size="sm"
-                                        onPress={async () => {
-                                            toast.promise(removeUser(item.user_id), {
-                                                loading: t(`Doing`)
-                                            });
-                                        }}
-                                    >
-                                        {t('Confirm')}
-                                    </Button>
-                                </PopoverContent>
-                            </Popover>
+                            {item.user_id !== userInfo.userID && (
+                                <Popover showArrow offset={10}>
+                                    <PopoverTrigger>
+                                        <Button size="sm" variant="ghost">
+                                            {t('Remove')}
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent>
+                                        <Button
+                                            color="warning"
+                                            size="sm"
+                                            onPress={async () => {
+                                                toast.promise(removeUser(item.user_id), {
+                                                    loading: t(`Doing`)
+                                                });
+                                            }}
+                                        >
+                                            {t('Confirm')}
+                                        </Button>
+                                    </PopoverContent>
+                                </Popover>
+                            )}
                         </div>
                     );
                 case 'created_at':
@@ -195,11 +198,11 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
                     return cellValue;
             }
         },
-        [spaceID]
+        [spaceID, userInfo]
     );
 
     return (
-        <>
+        <div className="w-full overflow-hidden">
             <Table
                 removeWrapper
                 aria-label="Example table with custom cells, pagination and sorting"
@@ -266,7 +269,7 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
             </Table>
             <Modal isOpen={isOpen} backdrop="blur" size="5xl" onOpenChange={onOpenChange}>
                 <ModalContent>
-                    {onClose => (
+                    {_ => (
                         <>
                             <ModalHeader className="flex flex-col gap-1">{t('TaskList')}</ModalHeader>
                             <ModalBody></ModalBody>
@@ -275,6 +278,6 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
                     )}
                 </ModalContent>
             </Modal>
-        </>
+        </div>
     );
 }

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 
 import ProfileSetting from './profile-setting';
+import SpaceUserApplications from './user-applications';
 
 //import UserManagement from './user-management';
 import { usePlan } from '@/hooks/use-plan';
@@ -43,6 +44,10 @@ const Setting = React.forwardRef<HTMLDivElement, SpaceSettingCardProps>(({ space
                     <Tab key="appearance" title={t('UserManage')}>
                         {/* <UserManagement /> */}
                         <SpaceUserSetting />
+                    </Tab>
+                    <Tab key="invite" title={t('space-setting.UserApplication')}>
+                        {/* <UserManagement /> */}
+                        <SpaceUserApplications />
                     </Tab>
                 </Tabs>
             </div>

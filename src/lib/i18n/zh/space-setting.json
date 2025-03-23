@@ -1,3 +1,4 @@
 {
-    "ShareButton": "生成分享链接"
+    "ShareButton": "生成分享链接",
+"ApplicationSearchPlaceholder": "通过ID、邮箱或用户名查找"
 }
