@@ -4,19 +4,13 @@ import { t } from 'i18next';
 import { useState } from 'react';
 
 import DotPattern from '@/components/dot-pattern';
-import { DiscordIcon, GithubIcon, XiaohongshuLogo } from '@/components/icons';
-import AnimatedBeamMultipleOutput from '@/components/index-beam';
+import { XiaohongshuLogo } from '@/components/icons';
 import BentoDemo from '@/components/index-bento-gird';
 import { Name } from '@/components/logo';
-import MorphingText from '@/components/morphing-text';
 import NeonGradientCard from '@/components/neon-gradient-card';
 import Particles from '@/components/particles';
-import { subtitle, title } from '@/components/primitives';
-import SafariBox from '@/components/safari-box';
-import { VelocityScroll } from '@/components/scroll-based-velocity';
-import ShineBorder from '@/components/shine-border';
+import { title } from '@/components/primitives';
 import ShinyText from '@/components/shiny-text';
-import SparklesText from '@/components/sparkles-text';
 import TextRevealByWord from '@/components/text-reveal';
 import DefaultLayout from '@/layouts/default';
 

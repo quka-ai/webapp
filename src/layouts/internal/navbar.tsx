@@ -26,11 +26,12 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
     const { t } = useTranslation();
     const { currentSelectedResource } = useSnapshot(resourceStore);
     const { spaces, currentSelectedSpace } = useSnapshot(spaceStore);
-    const { isChat, isSession } = useChatPageCondition();
-    const resourceManage = useRef<HTMLElement>();
     const currentSpace = useMemo(() => {
         return spaces.find(v => v.space_id === currentSelectedSpace);
     }, [spaces, currentSelectedSpace]);
+    const { isChat, isSession } = useChatPageCondition();
+    const resourceManage = useRef<HTMLElement>();
+
     const { sessionID } = useParams();
 
     const navigate = useNavigate();

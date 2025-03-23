@@ -1,11 +1,8 @@
-import { Button } from '@heroui/react';
-import { memo, useCallback, useState } from 'react';
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSnapshot } from 'valtio';
 
-import { CreateSpaceShareURL } from '@/apis/share';
-import ShareButton from '@/components/share-button';
-import { SpaceUserList } from '@/components/space/space-user';
+import { SpaceApplicationList } from '@/components/space/space-application-list';
 import spaceStore from '@/stores/space';
 
 const SpaceUserApplications = memo(function Component() {
@@ -14,20 +11,7 @@ const SpaceUserApplications = memo(function Component() {
 
     return (
         <>
-            <div className="flex justify-end">
-                <ShareButton
-                    text={t('space-setting.ShareButton')}
-                    genUrlFunc={async () => {
-                        try {
-                            const res = await CreateSpaceShareURL(currentSelectedSpace, window.location.origin + '/s/sp/{token}');
-                            return res.url;
-                        } catch (e: any) {
-                            console.error(e);
-                        }
-                    }}
-                />
-            </div>
-            <SpaceUserList spaceID={currentSelectedSpace} />
+            <SpaceApplicationList spaceID={currentSelectedSpace} />
         </>
     );
 });

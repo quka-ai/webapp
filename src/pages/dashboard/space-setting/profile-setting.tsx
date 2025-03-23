@@ -1,30 +1,45 @@
-import { Button, cn, Input,  Popover, PopoverContent, PopoverTrigger, Spacer, Textarea } from '@heroui/react';
-import React, {  useCallback,  useMemo, useState } from 'react';
+import { Button, cn, Input, Popover, PopoverContent, PopoverTrigger, Spacer, Textarea } from '@heroui/react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useSnapshot } from 'valtio';
 
 import { DeleteUserSpace, UpdateUserSpace } from '@/apis/space';
-import { loadUserSpaces } from '@/stores/space';
+import spaceStore, { loadUserSpaces } from '@/stores/space';
 
 interface ProfileSettingCardProps {
     className?: string;
-    space: UserSpace;
     variant?: string;
     radius?: string;
     onClose?: () => void;
 }
 
-const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>(({ className, space, onClose, ...props }, ref) => {
+const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>(({ className, onClose, ...props }, ref) => {
     const { t } = useTranslation();
 
-    const [desc, setDesc] = useState(space.description);
-    const [title, setTitle] = useState(space.title);
-    const [basePrompt, setBasePrompt] = useState(space.base_prompt);
-    const [chatPrompt, setChatPrompt] = useState(space.chat_prompt);
+    const { spaces, currentSelectedSpace } = useSnapshot(spaceStore);
+    const space = useMemo(() => {
+        return spaces.find(v => v.space_id === currentSelectedSpace);
+    }, [spaces, currentSelectedSpace]);
+
+    const [desc, setDesc] = useState('');
+    const [title, setTitle] = useState('');
+    const [basePrompt, setBasePrompt] = useState('');
+    const [chatPrompt, setChatPrompt] = useState('');
     const [loading, setLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [isDisabled, setIsDisabled] = useState(false);
+
+    useEffect(() => {
+        if (!space) {
+            return;
+        }
+        setDesc(space.description);
+        setBasePrompt(space.base_prompt);
+        setChatPrompt(space.chat_prompt);
+        setTitle(space.title);
+    }, [space]);
 
     const navigate = useNavigate();
 
@@ -79,12 +94,14 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
     }, []);
 
     return (
-        <div ref={ref} className={cn('p-2', className)} {...props}>
-            {/* Profile */}
-            <div>
-                <p className="text-lg font-medium text-default-700">{t('SpaceProfile')}</p>
-                <p className="mt-1 text-sm font-normal text-default-400">This displays your space profile on the site.</p>
-                {/* <Card className="mt-4 bg-default-100" shadow="none">
+        <>
+            {title && (
+                <div ref={ref} className={cn('p-2', className)} {...props}>
+                    {/* Profile */}
+                    <div>
+                        <p className="text-lg font-medium text-default-700">{t('SpaceProfile')}</p>
+                        <p className="mt-1 text-sm font-normal text-default-400">This displays your space profile on the site.</p>
+                        {/* <Card className="mt-4 bg-default-100" shadow="none">
                     <CardBody>
                         <div className="flex items-center gap-4">
                             <Badge
@@ -108,73 +125,75 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
                         </div>
                     </CardBody>
                 </Card> */}
-            </div>
-            <Spacer y={4} />
+                    </div>
+                    <Spacer y={4} />
 
-            <div className="flex flex-col gap-4">
-                <Input label={t('createSpaceNameLabel')} defaultValue={title} size="lg" labelPlacement="outside" placeholder="Named your space" variant="bordered" onValueChange={setTitle} />
-                <Textarea
-                    size="lg"
-                    label={t('createSpaceDescriptionLabel')}
-                    variant="bordered"
-                    labelPlacement="outside"
-                    placeholder="Your space description"
-                    className="w-full"
-                    defaultValue={desc}
-                    onValueChange={setDesc}
-                />
-                <Textarea
-                    size="lg"
-                    label={t('createSpaceBasePromptLabel')}
-                    variant="bordered"
-                    labelPlacement="outside"
-                    placeholder="Your space base prompt"
-                    className="w-full"
-                    defaultValue={basePrompt}
-                    onValueChange={setBasePrompt}
-                    description={promptVar}
-                />
-                <Textarea
-                    size="lg"
-                    label={t('createSpaceChatPromptLabel')}
-                    variant="bordered"
-                    labelPlacement="outside"
-                    placeholder="Your space chat prompt"
-                    className="w-full"
-                    defaultValue={chatPrompt}
-                    onValueChange={setChatPrompt}
-                    description={promptVar}
-                />
-                <Spacer y={2} />
-                <div className="flex justify-end gap-4">
-                    <Popover placement="top">
-                        <PopoverTrigger>
-                            <Button className="shadow-lg" color="danger" isDisabled={isDisabled} onPress={deleteSpace}>
-                                {t('Delete')}
+                    <div className="flex flex-col gap-4">
+                        <Input label={t('createSpaceNameLabel')} defaultValue={title} size="lg" labelPlacement="outside" placeholder="Named your space" variant="bordered" onValueChange={setTitle} />
+                        <Textarea
+                            size="lg"
+                            label={t('createSpaceDescriptionLabel')}
+                            variant="bordered"
+                            labelPlacement="outside"
+                            placeholder="Your space description"
+                            className="w-full"
+                            defaultValue={desc}
+                            onValueChange={setDesc}
+                        />
+                        <Textarea
+                            size="lg"
+                            label={t('createSpaceBasePromptLabel')}
+                            variant="bordered"
+                            labelPlacement="outside"
+                            placeholder="Your space base prompt"
+                            className="w-full"
+                            defaultValue={basePrompt}
+                            description={promptVar}
+                            onValueChange={setBasePrompt}
+                        />
+                        <Textarea
+                            size="lg"
+                            label={t('createSpaceChatPromptLabel')}
+                            variant="bordered"
+                            labelPlacement="outside"
+                            placeholder="Your space chat prompt"
+                            className="w-full"
+                            defaultValue={chatPrompt}
+                            description={promptVar}
+                            onValueChange={setChatPrompt}
+                        />
+                        <Spacer y={2} />
+                        <div className="flex justify-end gap-4">
+                            <Popover placement="top">
+                                <PopoverTrigger>
+                                    <Button className="shadow-lg" color="danger" isDisabled={isDisabled} onPress={deleteSpace}>
+                                        {t('Delete')}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[240px]">
+                                    {titleProps => (
+                                        <div className="px-1 py-2 w-full">
+                                            <p className="text-small font-bold text-foreground" {...titleProps}>
+                                                {t('DeleteSpaceWarning')}
+                                            </p>
+                                            <div className="mt-2 flex flex-col gap-2 w-full">
+                                                <Button color="danger" isDisabled={isDisabled} variant="ghost" isLoading={deleteLoading} onPress={deleteSpace}>
+                                                    {t('Delete Enter')}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    )}
+                                </PopoverContent>
+                            </Popover>
+
+                            <Button className="bg-gradient-to-tr from-red-500 to-blue-500 text-white shadow-lg" isDisabled={isDisabled} isLoading={loading} onPress={updateSpace}>
+                                {t('Update')}
                             </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-[240px]">
-                            {titleProps => (
-                                <div className="px-1 py-2 w-full">
-                                    <p className="text-small font-bold text-foreground" {...titleProps}>
-                                        {t('DeleteSpaceWarning')}
-                                    </p>
-                                    <div className="mt-2 flex flex-col gap-2 w-full">
-                                        <Button color="danger" isDisabled={isDisabled} variant="ghost" isLoading={deleteLoading} onPress={deleteSpace}>
-                                            {t('Delete Enter')}
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-                        </PopoverContent>
-                    </Popover>
-
-                    <Button className="bg-gradient-to-tr from-red-500 to-blue-500 text-white shadow-lg" isDisabled={isDisabled} isLoading={loading} onPress={updateSpace}>
-                        {t('Update')}
-                    </Button>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        </div>
+            )}
+        </>
     );
 });
 

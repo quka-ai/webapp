@@ -1,29 +1,6 @@
 import { OutputBlockData, OutputData } from '@editorjs/editorjs';
 import type { CalendarDate, Selection } from '@heroui/react';
-import {
-    BreadcrumbItem,
-    Breadcrumbs,
-    Button,
-    ButtonGroup,
-    Card,
-    Checkbox,
-    CheckboxGroup,
-    cn,
-    Listbox,
-    ListboxItem,
-    ListboxSection,
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-    Progress,
-    ScrollShadow,
-    select,
-    Select,
-    SelectItem,
-    SelectSection,
-    Slider,
-    Textarea
-} from '@heroui/react';
+import { BreadcrumbItem, Breadcrumbs, Button, ButtonGroup, Checkbox, Listbox, ListboxItem, ListboxSection, Popover, PopoverContent, PopoverTrigger, Progress } from '@heroui/react';
 import { Calendar } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { getLocalTimeZone, parseDate, today } from '@internationalized/date';
@@ -97,7 +74,7 @@ export default function Component() {
     const navigate = useNavigate();
 
     const [journal, setJournal] = useState<Journal>({});
-    const [blocks, setBlocks] = useState<OutputData>("");
+    const [blocks, setBlocks] = useState<OutputData>('');
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -512,8 +489,8 @@ export default function Component() {
 
                         {/* </div> */}
                         <div className="flex h-10 justify-center items-center">
-                            <ButtonGroup variant="ghost" size="base" className="mb-4">
-                                <Button onPress={() => updateJournal(blocks)} isDisabled={!isChanged} color={isChanged ? 'primary' : undefined}>
+                            <ButtonGroup variant="ghost" size="md" className="mb-4">
+                                <Button isDisabled={!isChanged} color={isChanged ? 'primary' : undefined} onPress={() => updateJournal(blocks)}>
                                     {t('Save')}
                                 </Button>
                                 <Button
@@ -531,9 +508,6 @@ export default function Component() {
                     <Listbox
                         aria-label="rel docs"
                         variant="faded"
-                        onAction={key => {
-                            showKnowledge(key as string);
-                        }}
                         classNames={{
                             base: 'max-w-xs',
                             list: 'max-h-screen overflow-scroll'
@@ -543,6 +517,9 @@ export default function Component() {
                             itemHeight: 40
                         }}
                         topContent={<span className="text-zinc-500 text-sm font-bold">{t('DateRelKnowledge')}</span>}
+                        onAction={key => {
+                            showKnowledge(key as string);
+                        }}
                     >
                         <ListboxSection classNames={{ heading: 'text-zinc-500 text-sm font-bold' }}>
                             {knowledges &&

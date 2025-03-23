@@ -167,11 +167,11 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                     </div>
                     <div className="fixed w-full left-0 bottom-0 min-h-14 flex justify-center items-center bg-content1 z-50 box-border">
                         {isSpaceViewer ? (
-                            <ButtonGroup>
+                            <ButtonGroup size="md">
                                 <Button onPress={onClose}>{t('Close')}</Button>
                             </ButtonGroup>
                         ) : (
-                            <ButtonGroup variant="flat" size="base" className=" mt-2 mb-4">
+                            <ButtonGroup variant="flat" size="md" className=" mt-2 mb-4">
                                 <Button isDisabled={knowledge.stage !== 3} onPress={changeEditable}>
                                     {(() => {
                                         if (knowledge.stage == 1) {
@@ -223,7 +223,7 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                     </div>
                     <div className="fixed w-full left-0 bottom-0 h-14 flex justify-center items-center bg-content1">
                         <Skeleton className="rounded-lg">
-                            <ButtonGroup variant="flat" size="base">
+                            <ButtonGroup variant="flat" size="md">
                                 <Button />
                                 <Button />
                                 <Button />

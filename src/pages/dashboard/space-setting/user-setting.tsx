@@ -12,9 +12,9 @@ const SpaceUserSetting = memo(function Component() {
     const { currentSelectedSpace } = useSnapshot(spaceStore);
 
     return (
-        <>
+        <div className="relative">
             <SpaceUserList spaceID={currentSelectedSpace} />
-        </>
+        </div>
     );
 });
 

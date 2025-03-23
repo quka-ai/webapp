@@ -1,6 +1,6 @@
 'use client';
 
-import { HeroUIProvider } from '@heroui/react';
+import { HeroUIProvider, ToastProvider } from '@heroui/react';
 import { enableMapSet } from 'immer';
 import { Children, useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
@@ -58,7 +58,7 @@ export function App({ children }: { children: React.ReactNode }) {
         <MyProvider>
             <Outlet />
             <Toaster />
-            <SonnerTotaster theme={isDark ? 'dark' : 'light'} />
+            <SonnerTotaster className="border-1 border-zinc-500" theme={isDark ? 'dark' : 'light'} />
             <span className="bg-zinc-800" />
         </MyProvider>
     );
@@ -69,6 +69,15 @@ function MyProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <HeroUIProvider navigate={navigate}>
+            <ToastProvider
+                toastProps={{
+                    variant: 'flat',
+                    timeout: 2000,
+                    classNames: {
+                        closeButton: 'opacity-100 absolute right-4 top-1/2 -translate-y-1/2'
+                    }
+                }}
+            />
             <KnowledgeProvider>
                 <ShareProvider>{children}</ShareProvider>
             </KnowledgeProvider>

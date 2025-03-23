@@ -1,4 +1,9 @@
 {
     "ShareButton": "生成分享链接",
-"ApplicationSearchPlaceholder": "通过ID、邮箱或用户名查找"
+    "UserApplication": "用户申请",
+    "ApplicationSearchPlaceholder": "通过ID、邮箱或用户名查找",
+    "AllowAllApplications": "允许全部",
+    "AllowApplication": "允许",
+    "RejectAllApplications": "拒绝全部",
+    "RejectApplication": "拒绝"
 }

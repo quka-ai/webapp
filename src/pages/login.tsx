@@ -10,6 +10,7 @@ import { LogoIcon, Name } from '@/components/logo';
 import { toast } from '@/hooks/use-toast';
 import { md5 } from '@/lib/utils';
 import SignUp from '@/pages/signup';
+import eventStore from '@/stores/event';
 import { setCurrentSelectedSpace, setUserSpaces } from '@/stores/space';
 import userStore, { setHost, setUserAccessToken, setUserInfo, setUserLoginToken } from '@/stores/user';
 
@@ -98,6 +99,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
     );
 
     const navigate = useNavigate();
+    const { loginRedirect } = useSnapshot(eventStore);
 
     async function accessTokenLogin() {
         if (!accessToken) {
@@ -131,7 +133,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
                 serviceMode: resp.service_mode
             });
 
-            navigate('/dashboard', { replace: true });
+            navigate(loginRedirect || '/dashboard', { replace: true });
         } catch (e: any) {
             console.error(e);
         }
@@ -160,7 +162,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
                 serviceMode: resp.meta.service_mode
             });
 
-            navigate('/dashboard', { replace: true });
+            navigate(loginRedirect || '/dashboard', { replace: true });
         } catch (e: AxiosError) {
             if (e.response?.status === 403) {
                 toast({

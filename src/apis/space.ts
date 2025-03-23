@@ -53,3 +53,46 @@ export async function ListSpaceUsers(spaceID: string, keywords: string, page: nu
 
     return resp.data.data;
 }
+export interface SpaceApplicationItem {
+    user: SpaceApplicationUser;
+    desc: string;
+    user_id: string;
+    status: string;
+}
+
+export interface SpaceApplicationUser {
+    id: string;
+    name: string;
+    email: string;
+    avatar: string;
+}
+
+export interface ListSpaceApplicationUsersResponse {
+    list: SpaceApplicationItem[];
+    total: number;
+}
+
+export async function ListSpaceApplicationUsers(spaceID: string, keywords: string, page: number, pagesize: number): Promise<ListSpaceApplicationUsersResponse> {
+    let resp = await instance.get(`/space/${spaceID}/application/users`, {
+        params: {
+            keywords: keywords,
+            page: page,
+            pagesize: pagesize
+        }
+    });
+
+    return resp.data.data;
+}
+
+export async function HandlerSpaceApplication(spaceID: string, ids: string[], status: string): Promise<void> {
+    await instance.put(`/space/${spaceID}/application/handler`, {
+        ids: ids,
+        status: status
+    });
+}
+
+export async function GetSpaceLandingDetail(token: string): Promise<SpaceLandingDetail> {
+    let resp = await instance.get(`/space/landing/${token}`);
+
+    return resp.data.data;
+}

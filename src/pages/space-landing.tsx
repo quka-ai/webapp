@@ -6,7 +6,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { GetSharedKnowledge, type SharedKnowledge } from '@/apis/share';
 import { Editor } from '@/components/editor/index';
-import ShareHeader from '@/pages/share/components/header';
 
 export default function SpaceLnadingPage() {
     const { t } = useTranslation();
@@ -38,36 +37,6 @@ export default function SpaceLnadingPage() {
 
     const navigator = useNavigate();
 
-    const controlsContent = useMemo(() => {
-        return (
-            <>
-                {knowledge && (
-                    <div className="flex flex-col gap-4">
-                        {knowledge.user_name && (
-                            <User
-                                className="my-4 justify-start"
-                                avatarProps={{
-                                    src: knowledge.user_avatar
-                                }}
-                                description={t('CreatedOn') + ' ' + new Date(knowledge.created_at * 1000).toLocaleDateString()}
-                                name={knowledge.user_name}
-                            />
-                        )}
-
-                        <Button
-                            variant="ghost"
-                            onPress={() => {
-                                navigator('/');
-                            }}
-                        >
-                            {t('Back') + ' ' + t('Home')}
-                        </Button>
-                    </div>
-                )}
-            </>
-        );
-    }, [knowledge]);
-
     const editor = useMemo(() => {
         if (!knowledge || !knowledge.content) {
             return <></>;
@@ -77,7 +46,6 @@ export default function SpaceLnadingPage() {
     }, [knowledge]);
     return (
         <section className="h-screen flex flex-col w-full p-4 overflow-hidden items-center bg-content2">
-            <ShareHeader controlsContent={controlsContent} type="knowledge" createdUser={knowledge ? knowledge.user_id : ''}></ShareHeader>
             <main className="flex gap-6 w-full max-w-[1400px] h-full items-stretch justify-center relative">
                 {/* Controls */}
                 <div className="hidden w-[260px] overflow-hidden flex-col gap-4 lg:flex sticky top-0">{controlsContent}</div>
