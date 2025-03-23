@@ -5,13 +5,9 @@ import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useImmer } from 'use-immer';
 import { useSnapshot } from 'valtio';
-
-
-
 import { HandlerSpaceApplication, ListSpaceApplicationUsers, SpaceApplicationItem } from '@/apis/space';
 import userStore from '@/stores/user';
 import { Role } from '@/types';
-
 
 export enum SPACE_APPLICATION_STATUS {
     None = 'none',
@@ -181,7 +177,11 @@ export function SpaceApplicationList({ spaceID }: SpaceUserProps) {
                                         color="warning"
                                         size="sm"
                                         onPress={async () => {
+<<<<<<< HEAD
                                             toast.promise(handler([item.id], SPACE_APPLICATION_STATUS.Refused), {
+=======
+                                            toast.promise(handler([item.user_id], SPACE_APPLICATION_STATUS.Refused), {
+>>>>>>> 1dee4d4 (save)
                                                 loading: t(`Doing`),
                                                 success: t(`Success`),
                                                 error: t(`Failed`)
@@ -279,4 +279,8 @@ export function SpaceApplicationList({ spaceID }: SpaceUserProps) {
             </Table>
         </div>
     );
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 1dee4d4 (save)

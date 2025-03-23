@@ -1,11 +1,9 @@
 // !!! TODO !!!
-import { Avatar, Button, Chip, Link, Skeleton, User } from '@heroui/react';
-import { use } from 'i18next';
+import { Button, Chip, Link, Skeleton, User } from '@heroui/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { GetSharedKnowledge, type SharedKnowledge } from '@/apis/share';
 import { GetSpaceLandingDetail, SpaceLandingDetail } from '@/apis/space';
 import { LogoIcon, Name } from '@/components/logo';
 import SpaceApplicationForm from '@/components/space/space-application-form';
