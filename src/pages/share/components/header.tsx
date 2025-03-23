@@ -21,9 +21,8 @@ export interface ShareHeaderProps {
     createdUser: string;
 }
 
-export default memo(({ controlsContent, type, createdUser }: ShareHeaderProps) => {
+export default memo(function ShareHeader({ controlsContent, type, createdUser }: ShareHeaderProps) {
     const { t } = useTranslation();
-    const navigate = useNavigate();
     const { token } = useParams(); // share token
 
     const { userInfo, accessToken, loginToken } = useSnapshot(userStore);

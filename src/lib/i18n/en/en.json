@@ -270,5 +270,7 @@
     "role-editor": "Editor",
     "role-viewer": "Viewer",
     "role-member": "Member",
-    "Search": "Search"
+    "role-chief": "Chief",
+    "Search": "Search",
+    "Reset": "Reset"
 }

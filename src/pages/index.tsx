@@ -4,19 +4,13 @@ import { t } from 'i18next';
 import { useState } from 'react';
 
 import DotPattern from '@/components/dot-pattern';
-import { DiscordIcon, GithubIcon, XiaohongshuLogo } from '@/components/icons';
-import AnimatedBeamMultipleOutput from '@/components/index-beam';
+import { XiaohongshuLogo } from '@/components/icons';
 import BentoDemo from '@/components/index-bento-gird';
 import { Name } from '@/components/logo';
-import MorphingText from '@/components/morphing-text';
 import NeonGradientCard from '@/components/neon-gradient-card';
 import Particles from '@/components/particles';
-import { subtitle, title } from '@/components/primitives';
-import SafariBox from '@/components/safari-box';
-import { VelocityScroll } from '@/components/scroll-based-velocity';
-import ShineBorder from '@/components/shine-border';
+import { title } from '@/components/primitives';
 import ShinyText from '@/components/shiny-text';
-import SparklesText from '@/components/sparkles-text';
 import TextRevealByWord from '@/components/text-reveal';
 import DefaultLayout from '@/layouts/default';
 
@@ -60,18 +54,6 @@ export default function IndexPage() {
                                 {t('QuickStart')}
                             </Button>
                         </Link>
-
-                        {/* <Link href="https://discord.gg/YGrbmbCVRF">
-                        <Button color="primary" className="flex gap-2  items-center">
-                            Document
-                        </Button>
-                    </Link>
-                    <Link href="https://github.com/breeew/brew">
-                        <Button color="primary" className="flex gap-2  items-center" variant="bordered">
-                            <GithubIcon />
-                            Github
-                        </Button>
-                    </Link> */}
                     </div>
                 </div>
 
@@ -101,7 +83,7 @@ export default function IndexPage() {
                     <p className="z-10 whitespace-pre-wrap text-center text-lg font-medium tracking-tighter text-zinc-400 mt-4">{t('siteCommunityDescription')}</p>
 
                     <div className="flex flex-col md:flex-row gap-10 my-10">
-                        <Link target="_blank" href="https://github.com/breeew/brew">
+                        <Link target="_blank" href="https://github.com/quka-ai/quka-ai">
                             <Button startContent={<Icon icon="uil:github" height={50} className="" />} variant="light" className="text-2xl font-semibold">
                                 GitHub
                             </Button>

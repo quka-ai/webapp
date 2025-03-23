@@ -254,7 +254,7 @@ const WorkBar = memo(function WorkBar({ spaceid, onSubmit, isShowCreate, onShowC
 
 export default WorkBar;
 
-const FileTask = memo(() => {
+const FileTask = memo(function FileTask() {
     const { t } = useTranslation();
     function init() {
         setChunkFile({});
@@ -477,11 +477,11 @@ const CreateKnowledgeModal = memo(
                                     </Breadcrumbs>
                                 </ModalHeader>
                                 <ModalBody className="w-full flex flex-col items-center">
-                                    <KnowledgeEdit ref={editor} classNames={{ editor: '!mx-0' }} knowledge={knowledge} hideSubmit onChange={onChangeFunc} onCancel={onCancelFunc} />
+                                    <KnowledgeEdit ref={editor} hideSubmit classNames={{ editor: '!mx-0' }} knowledge={knowledge} onChange={onChangeFunc} onCancel={onCancelFunc} />
                                 </ModalBody>
                                 <ModalFooter className="flex justify-center">
-                                    <ButtonGroup variant="flat" size="base" className="mb-4">
-                                        <Button color="primary" onPress={submit} isLoading={createLoading}>
+                                    <ButtonGroup variant="flat" size="md" className="mb-4">
+                                        <Button color="primary" isLoading={createLoading} onPress={submit}>
                                             {t('Save')}
                                         </Button>
                                         <Button onPress={onClose}>{t('Close')}</Button>

@@ -1,6 +1,7 @@
 import { Button, Drawer, DrawerBody, DrawerContent, useDisclosure } from '@heroui/react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 import Setting from './setting';
 
@@ -13,30 +14,32 @@ export interface SpaceSettingProps {
 export function SpaceSetting({ space }: SpaceSettingProps) {
     const { isOpen, onOpen, onClose } = useDisclosure();
     const { t } = useTranslation();
-    const [size, setSize] = useState('3xl');
-    const { isMobile } = useMedia();
+    const navigate = useNavigate();
+    // const [size, setSize] = useState('3xl');
+    // const { isMobile } = useMedia();
 
-    useEffect(() => {
-        if (isMobile) {
-            setSize('full');
-        } else {
-            setSize('3xl');
-        }
-    }, [isMobile]);
+    // useEffect(() => {
+    //     if (isMobile) {
+    //         setSize('full');
+    //     } else {
+    //         setSize('3xl');
+    //     }
+    // }, [isMobile]);
 
-    const handleOpen = size => {
-        setSize(size);
-        onOpen();
+    const handleOpen = () => {
+        // setSize(size);
+        // onOpen();
+        navigate(`/dashboard/space-setting/${space.space_id}`);
     };
 
     return (
         <>
             <div className="flex flex-wrap gap-3">
-                <Button key={size} variant="ghost" onPress={() => handleOpen(size)}>
+                <Button variant="ghost" onPress={handleOpen}>
                     {t('Space Setting')}
                 </Button>
             </div>
-            <Drawer isOpen={isOpen} size={size} onClose={onClose}>
+            {/* <Drawer isOpen={isOpen} size={size} onClose={onClose}>
                 <DrawerContent>
                     {onClose => (
                         <>
@@ -44,7 +47,7 @@ export function SpaceSetting({ space }: SpaceSettingProps) {
                         </>
                     )}
                 </DrawerContent>
-            </Drawer>
+            </Drawer> */}
         </>
     );
 }

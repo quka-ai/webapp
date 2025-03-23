@@ -1,4 +1,4 @@
-import { BreadcrumbItem, Breadcrumbs, Button, ButtonGroup, ModalHeader } from '@heroui/react';
+import { BreadcrumbItem, Breadcrumbs, Button, ButtonGroup } from '@heroui/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -10,8 +10,6 @@ import spaceStore from '@/stores/space';
 
 const CreateKnowledge = () => {
     const { t } = useTranslation();
-    const [knowledge, setKnowledge] = useState<Knowledge>();
-    const [size, setSize] = useState<Size>('md');
     const navigate = useNavigate();
     const { spaceID } = useParams();
 
@@ -32,10 +30,6 @@ const CreateKnowledge = () => {
 
         return '';
     }, [spaces, spaceID]);
-
-    const onCancelFunc = useCallback(function () {
-        navigate(-1);
-    }, []);
 
     const editor = useRef();
     const [createLoading, setCreateLoading] = useState(false);
@@ -74,8 +68,8 @@ const CreateKnowledge = () => {
                 <KnowledgeEdit ref={editor} knowledge={{ space_id: spaceID }} classNames={{ editor: '!mx-0 ' }} hideSubmit />
             </div>
             <div className="fixed w-full left-0 bottom-0 h-14 flex justify-center items-center bg-content1 z-50">
-                <ButtonGroup variant="flat" size="base" className="mb-4">
-                    <Button color="primary" onPress={submit} isLoading={createLoading}>
+                <ButtonGroup variant="flat" size="md" className="mb-4">
+                    <Button color="primary" isLoading={createLoading} onPress={submit}>
                         {t('Save')}
                     </Button>
                     <Button onPress={() => navigate(-1)}>{t('Close')}</Button>

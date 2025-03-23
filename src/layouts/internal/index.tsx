@@ -376,7 +376,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                 <p className="p-4 text-small text-default-500">⭐️ Give us a star</p>
                             </CardBody>
                             <CardFooter className="absolute -bottom-8 justify-center">
-                                <Link isExternal href="https://github.com/breeew/brew">
+                                <Link isExternal href="https://github.com/quka-ai/quka-ai">
                                     <Button className="px-10" color="primary" radius="full">
                                         <GithubIcon />
                                         Github

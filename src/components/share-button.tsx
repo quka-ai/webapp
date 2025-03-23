@@ -55,15 +55,16 @@ export function useShare({ genUrlFunc }: ShareButtonProps) {
 }
 
 export interface ShareButtonProps {
+    text?: string;
     genUrlFunc: () => Promise<string>;
 }
 
-export default function ShareButton({ genUrlFunc }: ShareButtonProps) {
+export default function ShareButton({ text, genUrlFunc }: ShareButtonProps) {
     const { createShareURL, shareText, shareIcon, isLoading } = useShare({ genUrlFunc });
 
     return (
         <Button size="sm" variant="faded" endContent={<Icon icon={shareIcon} />} isLoading={isLoading} onPress={createShareURL}>
-            {shareText}
+            {text ? text : shareText}
         </Button>
     );
 }

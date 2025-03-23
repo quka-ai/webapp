@@ -14,7 +14,7 @@ export interface AvatarUploadProps {
     onChange: (file: File) => void;
 }
 
-const AvatarUpload = React.forwardRef(({ src, currentSelectedSpace, onChange }: AvatarUploadProps, ref: React.ForwardedRef<React.ReactNode>) => {
+const AvatarUpload = React.forwardRef(function AvatarUpload({ src, currentSelectedSpace, onChange }: AvatarUploadProps, ref: React.ForwardedRef<React.ReactNode>) {
     const [selectedFile, setSelectedFile] = useState(null);
     const [previewUrl, setPreviewUrl] = useState(src);
     const { t } = useTranslation();

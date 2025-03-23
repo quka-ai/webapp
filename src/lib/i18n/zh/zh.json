@@ -272,5 +272,7 @@
     "role-editor": "编辑员",
     "role-viewer": "成员",
     "role-member": "客户",
-    "Search": "搜索"
+    "role-chief": "拥有者",
+    "Search": "搜索",
+    "Reset": "重置"
 }

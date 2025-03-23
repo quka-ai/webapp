@@ -1,32 +1,58 @@
 import { Button, Tab, Tabs } from '@heroui/react';
 import { Icon } from '@iconify/react';
-import React, { useMemo } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 
 import ProfileSetting from './profile-setting';
+import SpaceUserApplications from './user-applications';
 
+import { CreateSpaceShareURL } from '@/apis/share';
+import ShareButton from '@/components/share-button';
 //import UserManagement from './user-management';
 import { usePlan } from '@/hooks/use-plan';
 import SpaceUserSetting from '@/pages/dashboard/space-setting/user-setting';
 import spaceStore from '@/stores/space';
 
 export interface SpaceSettingCardProps {
-    className?:string 
-    space:UserSpace 
-    onClose?: () => void
+    onClose?: () => void;
 }
 
-const Setting = React.forwardRef<HTMLDivElement, SpaceSettingCardProps>(({ className, space, onClose, ...props }, ref) => {
+const Setting = React.forwardRef<HTMLDivElement, SpaceSettingCardProps>(({ onClose, ...props }, ref) => {
     const { t } = useTranslation();
+    const { currentSelectedSpace } = useSnapshot(spaceStore);
     const navigate = useNavigate();
 
-    const { isPlatform } = usePlan();
+    function back() {
+        if (window.history.length > 1) {
+            navigate(-1);
+
+            return;
+        }
+        navigate('/dashboard');
+    }
 
     return (
         <div className="w-full flex flex-col items-center">
-            <div className="w-full flex-1 p-4">
+            <div className="w-full p-4 box-border flex justify-between items-center">
+                <Button startContent={<Icon icon="material-symbols:arrow-back-ios-rounded" />} variant="bordered" onPress={back}>
+                    {t('Back')}
+                </Button>
+
+                <ShareButton
+                    text={t('space-setting.ShareButton')}
+                    genUrlFunc={async () => {
+                        try {
+                            const res = await CreateSpaceShareURL(currentSelectedSpace, window.location.origin + '/s/sp/{token}');
+                            return res.url;
+                        } catch (e: any) {
+                            console.error(e);
+                        }
+                    }}
+                />
+            </div>
+            <div className="w-full max-w-2xl flex-1 p-4">
                 {/* Title */}
                 <div className="flex items-center gap-x-3">
                     <h1 className="text-2xl font-bold leading-9 text-default-foreground">{t('Space Setting')}</h1>
@@ -42,11 +68,15 @@ const Setting = React.forwardRef<HTMLDivElement, SpaceSettingCardProps>(({ class
                     }}
                 >
                     <Tab key="profile" title={t('Setting')}>
-                        {space && <ProfileSetting space={space} onClose={onClose} />}
+                        <ProfileSetting onClose={onClose} />
                     </Tab>
                     <Tab key="appearance" title={t('UserManage')}>
                         {/* <UserManagement /> */}
                         <SpaceUserSetting />
+                    </Tab>
+                    <Tab key="invite" title={t('space-setting.UserApplication')}>
+                        {/* <UserManagement /> */}
+                        <SpaceUserApplications />
                     </Tab>
                 </Tabs>
             </div>

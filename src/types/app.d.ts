@@ -82,6 +82,7 @@ declare type TaskInfo = {
 declare type EventStore = {
     themeChange: string;
     taskModify: TaskInfo;
+    loginRedirect: string;
 };
 
 declare type KnowledgeStore = {

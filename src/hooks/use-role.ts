@@ -4,12 +4,20 @@ import { useSnapshot } from 'valtio';
 import spaceStore from '@/stores/space';
 import { Role } from '@/types';
 
-export function useRole(): { isSpaceViewer: boolean } {
+export function useRole(): { isSpaceViewer: boolean; isMember: boolean; isEditor: boolean } {
     const { spaceRole } = useSnapshot(spaceStore);
 
-    const isSpaceViewer = useMemo(() => {
-        return !spaceRole || spaceRole === Role.VIEWER;
+    const isMember = useMemo(() => {
+        return spaceRole === Role.MEMBER;
     }, [spaceRole]);
 
-    return { isSpaceViewer };
+    const isSpaceViewer = useMemo(() => {
+        return spaceRole === Role.VIEWER;
+    }, [spaceRole]);
+
+    const isEditor = useMemo(() => {
+        return spaceRole === Role.EDITOR || spaceRole === Role.ADMIN;
+    }, [spaceRole]);
+
+    return { isSpaceViewer, isMember, isEditor };
 }

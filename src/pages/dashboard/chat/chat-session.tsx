@@ -488,7 +488,7 @@ export default function Chat() {
                             {messages.map(({ key, role, message, attach, status, ext }) => (
                                 <MessageCard
                                     key={key}
-                                    avatar={role === 'assistant' ? <LogoIcon size={isMobile ? '30' : '38'} /> : <Avatar src={userAvatar} size={isMobile ? 'sm' : 'base'} />}
+                                    avatar={role === 'assistant' ? <LogoIcon size={isMobile ? '30' : '38'} /> : <Avatar src={userAvatar} size={isMobile ? 'sm' : 'md'} />}
                                     message={message}
                                     attach={attach}
                                     messageClassName={role === 'user' ? 'bg-content2 text-content2-foreground !py-3 w-full px-3' : 'px-1 w-full'}

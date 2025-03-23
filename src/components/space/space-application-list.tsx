@@ -1,25 +1,4 @@
-import {
-    Button,
-    Chip,
-    Input,
-    Modal,
-    ModalBody,
-    ModalContent,
-    ModalFooter,
-    ModalHeader,
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-    Spinner,
-    Table,
-    TableBody,
-    TableCell,
-    TableColumn,
-    TableHeader,
-    TableRow,
-    useDisclosure,
-    User
-} from '@heroui/react';
+import { Button, Input, Popover, PopoverContent, PopoverTrigger, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, toastRegion, User } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -27,31 +6,38 @@ import { toast } from 'sonner';
 import { useImmer } from 'use-immer';
 import { useSnapshot } from 'valtio';
 
-import { ListSpaceUsers, SpaceUser } from '@/apis/space';
+import { HandlerSpaceApplication, ListSpaceApplicationUsers, SpaceApplicationItem } from '@/apis/space';
 import userStore from '@/stores/user';
 import { Role } from '@/types';
+
+export enum SPACE_APPLICATION_STATUS {
+    None = 'none',
+    Approved = 'approved',
+    Waiting = 'waiting',
+    Refused = 'refused'
+}
 
 interface SpaceUserProps {
     spaceID: string;
 }
 
-export function SpaceUserList({ spaceID }: SpaceUserProps) {
+export function SpaceApplicationList({ spaceID }: SpaceUserProps) {
     const [hasMore, setHasMore] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
     const { t } = useTranslation();
 
-    const [spaceUsers, setSpaceUsers] = useImmer<SpaceUser[]>([]);
+    const [spaceUsers, setSpaceUsers] = useImmer<SpaceApplicationItem[]>([]);
     const [page, setPage] = useImmer(1);
     const [total, setTotal] = useState(0);
     const pageSize = 20;
-    async function loadSpaceUsers(page: number) {
+    async function loadSpaceApplicationUsers(page: number) {
         if (page !== 1 && !hasMore) {
             return;
         }
         setIsLoading(true);
         try {
-            const resp = await ListSpaceUsers(spaceID, keywords, page, pageSize);
+            const resp = await ListSpaceApplicationUsers(spaceID, keywords, page, pageSize);
             setTotal(resp.total);
             if (page == 1) {
                 setSpaceUsers(resp.list);
@@ -83,23 +69,34 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
                 // 触发中文输入法确认中文等回车行为
                 return;
             }
-            loadSpaceUsers(1);
+            loadSpaceApplicationUsers(1);
         }
     };
 
-    const removeUser = useCallback(async (userID: string) => {}, [spaceID]);
+    const [handling, isHandling] = useState(false);
+    const handler = useCallback(async (ids: string[], status: string) => {
+        isHandling(true);
+        try {
+            await HandlerSpaceApplication(spaceID, ids, status);
+            toast.success(t('Success'));
+            loadSpaceApplicationUsers(1);
+        } catch (e: any) {
+            console.error(e);
+        }
+        isHandling(false);
+    });
 
     useEffect(() => {
         if (!spaceID) {
             setSpaceUsers([]);
             return;
         }
-        loadSpaceUsers(1);
+        loadSpaceApplicationUsers(1);
     }, [spaceID]);
 
     const columns = [
         { name: t('User'), uid: 'user' },
-        { name: t('Role'), uid: 'role' },
+        { name: t('Description'), uid: 'desc' },
         { name: t('JoinTime'), uid: 'created_at' },
         { name: t('Operate'), uid: 'actions' }
     ];
@@ -123,73 +120,75 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
         []
     );
 
-    const [isRemoveLoading, setIsRemoveLoading] = useState(false);
     const { userInfo } = useSnapshot(userStore);
 
     const renderCell = useCallback(
-        (item: SpaceUser, columnKey: string) => {
+        (item: SpaceApplicationItem, columnKey: string) => {
             const cellValue = item[columnKey];
 
             switch (columnKey) {
                 case 'user':
                     return (
                         <User
-                            avatarProps={{ radius: 'full', size: 'sm', src: item.avatar }}
+                            avatarProps={{ radius: 'full', size: 'sm', src: item.user?.avatar }}
                             classNames={{
                                 description: 'text-default-500'
                             }}
-                            description={item.email}
-                            name={item.name}
+                            description={item.user?.email}
+                            name={item.user?.name}
                         >
                             {item.name}
                         </User>
                     );
-                case 'role':
-                    const color = (cellValue => {
-                        switch (cellValue) {
-                            case Role.ADMIN:
-                                return 'danger';
-                            case Role.EDITOR:
-                                return 'warning';
-                            case Role.VIEWER:
-                                return 'primary';
-                            case Role.MEMBER:
-                                return 'secondary';
-                            default:
-                                return 'secondary';
-                        }
-                    })(cellValue);
-
-                    return (
-                        <Chip className="capitalize border-none gap-1 text-default-600" color={color} size="sm">
-                            {t(cellValue)}
-                        </Chip>
-                    );
                 case 'actions':
                     return (
                         <div className="relative flex justify-end items-center gap-2">
-                            {item.user_id !== userInfo.userID && (
-                                <Popover showArrow offset={10}>
-                                    <PopoverTrigger>
-                                        <Button size="sm" variant="ghost">
-                                            {t('Remove')}
-                                        </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent>
-                                        <Button
-                                            color="warning"
-                                            size="sm"
-                                            onPress={async () => {
-                                                toast.promise(removeUser(item.user_id), {
-                                                    loading: t(`Doing`)
-                                                });
-                                            }}
-                                        >
-                                            {t('Confirm')}
-                                        </Button>
-                                    </PopoverContent>
-                                </Popover>
-                            )}
+                            <Popover showArrow offset={10}>
+                                <PopoverTrigger>
+                                    <Button isDisabled={handling} size="sm" color="primary">
+                                        {t('space-setting.AllowApplication')}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent>
+                                    <Button
+                                        isDisabled={handling}
+                                        color="warning"
+                                        size="sm"
+                                        onPress={async () => {
+                                            toast.promise(handler([item.id], SPACE_APPLICATION_STATUS.Approved), {
+                                                loading: t(`Doing`),
+                                                success: t(`Success`),
+                                                error: t(`Failed`)
+                                            });
+                                        }}
+                                    >
+                                        {t('Confirm')}
+                                    </Button>
+                                </PopoverContent>
+                            </Popover>
+                            <Popover showArrow offset={10}>
+                                <PopoverTrigger>
+                                    <Button isDisabled={handling} size="sm" variant="ghost">
+                                        {t('space-setting.RejectApplication')}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent>
+                                    <Button
+                                        isDisabled={handling}
+                                        color="warning"
+                                        size="sm"
+                                        onPress={async () => {
+                                            toast.promise(handler([item.id], SPACE_APPLICATION_STATUS.Refused), {
+                                                loading: t(`Doing`),
+                                                success: t(`Success`),
+                                                error: t(`Failed`)
+                                            });
+                                        }}
+                                    >
+                                        {t('Confirm')}
+                                    </Button>
+                                </PopoverContent>
+                            </Popover>
                         </div>
                     );
                 case 'created_at':
@@ -215,7 +214,7 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
                                 onPress={async () => {
                                     const nextPage = page + 1;
                                     try {
-                                        await loadSpaceUsers(nextPage);
+                                        await loadSpaceApplicationUsers(nextPage);
                                         setPage(nextPage);
                                     } catch (e: any) {
                                         console.error(e);
@@ -229,7 +228,15 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
                     ) : null
                 }
                 topContent={
-                    <div className="flex justify-end">
+                    <div className="flex justify-between items-center w-full gap-4">
+                        <div className="flex gap-2">
+                            <Button isDisabled={handling} color="primary" size="sm">
+                                {t('space-setting.AllowAllApplications')}
+                            </Button>
+                            <Button isDisabled={handling} color="warning" size="sm">
+                                {t('space-setting.RejectAllApplications')}
+                            </Button>
+                        </div>
                         <Input
                             isClearable
                             variant="bordered"

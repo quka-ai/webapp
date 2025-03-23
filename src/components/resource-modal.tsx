@@ -194,11 +194,11 @@ const ResourceManage = memo(
                             </ModalBody>
 
                             <ModalFooter className="flex justify-center">
-                                <ButtonGroup variant="flat" size="base">
+                                <ButtonGroup variant="flat" size="md">
                                     <Button
                                         className=" text-white bg-gradient-to-br from-pink-300 to-indigo-300 dark:from-indigo-500 dark:to-pink-500"
                                         isLoading={isLoading}
-                                        size="base"
+                                        size="md"
                                         onPress={isCreate ? create : update}
                                     >
                                         {isCreate ? t('Submit') : t('Update')}

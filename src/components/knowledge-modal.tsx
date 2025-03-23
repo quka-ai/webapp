@@ -1,5 +1,5 @@
+import { BreadcrumbItem, Breadcrumbs, Button, ButtonGroup, Kbd, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Skeleton, Spacer, useDisclosure } from '@heroui/react';
 import { Icon } from '@iconify/react';
-import { BreadcrumbItem, Breadcrumbs, Button, ButtonGroup, Kbd, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Skeleton, Spacer, useDisclosure } from "@heroui/react";
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -188,14 +188,14 @@ const ViewKnowledge = memo(
                                                     } catch (e: any) {
                                                         console.error(e);
                                                     }
-                                                    return ""
+                                                    return '';
                                                 }}
                                             />
                                         )}
                                     </ModalHeader>
                                     <ModalBody className="w-full flex flex-col items-center px-6 overflow-y-auto">
                                         {isEdit ? (
-                                            <KnowledgeEdit ref={editor} hideSubmit classNames={{ base:"", editor: '!mx-0' }} knowledge={knowledge} onChange={onChangeFunc} />
+                                            <KnowledgeEdit ref={editor} hideSubmit classNames={{ base: '', editor: '!mx-0' }} knowledge={knowledge} onChange={onChangeFunc} />
                                         ) : (
                                             <KnowledgeView knowledge={knowledge} />
                                         )}
@@ -207,7 +207,7 @@ const ViewKnowledge = memo(
                                             </Button>
                                         ) : (
                                             <ButtonGroup variant="flat" size="md" className="mb-4">
-                                                <Button isDisabled={knowledge.stage !== 3} onPress={changeEditable}>
+                                                <Button isDisabled={knowledge.stage !== 3} size="md" onPress={changeEditable}>
                                                     {(() => {
                                                         if (knowledge.stage == 1) {
                                                             return t('Summarizing');
@@ -223,7 +223,7 @@ const ViewKnowledge = memo(
                                                     })()}
                                                 </Button>
                                                 {isEdit ? (
-                                                    <Button color="primary" onPress={submit} isLoading={saveLoading}>
+                                                    <Button color="primary" isLoading={saveLoading} onPress={submit}>
                                                         {t('Save')}
                                                     </Button>
                                                 ) : (

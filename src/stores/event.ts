@@ -2,7 +2,8 @@ import { proxy } from 'valtio';
 
 const eventStore = proxy<EventStore>({
     themeChange: '',
-    taskModify: undefined
+    taskModify: undefined,
+    loginRedirect: ''
 });
 
 export const onThemeChange = (theme: string) => {
@@ -11,6 +12,10 @@ export const onThemeChange = (theme: string) => {
 
 export const notifyTaskProgress = (taskInfo: TaskInfo) => {
     eventStore.taskModify = taskInfo;
+};
+
+export const setLoginRedirect = (url: string) => {
+    eventStore.loginRedirect = url;
 };
 
 export default eventStore;

@@ -1,13 +1,11 @@
-import { Icon } from '@iconify/react';
-import { BreadcrumbItem, Breadcrumbs, Button, ButtonGroup, Kbd, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Skeleton, Spacer, useDisclosure } from "@heroui/react";
-import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { BreadcrumbItem, Breadcrumbs, Button, ButtonGroup, Skeleton, Spacer } from '@heroui/react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 
 import { GetKnowledge, type Knowledge } from '@/apis/knowledge';
 import { type Resource } from '@/apis/resource';
-import { ListResources } from '@/apis/resource';
 import { CreateKnowledgeShareURL } from '@/apis/share';
 import KnowledgeDeletePopover from '@/components/knowledge-delete-popover';
 import KnowledgeEdit from '@/components/knowledge-edit';
@@ -17,7 +15,7 @@ import { useMedia } from '@/hooks/use-media';
 import { usePlan } from '@/hooks/use-plan';
 import { useRole } from '@/hooks/use-role';
 import resourceStore, { loadSpaceResource } from '@/stores/resource';
-import spaceStore, { loadUserSpaces, setCurrentSelectedSpace } from '@/stores/space';
+import spaceStore, { setCurrentSelectedSpace } from '@/stores/space';
 
 export interface EditKnowledgeProps {
     onChange?: () => void;
@@ -59,6 +57,7 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
         }
 
         const target = spaces.find(v => v.space_id === spaceID);
+
         return target?.title;
     }, [spaces, spaceID]);
 
@@ -121,6 +120,7 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
         if (!knowledge || !knowledgeResource) {
             return '';
         }
+
         return (
             <Breadcrumbs size="lg" className="break-all text-wrap max-w-[66%] overflow-hidden text-ellipsis">
                 <BreadcrumbItem
@@ -167,11 +167,11 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                     </div>
                     <div className="fixed w-full left-0 bottom-0 min-h-14 flex justify-center items-center bg-content1 z-50 box-border">
                         {isSpaceViewer ? (
-                            <ButtonGroup>
+                            <ButtonGroup size="md">
                                 <Button onPress={onClose}>{t('Close')}</Button>
                             </ButtonGroup>
                         ) : (
-                            <ButtonGroup variant="flat" size="base" className=" mt-2 mb-4">
+                            <ButtonGroup variant="flat" size="md" className=" mt-2 mb-4">
                                 <Button isDisabled={knowledge.stage !== 3} onPress={changeEditable}>
                                     {(() => {
                                         if (knowledge.stage == 1) {
@@ -223,7 +223,7 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                     </div>
                     <div className="fixed w-full left-0 bottom-0 h-14 flex justify-center items-center bg-content1">
                         <Skeleton className="rounded-lg">
-                            <ButtonGroup variant="flat" size="base">
+                            <ButtonGroup variant="flat" size="md">
                                 <Button />
                                 <Button />
                                 <Button />

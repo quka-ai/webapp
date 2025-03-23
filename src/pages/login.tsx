@@ -1,6 +1,5 @@
 import { Button, Divider, Input, Link } from '@heroui/react';
 import { Icon } from '@iconify/react';
-import { AxiosError } from 'axios';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +10,7 @@ import { LogoIcon, Name } from '@/components/logo';
 import { toast } from '@/hooks/use-toast';
 import { md5 } from '@/lib/utils';
 import SignUp from '@/pages/signup';
+import eventStore from '@/stores/event';
 import { setCurrentSelectedSpace, setUserSpaces } from '@/stores/space';
 import userStore, { setHost, setUserAccessToken, setUserInfo, setUserLoginToken } from '@/stores/user';
 
@@ -99,6 +99,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
     );
 
     const navigate = useNavigate();
+    const { loginRedirect } = useSnapshot(eventStore);
 
     async function accessTokenLogin() {
         if (!accessToken) {
@@ -132,16 +133,12 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
                 serviceMode: resp.service_mode
             });
 
-            navigate('/dashboard', { replace: true });
+            navigate(loginRedirect || '/dashboard', { replace: true });
         } catch (e: any) {
             console.error(e);
         }
         setLoading(false);
     }
-
-    const navigateToForgot = useCallback(() => {
-        navigate('/forgot/password');
-    });
 
     const [useSelfHost, setUseSelfHost] = useState(false);
 
@@ -152,6 +149,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
         setLoading(true);
         try {
             const resp = await Login(email, md5(password));
+
             setCurrentSelectedSpace('');
             setUserSpaces([]);
             setUserLoginToken(resp.token);
@@ -164,7 +162,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
                 serviceMode: resp.meta.service_mode
             });
 
-            navigate('/dashboard', { replace: true });
+            navigate(loginRedirect || '/dashboard', { replace: true });
         } catch (e: AxiosError) {
             if (e.response?.status === 403) {
                 toast({

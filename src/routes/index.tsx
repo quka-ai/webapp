@@ -3,7 +3,7 @@ import { ReactNode, useEffect, useMemo } from 'react';
 import { createBrowserRouter, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 
-import { GetUserInfo, LoginWithAccessToken } from '@/apis/user';
+import { GetUserInfo } from '@/apis/user';
 import { App } from '@/App';
 import { autoLoginDirect } from '@/lib/utils';
 import Dashboard from '@/pages/dashboard';
@@ -14,13 +14,14 @@ import EditKnowledge from '@/pages/dashboard/edit-knowledge';
 import Journal from '@/pages/dashboard/journal/journal';
 import Knowledge from '@/pages/dashboard/knowledge';
 import Setting from '@/pages/dashboard/setting/setting';
+import SpaceSetting from '@/pages/dashboard/space-setting/setting';
 import Forgot from '@/pages/forgot';
-import IndexPage from '@/pages/index';
 import Login from '@/pages/login';
 import Reset from '@/pages/reset';
 import ShareKnowledge from '@/pages/share/knowledge';
 import ShareSessionPage from '@/pages/share/session';
-import TestIframe from '@/pages/share/test-iframe';
+import SpaceLnadingPage from '@/pages/space-landing';
+import { setLoginRedirect } from '@/stores/event';
 import { buildTower } from '@/stores/socket';
 import spaceStore, { loadUserSpaces, setCurrentSelectedSpace } from '@/stores/space';
 import userStore, { logout, setUserInfo } from '@/stores/user';
@@ -75,7 +76,12 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
         }
     }, [isLogin, currentSelectedSpace, spaces]);
 
-    return isLogin ? children : <Navigate to="/login" />;
+    return isLogin
+        ? children
+        : (() => {
+              setLoginRedirect(pathname);
+              return <Navigate to="/login" />;
+          })();
 }
 
 function PreLogin({ init, children }: { init: boolean; children: ReactNode }) {
@@ -142,6 +148,14 @@ const routes = createBrowserRouter([
                 element: <ShareSessionPage />
             },
             {
+                path: '/s/sp/:token',
+                element: (
+                    <ProtectedRoute>
+                        <SpaceLnadingPage />
+                    </ProtectedRoute>
+                )
+            },
+            {
                 path: '/dashboard/:spaceID/journal/:selectDate',
                 element: (
                     <ProtectedRoute>
@@ -186,6 +200,14 @@ const routes = createBrowserRouter([
                         element: <ChatSession />
                     }
                 ]
+            },
+            {
+                path: '/dashboard/space-setting/:spaceID',
+                element: (
+                    <ProtectedRoute>
+                        <SpaceSetting />
+                    </ProtectedRoute>
+                )
             },
             {
                 path: '/user/*',

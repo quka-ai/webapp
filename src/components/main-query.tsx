@@ -28,9 +28,9 @@ export default function Component(props: NavbarProps) {
                 justify="center"
             >
                 {/* Logo */}
-                <NavbarBrand className="mr-1  md:w-auto md:max-w-fit">
+                <NavbarBrand className="mr-1 md:w-auto md:max-w-fit">
                     <div className="rounded-full ml-2">
-                        <LogoIcon size={40} />
+                        <LogoIcon size={30} />
                     </div>
                     {/* <span className="ml-2 font-medium md:hidden">{t('knowledgeCreateButtonTitle')}...</span> */}
                 </NavbarBrand>
@@ -39,7 +39,7 @@ export default function Component(props: NavbarProps) {
                 <NavbarItem className="flex">
                     <Button
                         aria-label="Got a shot"
-                        className="text-sm font-normal text-default-500 bg-transparent pl-0 md:px-4"
+                        className="text-sm font-normal text-default-500 bg-transparent pl-0 md:pl-2 md:pr-6"
                         endContent={<div className="w-1 h-4 rounded-full bg-black dark:bg-white animate-pulse" />}
                         onPress={e => {
                             if (isMobile) {
