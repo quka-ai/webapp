@@ -42,9 +42,10 @@ export interface ListSpaceUsersResponse {
     total: number;
 }
 
-export async function ListSpaceUsers(spaceID: string, page: number, pagesize: number): Promise<ListSpaceUsersResponse> {
+export async function ListSpaceUsers(spaceID: string, keywords: string, page: number, pagesize: number): Promise<ListSpaceUsersResponse> {
     let resp = await instance.get(`/space/${spaceID}/users`, {
         params: {
+            keywords: keywords,
             page: page,
             pagesize: pagesize
         }

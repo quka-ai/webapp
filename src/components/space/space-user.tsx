@@ -1,6 +1,8 @@
 import {
     Button,
     Chip,
+    Input,
+    Kbd,
     Modal,
     ModalBody,
     ModalContent,
@@ -9,9 +11,6 @@ import {
     Popover,
     PopoverContent,
     PopoverTrigger,
-    Select,
-    SelectItem,
-    SelectSection,
     Spinner,
     Table,
     TableBody,
@@ -19,27 +18,16 @@ import {
     TableColumn,
     TableHeader,
     TableRow,
-    Textarea,
     useDisclosure,
     User
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
-import { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { useImmer } from 'use-immer';
-import { useSnapshot } from 'valtio';
 
-import { CreateKnowledge } from '@/apis/knowledge';
 import { ListSpaceUsers, SpaceUser } from '@/apis/space';
-import { FilePreview, FileUploader } from '@/components/file-uploader';
-import { useMedia } from '@/hooks/use-media';
-import { usePlan } from '@/hooks/use-plan';
-import { useGroupedResources } from '@/hooks/use-resource';
-import { useUploader } from '@/hooks/use-uploader';
-import resourceStore from '@/stores/resource';
-import spaceStore from '@/stores/space';
 import { Role } from '@/types';
 
 interface SpaceUserProps {
@@ -63,7 +51,7 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
         }
         setIsLoading(true);
         try {
-            const resp = await ListSpaceUsers(spaceID, page, pageSize);
+            const resp = await ListSpaceUsers(spaceID, keywords, page, pageSize);
             setTotal(resp.total);
             if (page == 1) {
                 setSpaceUsers(resp.list);
@@ -83,6 +71,21 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
         }
         setIsLoading(false);
     }
+
+    const [keywords, setKeywords] = useState('');
+    const handleKeyDown = async (event: KeyboardEvent) => {
+        // 阻止默认的提交行为
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            const keyCode = event.which || event.keyCode;
+
+            if (keyCode === 229) {
+                // 触发中文输入法确认中文等回车行为
+                return;
+            }
+            loadSpaceUsers(1);
+        }
+    };
 
     const removeUser = useCallback(async (userID: string) => {}, [spaceID]);
 
@@ -172,13 +175,13 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
                                 </PopoverTrigger>
                                 <PopoverContent>
                                     <Button
+                                        color="warning"
+                                        size="sm"
                                         onPress={async () => {
                                             toast.promise(removeUser(item.user_id), {
                                                 loading: t(`Doing`)
                                             });
                                         }}
-                                        color="warning"
-                                        size="sm"
                                     >
                                         {t('Confirm')}
                                     </Button>
@@ -222,6 +225,26 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
                         </div>
                     ) : null
                 }
+                topContent={
+                    <div className="flex justify-end">
+                        <Input
+                            isClearable
+                            classNames={{
+                                base: 'max-w-full sm:max-w-[20rem] h-10',
+                                mainWrapper: 'h-full',
+                                input: 'text-small',
+                                inputWrapper: 'h-full rounded-xl font-normal text-default-500 bg-default-400/20 dark:bg-default-500/20'
+                            }}
+                            placeholder={t('space-setting.ApplicationSearchPlaceholder')}
+                            size="sm"
+                            startContent={<Icon className="text-default-500" icon="solar:magnifer-linear" width={18} />}
+                            endContent={<Kbd keys={['enter']} className="cursor-pointer" onClick={() => loadSpaceUsers(1)} />}
+                            type="search"
+                            onValueChange={setKeywords}
+                            onKeyDown={handleKeyDown}
+                        />
+                    </div>
+                }
                 bottomContentPlacement="outside"
                 checkboxesProps={{
                     classNames: {
@@ -237,7 +260,7 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
                         </TableColumn>
                     )}
                 </TableHeader>
-                <TableBody isLoading={isLoading} loadingContent={<Spinner />} onLoadMore={loadSpaceUsers} emptyContent={t('Empty')} items={spaceUsers}>
+                <TableBody isLoading={isLoading} loadingContent={<Spinner />} emptyContent={t('Empty')} items={spaceUsers}>
                     {item => <TableRow key={item.user_id}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
                 </TableBody>
             </Table>

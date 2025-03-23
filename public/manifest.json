@@ -1,8 +1,34 @@
 {
-    "name": "Brew",
+    "name": "QukaAI",
     "display": "standalone",
     "theme_color": "#18181b",
-    "short_name": "Brew",
+    "short_name": "Quka",
     "start_url": "/",
-    "prefer_related_applications": true
+    "prefer_related_applications": true,
+    "icons": [
+        {
+            "src": "/quka-avatar.jpg",
+            "sizes": "48x48"
+        },
+        {
+            "src": "/quka-avatar.jpg",
+            "sizes": "72x72"
+        },
+        {
+            "src": "/quka-avatar.jpg",
+            "sizes": "96x96"
+        },
+        {
+            "src": "/quka-avatar.jpg",
+            "sizes": "144x144"
+        },
+        {
+            "src": "/quka-avatar.jpg",
+            "sizes": "192x192"
+        },
+        {
+            "src": "/quka-avatar.jpg",
+            "sizes": "512x512"
+        }
+    ]
 }
