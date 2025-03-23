@@ -54,18 +54,6 @@ export default function IndexPage() {
                                 {t('QuickStart')}
                             </Button>
                         </Link>
-
-                        {/* <Link href="https://discord.gg/YGrbmbCVRF">
-                        <Button color="primary" className="flex gap-2  items-center">
-                            Document
-                        </Button>
-                    </Link>
-                    <Link href="https://github.com/breeew/brew">
-                        <Button color="primary" className="flex gap-2  items-center" variant="bordered">
-                            <GithubIcon />
-                            Github
-                        </Button>
-                    </Link> */}
                     </div>
                 </div>
 
@@ -95,7 +83,7 @@ export default function IndexPage() {
                     <p className="z-10 whitespace-pre-wrap text-center text-lg font-medium tracking-tighter text-zinc-400 mt-4">{t('siteCommunityDescription')}</p>
 
                     <div className="flex flex-col md:flex-row gap-10 my-10">
-                        <Link target="_blank" href="https://github.com/breeew/brew">
+                        <Link target="_blank" href="https://github.com/quka-ai/quka-ai">
                             <Button startContent={<Icon icon="uil:github" height={50} className="" />} variant="light" className="text-2xl font-semibold">
                                 GitHub
                             </Button>

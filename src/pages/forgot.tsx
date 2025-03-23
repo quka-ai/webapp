@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { RequestResetPassword } from '@/apis/user';
+import { LogoIcon, Name } from '@/components/logo';
 
 export default function Component() {
     const [email, setEmail] = useState('');
@@ -33,7 +34,7 @@ export default function Component() {
 
     return (
         <div className="flex flex-col h-screen w-full items-center justify-center">
-            <div className="flex w-full max-w-sm px-8 items-start justify-start">
+            <div className="flex gap-4 w-full max-w-sm px-8 items-start justify-start">
                 <Button
                     isIconOnly
                     size="sm"
@@ -44,9 +45,13 @@ export default function Component() {
                 >
                     <Icon className="text-default-500" icon="solar:alt-arrow-left-linear" width={16} />
                 </Button>
+                <div className="flex gap-2 justify-center items-center">
+                    <LogoIcon size={32} />
+                    {Name}
+                </div>
             </div>
             {isSuccess ? (
-                <div className="max-w-sm flex flex-col gap-6">
+                <div className="flex w-full max-w-sm flex-col gap-4 rounded-large px-6 pb-10 pt-6">
                     <Alert color="success" title={t('Success')} description={t('ResetEmailSended')} variant="faded" />
                 </div>
             ) : (

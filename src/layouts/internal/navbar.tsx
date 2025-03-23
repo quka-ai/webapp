@@ -74,7 +74,7 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
     };
 
     const { userIsPro } = usePlan();
-    const { isSpaceViewer } = useRole();
+    const { isEditor, isMember } = useRole();
     const { isMobile } = useMedia();
 
     const {
@@ -108,6 +108,9 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
                 </Button>
                 {(() => {
                     if (isChat) {
+                        if (isMember) {
+                            return <></>;
+                        }
                         return (
                             <Button
                                 className="float-right text-white bg-gradient-to-br from-pink-300 from-15%  to-indigo-600 dark:from-indigo-500 dark:to-pink-500"
@@ -174,7 +177,7 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
                 </>
             )}
 
-            {!isChat && !isSpaceViewer && (
+            {!isChat && isEditor && (
                 <NavbarContent className="ml-4 hidden h-12 w-full max-w-fit gap-4 rounded-full px-4  lg:flex" justify="end">
                     {/* <NavbarItem>
                         <Link className="flex gap-2 text-inherit" href="#">

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { ResetPassword } from '@/apis/user';
+import { LogoIcon, Name } from '@/components/logo';
 import { md5 } from '@/lib/utils';
 
 export default function Component() {
@@ -44,6 +45,10 @@ export default function Component() {
         <div className="flex h-screen w-full items-center justify-center">
             {isSuccess ? (
                 <div className="w-[300px] flex flex-col gap-6">
+                    <div className="flex gap-2 justify-start items-center">
+                        <LogoIcon size={32} />
+                        {Name}
+                    </div>
                     <Alert color="success" title={t('Success')} variant="faded" />
                     <Button
                         className="w-full"
@@ -57,6 +62,10 @@ export default function Component() {
                 </div>
             ) : (
                 <div className="flex w-full max-w-sm flex-col gap-4 rounded-large px-8 pb-10 pt-6">
+                    <div className="flex gap-2 justify-start items-center">
+                        <LogoIcon size={32} />
+                        {Name}
+                    </div>
                     <p className="pb-4 text-left text-3xl font-semibold">
                         {t('ResetPassword')}
                         <span aria-label="emoji" className="ml-2" role="img">

@@ -58,6 +58,7 @@ export interface SpaceApplicationItem {
     desc: string;
     user_id: string;
     status: string;
+    id: string;
 }
 
 export interface SpaceApplicationUser {
@@ -91,8 +92,29 @@ export async function HandlerSpaceApplication(spaceID: string, ids: string[], st
     });
 }
 
+export interface SpaceLandingDetail {
+    id: string;
+    title: string;
+    desc: string;
+    space_id: string;
+    user: {
+        id: string;
+        name: string;
+        avatar: string;
+    };
+    application_status: string;
+}
+
 export async function GetSpaceLandingDetail(token: string): Promise<SpaceLandingDetail> {
     let resp = await instance.get(`/space/landing/${token}`);
+
+    return resp.data.data;
+}
+
+export async function ApplySpace(spaceToken: string, desc: string): Promise<void> {
+    let resp = await instance.post(`/space/landing/${spaceToken}/apply`, {
+        desc
+    });
 
     return resp.data.data;
 }

@@ -8,7 +8,7 @@ import { initReactI18next } from 'react-i18next';
 // import zhTranslation from './i18n/zh.json';
 
 const supportLang = ['zh', 'en', 'ja'];
-const namespaces = ['space-setting'];
+const namespaces = ['space', 'space-setting'];
 
 let resources = {};
 
@@ -29,25 +29,24 @@ supportLang.forEach(async v => {
     };
 });
 
-i18n.use(LanguageDetector)
-    .use(initReactI18next)
-    .init({
-        debug: false,
-        fallbackLng: 'zh',
-        interpolation: {
-            escapeValue: false
-        },
-        resources
-        // resources: {
-        //     en: {
-        //         translation: {
-        //             ...enTranslation,
-        //             'space-setting': spaceEn
-        //         }
-        //     },
-        //     zh: { translation: zhTranslation },
-        //     ja: { translation: jaTranslation }
-        // }
-    });
+console.log(resources);
+i18n.use(initReactI18next).init({
+    debug: false,
+    fallbackLng: 'zh',
+    interpolation: {
+        escapeValue: false
+    },
+    resources
+    // resources: {
+    //     en: {
+    //         translation: {
+    //             ...enTranslation,
+    //             'space-setting': spaceEn
+    //         }
+    //     },
+    //     zh: { translation: zhTranslation },
+    //     ja: { translation: jaTranslation }
+    // }
+});
 
 export default i18n;

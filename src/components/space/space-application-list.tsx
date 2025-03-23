@@ -6,13 +6,16 @@ import { toast } from 'sonner';
 import { useImmer } from 'use-immer';
 import { useSnapshot } from 'valtio';
 
+
+
 import { HandlerSpaceApplication, ListSpaceApplicationUsers, SpaceApplicationItem } from '@/apis/space';
 import userStore from '@/stores/user';
 import { Role } from '@/types';
 
-enum SPACE_APPLICATION_STATUS {
+
+export enum SPACE_APPLICATION_STATUS {
     None = 'none',
-    Access = 'access',
+    Approved = 'approved',
     Waiting = 'waiting',
     Refused = 'refused'
 }
@@ -96,7 +99,7 @@ export function SpaceApplicationList({ spaceID }: SpaceUserProps) {
 
     const columns = [
         { name: t('User'), uid: 'user' },
-        { name: t('Description'), uid: 'description' },
+        { name: t('Description'), uid: 'desc' },
         { name: t('JoinTime'), uid: 'created_at' },
         { name: t('Operate'), uid: 'actions' }
     ];
@@ -130,12 +133,12 @@ export function SpaceApplicationList({ spaceID }: SpaceUserProps) {
                 case 'user':
                     return (
                         <User
-                            avatarProps={{ radius: 'full', size: 'sm', src: item.avatar }}
+                            avatarProps={{ radius: 'full', size: 'sm', src: item.user?.avatar }}
                             classNames={{
                                 description: 'text-default-500'
                             }}
-                            description={item.email}
-                            name={item.name}
+                            description={item.user?.email}
+                            name={item.user?.name}
                         >
                             {item.name}
                         </User>
@@ -145,8 +148,8 @@ export function SpaceApplicationList({ spaceID }: SpaceUserProps) {
                         <div className="relative flex justify-end items-center gap-2">
                             <Popover showArrow offset={10}>
                                 <PopoverTrigger>
-                                    <Button isDisabled={handling} size="sm" variant="ghost">
-                                        {t('Allow')}
+                                    <Button isDisabled={handling} size="sm" color="primary">
+                                        {t('space-setting.AllowApplication')}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent>
@@ -155,7 +158,7 @@ export function SpaceApplicationList({ spaceID }: SpaceUserProps) {
                                         color="warning"
                                         size="sm"
                                         onPress={async () => {
-                                            toast.promise(handler([item.user_id], SPACE_APPLICATION_STATUS.Access), {
+                                            toast.promise(handler([item.id], SPACE_APPLICATION_STATUS.Approved), {
                                                 loading: t(`Doing`),
                                                 success: t(`Success`),
                                                 error: t(`Failed`)
@@ -169,7 +172,7 @@ export function SpaceApplicationList({ spaceID }: SpaceUserProps) {
                             <Popover showArrow offset={10}>
                                 <PopoverTrigger>
                                     <Button isDisabled={handling} size="sm" variant="ghost">
-                                        {t('Reject')}
+                                        {t('space-setting.RejectApplication')}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent>
@@ -178,7 +181,7 @@ export function SpaceApplicationList({ spaceID }: SpaceUserProps) {
                                         color="warning"
                                         size="sm"
                                         onPress={async () => {
-                                            toast.promise(handler([item.user_id], SPACE_APPLICATION_STATUS.Refused), {
+                                            toast.promise(handler([item.id], SPACE_APPLICATION_STATUS.Refused), {
                                                 loading: t(`Doing`),
                                                 success: t(`Success`),
                                                 error: t(`Failed`)
