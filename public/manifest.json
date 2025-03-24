@@ -7,27 +7,27 @@
     "prefer_related_applications": true,
     "icons": [
         {
-            "src": "/quka-avatar.jpg",
+            "src": "/quka-avatar.png",
             "sizes": "48x48"
         },
         {
-            "src": "/quka-avatar.jpg",
+            "src": "/quka-avatar.png",
             "sizes": "72x72"
         },
         {
-            "src": "/quka-avatar.jpg",
+            "src": "/quka-avatar.png",
             "sizes": "96x96"
         },
         {
-            "src": "/quka-avatar.jpg",
+            "src": "/quka-avatar.png",
             "sizes": "144x144"
         },
         {
-            "src": "/quka-avatar.jpg",
+            "src": "/quka-avatar.png",
             "sizes": "192x192"
         },
         {
-            "src": "/quka-avatar.jpg",
+            "src": "/quka-avatar.png",
             "sizes": "512x512"
         }
     ]

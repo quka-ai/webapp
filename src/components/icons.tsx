@@ -5,7 +5,7 @@ import { IconSvgProps } from '@/types';
 export const Logo: React.FC<IconSvgProps> = ({ size = 22, width = 22, height = 22, ...props }) => {
     return (
         <div className="text-foreground">
-            <img alt="Quka Logo" className="rounded-lg" height={size || height} width={size || width} src="/quka-avatar.jpg" {...props} />
+            <img alt="Quka Logo" className="rounded-lg" height={size || height} width={size || width} src="/quka-avatar.png" {...props} />
         </div>
     );
 };
