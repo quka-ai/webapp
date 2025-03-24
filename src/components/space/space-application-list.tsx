@@ -8,7 +8,6 @@ import { useSnapshot } from 'valtio';
 
 import { HandlerSpaceApplication, ListSpaceApplicationUsers, SpaceApplicationItem } from '@/apis/space';
 import userStore from '@/stores/user';
-import { Role } from '@/types';
 
 export enum SPACE_APPLICATION_STATUS {
     None = 'none',

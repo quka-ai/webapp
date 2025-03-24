@@ -5,24 +5,24 @@ import { ListUserSpace } from '@/apis/space';
 const spaceStore = proxy<SpaceStore>({
     spaces: [],
     currentSelectedSpace: '',
-    spaceRole: 'role-viewer'
+    spaceRole: ''
 });
 
 export const setUserSpaces = (spaces: UserSpace[]) => {
     spaceStore.spaces = spaces;
     if (spaceStore.currentSelectedSpace === '' && spaces && spaces.length > 0) {
-        spaceStore.currentSelectedSpace = spaces[0].space_id;
+        setCurrentSelectedSpace(spaces[0].space_id);
     }
 };
 
 export const latestPickedSpace = (): string | undefined => {
-    return localStorage.getItem('brew-selected-space');
+    return localStorage.getItem('quka-selected-space');
 };
 
 export const setCurrentSelectedSpace = (space: string) => {
     spaceStore.currentSelectedSpace = space;
     if (space) {
-        localStorage.setItem('brew-selected-space', space);
+        localStorage.setItem('quka-selected-space', space);
         const spaceInfo = spaceStore.spaces.find(v => v.space_id == space);
 
         spaceInfo && setSpaceRole(spaceInfo?.role);

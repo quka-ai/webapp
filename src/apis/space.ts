@@ -1,7 +1,7 @@
 import instance from './request';
 
 export async function ListUserSpace(): Promise<UserSpace[]> {
-    let resp = await instance.get(`/space/list`);
+    const resp = await instance.get(`/space/list`);
 
     return resp.data.data.list;
 }
@@ -43,7 +43,7 @@ export interface ListSpaceUsersResponse {
 }
 
 export async function ListSpaceUsers(spaceID: string, keywords: string, page: number, pagesize: number): Promise<ListSpaceUsersResponse> {
-    let resp = await instance.get(`/space/${spaceID}/users`, {
+    const resp = await instance.get(`/space/${spaceID}/users`, {
         params: {
             keywords: keywords,
             page: page,
@@ -53,6 +53,11 @@ export async function ListSpaceUsers(spaceID: string, keywords: string, page: nu
 
     return resp.data.data;
 }
+
+export async function RemoveUser(spaceID: string, userID: string): Promise<void> {
+    await instance.delete(`/space/${spaceID}/user/${userID}`);
+}
+
 export interface SpaceApplicationItem {
     user: SpaceApplicationUser;
     desc: string;
@@ -74,7 +79,7 @@ export interface ListSpaceApplicationUsersResponse {
 }
 
 export async function ListSpaceApplicationUsers(spaceID: string, keywords: string, page: number, pagesize: number): Promise<ListSpaceApplicationUsersResponse> {
-    let resp = await instance.get(`/space/${spaceID}/application/users`, {
+    const resp = await instance.get(`/space/${spaceID}/application/users`, {
         params: {
             keywords: keywords,
             page: page,
@@ -106,13 +111,13 @@ export interface SpaceLandingDetail {
 }
 
 export async function GetSpaceLandingDetail(token: string): Promise<SpaceLandingDetail> {
-    let resp = await instance.get(`/space/landing/${token}`);
+    const resp = await instance.get(`/space/landing/${token}`);
 
     return resp.data.data;
 }
 
 export async function ApplySpace(spaceToken: string, desc: string): Promise<void> {
-    let resp = await instance.post(`/space/landing/${spaceToken}/apply`, {
+    const resp = await instance.post(`/space/landing/${spaceToken}/apply`, {
         desc
     });
 

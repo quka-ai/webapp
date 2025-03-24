@@ -138,6 +138,7 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
                             placeholder="Your space description"
                             className="w-full"
                             defaultValue={desc}
+                            maxRows={20}
                             onValueChange={setDesc}
                         />
                         <Textarea
@@ -149,6 +150,7 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
                             className="w-full"
                             defaultValue={basePrompt}
                             description={promptVar}
+                            maxRows={20}
                             onValueChange={setBasePrompt}
                         />
                         <Textarea
@@ -160,6 +162,7 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
                             className="w-full"
                             defaultValue={chatPrompt}
                             description={promptVar}
+                            maxRows={20}
                             onValueChange={setChatPrompt}
                         />
                         <Spacer y={2} />
