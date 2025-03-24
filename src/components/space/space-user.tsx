@@ -1,25 +1,4 @@
-import {
-    Button,
-    Chip,
-    Input,
-    Modal,
-    ModalBody,
-    ModalContent,
-    ModalFooter,
-    ModalHeader,
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-    Spinner,
-    Table,
-    TableBody,
-    TableCell,
-    TableColumn,
-    TableHeader,
-    TableRow,
-    useDisclosure,
-    User
-} from '@heroui/react';
+import { Button, Chip, Input, Popover, PopoverContent, PopoverTrigger, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, User } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -27,7 +6,7 @@ import { toast } from 'sonner';
 import { useImmer } from 'use-immer';
 import { useSnapshot } from 'valtio';
 
-import { ListSpaceUsers, SpaceUser } from '@/apis/space';
+import { ListSpaceUsers, RemoveUser, SpaceUser } from '@/apis/space';
 import userStore from '@/stores/user';
 import { Role } from '@/types';
 
@@ -87,7 +66,17 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
         }
     };
 
-    const removeUser = useCallback(async (userID: string) => {}, [spaceID]);
+    const removeUser = useCallback(
+        async (userID: string) => {
+            try {
+                await RemoveUser(spaceID, userID);
+                await loadSpaceUsers(1);
+            } catch (e: any) {
+                console.error(e);
+            }
+        },
+        [spaceID]
+    );
 
     useEffect(() => {
         if (!spaceID) {
@@ -147,7 +136,7 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
                 case 'role':
                     const color = (cellValue => {
                         switch (cellValue) {
-                            case Role.ADMIN:
+                            case Role.ADMIN || Role.CHIEF:
                                 return 'danger';
                             case Role.EDITOR:
                                 return 'warning';
@@ -181,7 +170,9 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
                                             size="sm"
                                             onPress={async () => {
                                                 toast.promise(removeUser(item.user_id), {
-                                                    loading: t(`Doing`)
+                                                    loading: t(`Doing`),
+                                                    success: t(`Success`),
+                                                    error: t(`Failed`)
                                                 });
                                             }}
                                         >

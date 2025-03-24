@@ -10,8 +10,8 @@ import SpaceUserApplications from './user-applications';
 
 import { CreateSpaceShareURL } from '@/apis/share';
 import ShareButton from '@/components/share-button';
+import { useRole } from '@/hooks/use-role';
 //import UserManagement from './user-management';
-import { usePlan } from '@/hooks/use-plan';
 import SpaceUserSetting from '@/pages/dashboard/space-setting/user-setting';
 import spaceStore from '@/stores/space';
 
@@ -32,6 +32,8 @@ const Setting = React.forwardRef<HTMLDivElement, SpaceSettingCardProps>(({ onClo
         }
         navigate('/dashboard');
     }
+
+    const { isManager } = useRole();
 
     return (
         <div className="w-full flex flex-col items-center">
@@ -70,14 +72,18 @@ const Setting = React.forwardRef<HTMLDivElement, SpaceSettingCardProps>(({ onClo
                     <Tab key="profile" title={t('Setting')}>
                         <ProfileSetting onClose={onClose} />
                     </Tab>
-                    <Tab key="appearance" title={t('UserManage')}>
-                        {/* <UserManagement /> */}
-                        <SpaceUserSetting />
-                    </Tab>
-                    <Tab key="invite" title={t('space-setting.UserApplication')}>
-                        {/* <UserManagement /> */}
-                        <SpaceUserApplications />
-                    </Tab>
+                    {isManager && (
+                        <>
+                            <Tab key="appearance" title={t('UserManage')}>
+                                {/* <UserManagement /> */}
+                                <SpaceUserSetting />
+                            </Tab>
+                            <Tab key="invite" title={t('space-setting.UserApplication')}>
+                                {/* <UserManagement /> */}
+                                <SpaceUserApplications />
+                            </Tab>
+                        </>
+                    )}
                 </Tabs>
             </div>
         </div>

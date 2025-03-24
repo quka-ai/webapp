@@ -58,8 +58,7 @@ export function App({ children }: { children: React.ReactNode }) {
         <MyProvider>
             <Outlet />
             <Toaster />
-            <SonnerTotaster className="border-1 border-zinc-500" theme={isDark ? 'dark' : 'light'} />
-            <span className="bg-zinc-800" />
+            <SonnerTotaster theme={isDark ? 'dark' : 'light'} />
         </MyProvider>
     );
 }

@@ -5,6 +5,7 @@ export type IconSvgProps = SVGProps<SVGSVGElement> & {
 };
 
 export enum Role {
+    CHIEF = 'role-chief',
     ADMIN = 'role-admin',
     EDITOR = 'role-editor',
     VIEWER = 'role-viewer',
