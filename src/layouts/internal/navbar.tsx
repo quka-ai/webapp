@@ -74,7 +74,7 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
     };
 
     const { userIsPro } = usePlan();
-    const { isEditor, isMember } = useRole();
+    const { isEditor, isMember, isChief } = useRole();
     const { isMobile } = useMedia();
 
     const {
@@ -177,7 +177,7 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
                 </>
             )}
 
-            {!isChat && isEditor && (
+            {!isChat && (isEditor || isChief) && (
                 <NavbarContent className="ml-4 hidden h-12 w-full max-w-fit gap-4 rounded-full px-4  lg:flex" justify="end">
                     {/* <NavbarItem>
                         <Link className="flex gap-2 text-inherit" href="#">
