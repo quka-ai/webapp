@@ -330,7 +330,7 @@ const KnowledgeList = memo(
         return (
             <>
                 <ScrollShadow ref={ssDom} hideScrollBar className="w-full flex-grow box-border mb-6" onScroll={scrollChanged}>
-                    <WorkBar spaceid={currentSelectedSpace} onSubmit={onChanges} isShowCreate={isShowMemoryCreate} onShowChange={setIsShowMemoryCreate} />
+                    <WorkBar spaceid={currentSelectedSpace} isShowCreate={isShowMemoryCreate} onShowChange={setIsShowMemoryCreate} onSubmit={onChanges} />
                     <div className="w-full  space-y-1 mb-6  py-1">
                         <div className="flex justify-between items-center gap-4 px-6">
                             <div className="flex flex-col gap-2">

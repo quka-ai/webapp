@@ -16,7 +16,7 @@ import { useMedia } from '@/hooks/use-media';
 import { usePlan } from '@/hooks/use-plan';
 import { useRole } from '@/hooks/use-role';
 import { SpaceSetting } from '@/pages/dashboard/space-setting';
-import { triggerKnowledgeSearch } from '@/stores/knowledge';
+import knowledgeStore, { triggerKnowledgeSearch } from '@/stores/knowledge';
 import { onKnowledgeSearchKeywordsChange } from '@/stores/knowledge';
 // import NotificationsCard from './notifications-card';
 import resourceStore, { onResourceUpdate } from '@/stores/resource';
@@ -31,6 +31,7 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
     }, [spaces, currentSelectedSpace]);
     const { isChat, isSession } = useChatPageCondition();
     const resourceManage = useRef<HTMLElement>();
+    const { searchKeywords } = useSnapshot(knowledgeStore);
 
     const { sessionID } = useParams();
 
@@ -222,6 +223,7 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
                                 input: 'text-small',
                                 inputWrapper: 'h-full rounded-xl font-normal text-default-500 bg-default-400/20 dark:bg-default-500/20'
                             }}
+                            value={searchKeywords}
                             placeholder={t('Search')}
                             size="sm"
                             startContent={<Icon className="text-default-500" icon="solar:magnifer-linear" width={18} />}
