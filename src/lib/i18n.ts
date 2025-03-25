@@ -32,6 +32,7 @@ supportLang.forEach(async v => {
 console.log(resources);
 i18n.use(initReactI18next).init({
     debug: false,
+    lng: 'zh',
     fallbackLng: 'zh',
     interpolation: {
         escapeValue: false
