@@ -223,7 +223,7 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
                                 input: 'text-small',
                                 inputWrapper: 'h-full rounded-xl font-normal text-default-500 bg-default-400/20 dark:bg-default-500/20'
                             }}
-                            value={searchKeywords}
+                            defaultValue={searchKeywords}
                             placeholder={t('Search')}
                             size="sm"
                             startContent={<Icon className="text-default-500" icon="solar:magnifer-linear" width={18} />}
