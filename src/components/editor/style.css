@@ -136,23 +136,29 @@
     --toggler-dots-color-hovered: var(--foreground);
 }
 
-@media (max-width: 650px) {
-    .dark .ce-toolbar__settings-btn,
-    .dark .ce-toolbar__plus {
-        background-color: hsl(var(--popover));
-        border-color: hsl(var(--border));
-        box-shadow: 0 3px 15px -3px hsl(var(--border) / 0.2);
-    }
-}
-
 /* custome style */
 
 @media (max-width: 650px) {
     .dark .ce-toolbar__settings-btn,
     .dark .ce-toolbar__plus {
-        background-color: var(--background);
-        border-color: var(--border);
-        box-shadow: 0 3px 15px -3px var(--border);
+        border: 1px solid #E8E8EB;
+        background-color: var(--background) !important;
+        border-color: var(--border) !important;
+        width: 36px;
+            height: 36px;
+    }
+}
+
+@media (max-width: 650px) {
+    .ce-toolbar__plus {
+        position: absolute;
+        background-color: #fff;
+        border: 1px solid #E8E8EB;
+        -webkit-box-shadow: 0 3px 15px -3px rgba(13, 20, 33, .13);
+        box-shadow: 0 3px 15px -3px #0d142121;
+        border-radius: 6px;
+        z-index: 2;
+        position: static;
     }
 }
 
@@ -167,6 +173,12 @@
     .ce-toolbar__actions {
         right: 0 !important;
         left: -60px !important;
+    }
+}
+
+@media (max-width: 650px) {
+    .ce-toolbar__actions {
+        right: auto !important;
     }
 }
 

@@ -431,7 +431,7 @@ export default function Component() {
                     </h1>
                     <Popover>
                         <PopoverTrigger>
-                            <Button isIconOnly className="flex lg:hidden" radius="full" size="sm" variant="flat">
+                            <Button isIconOnly className="flex xl:hidden" radius="full" size="sm" variant="flat">
                                 <Icon icon="solar:menu-dots-bold" width={24} />
                             </Button>
                         </PopoverTrigger>
@@ -445,7 +445,7 @@ export default function Component() {
 
             <main className="flex gap-6 w-full max-w-[1400px] h-full items-stretch justify-center relative">
                 {/* Controls */}
-                <div className="hidden w-[260px] overflow-hidden max-h-[calc(100vh*3/4)] flex-col gap-4 lg:flex sticky top-0">{controlsContent}</div>
+                <div className="hidden w-[260px] overflow-hidden max-h-[calc(100vh*3/4)] flex-col gap-4 xl:flex sticky top-0">{controlsContent}</div>
                 {/* Chat */}
                 <div className="relative flex flex-col h-full gap-2 pt-4 sm:pt-10 w-full md:max-w-[720px] rounded-xl bg-content1 overflow-hidden">
                     <div className="flex flex-grow w-full max-w-full flex-col box-border px-1 gap-2 relative overflow-hidden">

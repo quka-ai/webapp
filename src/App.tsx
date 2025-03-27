@@ -8,6 +8,7 @@ import { Toaster as SonnerTotaster } from 'sonner';
 import { subscribeKey } from 'valtio/utils';
 
 import { ShareProvider } from './components/share-button';
+import { useMedia } from './hooks/use-media';
 import { setNotAutoLoginDirect } from './lib/utils';
 import eventStore from './stores/event';
 
@@ -54,11 +55,13 @@ export function App({ children }: { children: React.ReactNode }) {
         setNotAutoLoginDirect();
     }, 2000);
 
+    const { isMobile } = useMedia();
+
     return (
         <MyProvider>
             <Outlet />
             <Toaster />
-            <SonnerTotaster theme={isDark ? 'dark' : 'light'} />
+            <SonnerTotaster theme={isDark ? 'dark' : 'light'} position={isMobile ? 'top-right' : 'bottom-right'} />
         </MyProvider>
     );
 }

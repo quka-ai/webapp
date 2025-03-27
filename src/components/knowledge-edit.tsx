@@ -2,6 +2,7 @@ import { OutputData } from '@editorjs/editorjs';
 import { Button, Input, ScrollShadow, Select, SelectItem, SelectSection, Skeleton, Spacer } from '@heroui/react';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { toast } from 'sonner';
 import { useSnapshot } from 'valtio';
 
 import { CreateKnowledge, type Knowledge, UpdateKnowledge } from '@/apis/knowledge';
@@ -9,7 +10,6 @@ import { ListResources, Resource } from '@/apis/resource';
 import KnowledgeAITaskList from '@/components/ai-tasks-list';
 import { Editor } from '@/components/editor/index';
 import { useGroupedResources } from '@/hooks/use-resource';
-import { useToast } from '@/hooks/use-toast';
 import resourceStore, { loadSpaceResource } from '@/stores/resource';
 import spaceStore from '@/stores/space';
 
@@ -93,8 +93,6 @@ export default memo(
             setTags(strTags.split('|'));
         }, []);
 
-        const { toast } = useToast();
-
         async function submit() {
             if (content === '') {
                 setErrorMessage('knowledge content is empty');
@@ -117,17 +115,11 @@ export default memo(
                         content_type: 'blocks',
                         tags: tags
                     });
-                    toast({
-                        title: t('Success'),
-                        description: 'Updated knowledge ' + knowledge.id
-                    });
                 } else {
                     await CreateKnowledge(knowledge.space_id, resource || defaultResource, content, 'blocks');
-                    toast({
-                        title: t('Success'),
-                        description: 'Create new knowledge'
-                    });
                 }
+
+                toast.success(t('Success'));
 
                 if (onChange) {
                     onChange();

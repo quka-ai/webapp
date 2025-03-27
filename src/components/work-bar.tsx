@@ -169,7 +169,7 @@ const WorkBar = memo(function WorkBar({ spaceid, onSubmit, isShowCreate, onShowC
                 <div className="text-2xl font-bold leading-9 text-default-foreground">🤯 {t('WorkSpace')}</div>
                 <Code className="text-sm text-default-500">{t('CurrentResourceType', { type: createToResource.title })}</Code>
             </div>
-            <div className="flex lg:flex-row flex-col flex-wrap gap-4 px-6">
+            <div className="flex lg:flex-row flex-col flex-wrap gap-4 md:px-6 px-3">
                 <div className="flex flex-col lg:w-1/2 w-full h-[200px]">
                     <Textarea
                         isClearable

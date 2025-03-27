@@ -94,8 +94,8 @@ export interface EditorProps {
 }
 
 export interface EditorRefObject {
-    reRender:(data: OutputData)=>void;
-    update:(id: string, data: BlockToolData)=>void
+    reRender: (data: OutputData) => void;
+    update: (id: string, data: BlockToolData) => void;
 }
 
 export const Editor = memo(
@@ -164,12 +164,14 @@ export const Editor = memo(
                             await editor.blocks.renderFromHTML(htmlDoms);
                         } catch (e: any) {
                             console.error('editor render error', e);
-                            await editor.render({blocks: [
-                                {
-                                    type: 'paragraph',
-                                    data: { text: data || '' }
-                                }
-                            ]});
+                            await editor.render({
+                                blocks: [
+                                    {
+                                        type: 'paragraph',
+                                        data: { text: data || '' }
+                                    }
+                                ]
+                            });
                         }
                 }
             };
@@ -405,7 +407,7 @@ export const Editor = memo(
         return (
             //     <Skeleton isLoaded={isReady}>
             // </Skeleton>
-            <div id={'brew-editor-' + randomID} className={cn('editor lg:mx-[60px]', className)} />
+            <div id={'brew-editor-' + randomID} className={cn('editor sm:mx-[60px]', className)} />
         );
     })
 );

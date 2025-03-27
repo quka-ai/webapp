@@ -329,10 +329,10 @@ const KnowledgeList = memo(
         const [isShowMemoryCreate, setIsShowMemoryCreate] = useState(false);
         return (
             <>
-                <ScrollShadow ref={ssDom} hideScrollBar className="w-full flex-grow box-border mb-6" onScroll={scrollChanged}>
+                <ScrollShadow ref={ssDom} hideScrollBar className="w-full flex-grow box-border mb-6 pb-20" onScroll={scrollChanged}>
                     <WorkBar spaceid={currentSelectedSpace} isShowCreate={isShowMemoryCreate} onShowChange={setIsShowMemoryCreate} onSubmit={onChanges} />
                     <div className="w-full  space-y-1 mb-6  py-1">
-                        <div className="flex justify-between items-center gap-4 px-6">
+                        <div className="flex justify-between items-center gap-4 md:px-6 px-3">
                             <div className="flex flex-col gap-2">
                                 <div className="text-xl font-bold leading-9 text-default-foreground">{t('Your Memories')}</div>
                                 <div className="text-small text-default-400">{t('memories count', { total: total, title: currentSelectedResource?.title })}</div>
@@ -344,7 +344,7 @@ const KnowledgeList = memo(
                             <p className="text-small text-default-400">{t('memories count', { total: total, title: currentSelectedResource?.title })}</p>
                         </Skeleton> */}
                     </div>
-                    <div className={[isSafari ? 'm-auto w-full max-w-[900px]' : 'columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 3xl:columns-5', 'gap-[24px] px-6'].join(' ')}>
+                    <div className={[isSafari ? 'm-auto w-full max-w-[900px]' : 'columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 3xl:columns-5', 'gap-[24px] md:px-6 px-3'].join(' ')}>
                         {/* {isShowCreate && (
                             <div className="mb-[24px]">
                                 <CreateKnowledge shadow={isMobile ? 'none' : 'sm'} onChanges={onChanges} openCreateKnowledge={onShowCreate} />

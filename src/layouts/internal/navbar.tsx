@@ -104,7 +104,7 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
             height="60px"
         >
             <NavbarBrand className="flex gap-2">
-                <Button isIconOnly className="sm:hidden" variant="flat" onPress={onSideBarOpenChange}>
+                <Button isIconOnly className="md:hidden" variant="flat" onPress={onSideBarOpenChange}>
                     <Icon className="text-default-500" icon="solar:sidebar-minimalistic-linear" width={26} />
                 </Button>
                 {(() => {
