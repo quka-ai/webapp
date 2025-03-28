@@ -56,6 +56,7 @@ export default function Chat() {
                     </div>
                     <div className="flex flex-col w-full">
                         <PromptInputWithEnclosedActions
+                            autoFocus={true}
                             allowAttach={true}
                             classNames={{
                                 button: 'bg-default-foreground opacity-100 w-[30px] h-[30px] !min-w-[30px] self-center',

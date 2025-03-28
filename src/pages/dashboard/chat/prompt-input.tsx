@@ -6,7 +6,6 @@ const PromptInput = React.forwardRef<HTMLTextAreaElement, TextAreaProps>(({ clas
     return (
         <Textarea
             ref={ref}
-            autoFocus
             aria-label="Prompt"
             className="min-h-[40px]"
             classNames={{

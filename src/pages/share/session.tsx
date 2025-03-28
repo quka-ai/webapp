@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 
 import { GetSharedSession, type SharedSessionDetail } from '@/apis/share';
 import { LogoIcon } from '@/components/logo';
+import { useMedia } from '@/hooks/use-media';
 import MessageCard from '@/pages/dashboard/chat/message-card';
 import ShareHeader from '@/pages/share/components/header';
 
@@ -64,6 +65,8 @@ const ShareSessionPage = function () {
         );
     }, [session]);
 
+    const { isMobile } = useMedia();
+
     return (
         <>
             <section className="h-screen flex flex-col w-full p-4 overflow-hidden items-center bg-content2">
@@ -80,7 +83,7 @@ const ShareSessionPage = function () {
                                             {session.messages.map(({ id, role, attach, message, complete }) => (
                                                 <MessageCard
                                                     key={id}
-                                                    avatar={role === 2 ? <LogoIcon /> : <Avatar src={session.user.avatar} />}
+                                                    avatar={role === 2 ? <LogoIcon size={isMobile ? '30' : '38'} /> : <Avatar src={session.user.avatar} size={isMobile ? 'sm' : 'md'} />}
                                                     message={message}
                                                     attach={attach}
                                                     messageClassName={role === 1 ? 'bg-content2 text-content2-foreground !py-3 w-full' : 'w-full'}
