@@ -16,7 +16,7 @@ const ShareSessionPage = function () {
     const [isLoading, setIsLoading] = useState(true);
     const loadSession = useCallback(async () => {
         if (!token) {
-            return
+            return;
         }
         setIsLoading(true);
         try {
@@ -67,7 +67,7 @@ const ShareSessionPage = function () {
     return (
         <>
             <section className="h-screen flex flex-col w-full p-4 overflow-hidden items-center bg-content2">
-                <ShareHeader controlsContent={controlsContent} type="session" createdUser={session ? session.user.id : ''}></ShareHeader>
+                <ShareHeader controlsContent={controlsContent} type="session" createdUser={session ? session.user.id : ''} />
                 <main className="flex gap-6 w-full max-w-[1400px] h-full items-stretch justify-center relative">
                     <div className="hidden w-[260px] overflow-hidden flex-col gap-4 lg:flex sticky top-0">{controlsContent}</div>
                     <div className="relative flex flex-col h-full gap-2 w-full md:max-w-[720px] rounded-xl overflow-hidden">
@@ -77,11 +77,12 @@ const ShareSessionPage = function () {
                                 <main className="h-full w-full relative gap-4 py-3 flex flex-col justify-center items-center">
                                     <ScrollShadow hideScrollBar className="w-full py-6 flex-grow items-center">
                                         <div className="w-full m-auto max-w-[760px] overflow-hidden relative flex flex-col gap-6">
-                                            {session.messages.map(({ id, role, message, complete }) => (
+                                            {session.messages.map(({ id, role, attach, message, complete }) => (
                                                 <MessageCard
                                                     key={id}
                                                     avatar={role === 2 ? <LogoIcon /> : <Avatar src={session.user.avatar} />}
                                                     message={message}
+                                                    attach={attach}
                                                     messageClassName={role === 1 ? 'bg-content2 text-content2-foreground !py-3 w-full' : 'w-full'}
                                                     // showFeedback={role === 'assistant'}
                                                     status={complete === 1 ? 'success' : 'failed'}

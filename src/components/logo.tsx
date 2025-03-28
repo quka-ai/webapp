@@ -2,9 +2,6 @@ import React from 'react';
 
 import { Logo } from './icons';
 
-import { cn } from '@/lib/utils';
-import type { IconSvgProps } from '@/types';
-
 export const LogoIcon: React.FC<IconSvgProps> = ({ size = 32, width, height, ...props }) => {
     width = width || size;
     height = height || size;

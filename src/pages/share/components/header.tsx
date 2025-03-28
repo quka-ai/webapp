@@ -132,7 +132,7 @@ export default memo(function ShareHeader({ controlsContent, type, createdUser }:
     return (
         <header className="flex w-full items-center gap-2 sm:gap-4 pb-4 flex-row justify-between">
             <div className="flex items-center gap-2">
-                <Link target="_parent" href="/">
+                <Link target="_parent" href="/" className="flex gap-2">
                     <LogoIcon />
                     <h1 className=" dark:text-white text-black">{Name}</h1>
                 </Link>
