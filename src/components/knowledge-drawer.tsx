@@ -8,7 +8,7 @@ import { useSnapshot } from 'valtio';
 import KnowledgeEdit from '@/components/knowledge-edit';
 import spaceStore from '@/stores/space';
 
-const KnowledgeDrawerContext = createContext(null);
+export const KnowledgeDrawerContext = createContext(null);
 
 export function KnowledgeProvider({ children }) {
     const [temporaryStorage, setTemporaryStorage] = useState('');
@@ -33,11 +33,17 @@ export interface KnowledgeDrawerButtonProps {
     temporaryStorage?: string;
     size?: string;
     className?: string;
+    onPress?: () => void;
 }
 
-export default function KnowledgeDrawerButton({ size = 'sm', className, temporaryStorage }: KnowledgeDrawerButtonProps) {
+export default function KnowledgeDrawerButton({ size = 'sm', className, temporaryStorage, onPress }: KnowledgeDrawerButtonProps) {
     const { t } = useTranslation();
     const { onOpen, setTemporaryStorage } = useContext(KnowledgeDrawerContext);
+
+    function click() {
+        onPress && onPress();
+        onOpen();
+    }
 
     useEffect(() => {
         setTemporaryStorage(temporaryStorage);
@@ -48,7 +54,7 @@ export default function KnowledgeDrawerButton({ size = 'sm', className, temporar
 
     className = 'bg-gradient-to-br from-pink-400 to-indigo-400 dark:from-indigo-500 dark:to-pink-500 ' + className;
     return (
-        <Button size={size} className={className} startContent={<Icon icon="fluent:brain-sparkle-20-regular" width={20} />} variant="flat" onPress={onOpen}>
+        <Button size={size} className={className} startContent={<Icon icon="fluent:brain-sparkle-20-regular" width={20} />} variant="flat" onPress={click}>
             {t('Quick Create Knowledge')}
         </Button>
     );

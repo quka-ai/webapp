@@ -1,13 +1,13 @@
 import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, Kbd, Navbar, NavbarBrand, NavbarContent, NavbarItem } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { PressEvent } from '@react-types/shared/src';
-import { useCallback, useMemo, useRef } from 'react';
+import { useCallback, useContext, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 
 import { CreateSessionShareURL } from '@/apis/share';
-import KnowledgeDrawerButton from '@/components/knowledge-drawer';
+import KnowledgeDrawerButton, { KnowledgeDrawerContext } from '@/components/knowledge-drawer';
 import ManageSpaceComponent from '@/components/manage-space';
 import ResourceManage from '@/components/resource-modal';
 import ShareButton, { useShare } from '@/components/share-button';
@@ -94,6 +94,8 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
         }
     });
 
+    const { onOpen: openKnowledgeDrawer } = useContext(KnowledgeDrawerContext);
+
     return (
         <Navbar
             classNames={{
@@ -150,12 +152,17 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
                                         <Icon icon="tabler:dots" width={24} />
                                     </Button>
                                 </DropdownTrigger>
-                                <DropdownMenu variant="faded">
-                                    <DropdownItem key="share" className="h-10" startContent={<Icon icon={shareIcon} width={24} />} onPress={createShareURL}>
+                                <DropdownMenu variant="faded" selectionMode="single">
+                                    <DropdownItem key="share" className="h-10 mb-2" startContent={<Icon icon={shareIcon} width={24} />} onPress={createShareURL}>
                                         {shareText}
                                     </DropdownItem>
-                                    <DropdownItem key="new-content">
-                                        <KnowledgeDrawerButton className="w-full" temporaryStorage="session-knowledge" />
+                                    <DropdownItem
+                                        key="new-content"
+                                        className="h-10 border-0 bg-gradient-to-br from-pink-400 to-indigo-400 dark:from-indigo-500 dark:to-pink-500"
+                                        startContent={<Icon icon="fluent:brain-sparkle-20-regular" width={20} />}
+                                        onPress={openKnowledgeDrawer}
+                                    >
+                                        {t('Quick Create Knowledge')}
                                     </DropdownItem>
                                 </DropdownMenu>
                             </Dropdown>
