@@ -21,7 +21,6 @@ export function useRole(): { isSpaceViewer: boolean; isMember: boolean; isEditor
     }, [spaceRole]);
 
     const isManager = useMemo(() => {
-        console.log(spaceRole, Role.CHIEF);
         return spaceRole === Role.ADMIN || spaceRole === Role.CHIEF;
     }, [spaceRole]);
 

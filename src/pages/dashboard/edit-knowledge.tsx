@@ -52,12 +52,7 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
 
     const { spaces, currentSelectedSpace } = useSnapshot(spaceStore);
     const spaceTitle = useMemo(() => {
-        if (!spaceID) {
-            return '';
-        }
-
         const target = spaces.find(v => v.space_id === spaceID);
-
         return target?.title;
     }, [spaces, spaceID]);
 
@@ -141,7 +136,7 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                 <BreadcrumbItem>{knowledge.id}</BreadcrumbItem>
             </Breadcrumbs>
         );
-    }, [knowledge, knowledgeResource]);
+    }, [knowledge, knowledgeResource, spaceTitle]);
 
     return (
         <div className="bg-content1 w-full min-h-screen">

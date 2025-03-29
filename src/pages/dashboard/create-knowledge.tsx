@@ -22,13 +22,9 @@ const CreateKnowledge = () => {
 
     const { spaces } = useSnapshot(spaceStore);
     const spaceTitle = useMemo(() => {
-        for (const item of spaces) {
-            if (item.space_id === spaceID) {
-                return item.title;
-            }
-        }
+        const target = spaces.find(v => v.space_id === spaceID);
 
-        return '';
+        return target?.title;
     }, [spaces, spaceID]);
 
     const editor = useRef();
