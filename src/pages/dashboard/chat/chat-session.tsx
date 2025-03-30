@@ -441,7 +441,6 @@ export default function Chat() {
     useEffect(() => {
         async function load() {
             setMessages([]);
-            setAiTyping(true);
             const total = await loadData(1);
 
             if (isNew && total === 0) {
