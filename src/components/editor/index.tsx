@@ -125,18 +125,13 @@ export const Editor = memo(
                         await editor.blocks.render(data);
                         break;
                     default: // default will be markdown
-                        if (data && data.split('\n').length === 1) {
-                            data = {
-                                blocks: [
-                                    {
-                                        type: 'paragraph',
-                                        data: {
-                                            text: data
-                                        }
-                                    }
-                                ]
-                            };
-                            await editor.blocks.render(data);
+                        if (data) {
+                            let renderData = { blocks: [] };
+
+                            data.split('\n').forEach(element => {
+                                renderData.blocks.push({ type: 'paragraph', data: { text: element } });
+                            });
+                            await editor.blocks.render(renderData);
 
                             return;
                         }
