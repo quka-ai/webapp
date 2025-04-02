@@ -1,5 +1,4 @@
 import i18n from 'i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
 import { initReactI18next } from 'react-i18next';
 
 // import enTranslation from './i18n/en.json';
@@ -12,42 +11,47 @@ const namespaces = ['space', 'space-setting'];
 
 let resources = {};
 
-supportLang.forEach(async v => {
-    resources[v] = {
-        translation: Object.assign(
-            (() => {
-                let obj = {};
+const loadResources = async () => {
+    const resources = {};
 
-                namespaces.forEach(async ns => {
-                    obj[ns] = (await import(`./i18n/${v}/${ns}.json`)).default;
-                });
+    await Promise.all(
+        supportLang.map(async v => {
+            resources[v] = {
+                translation: Object.assign(
+                    (() => {
+                        let obj = {};
 
-                return obj;
-            })(),
-            (await import(`./i18n/${v}/${v}.json`)).default
-        )
-    };
-});
+                        namespaces.forEach(async ns => {
+                            obj[ns] = (await import(`./i18n/${v}/${ns}.json`)).default;
+                        });
 
-console.log(resources);
-i18n.use(initReactI18next).init({
-    debug: false,
-    lng: 'zh',
-    fallbackLng: 'zh',
-    interpolation: {
-        escapeValue: false
-    },
-    resources
-    // resources: {
-    //     en: {
-    //         translation: {
-    //             ...enTranslation,
-    //             'space-setting': spaceEn
-    //         }
-    //     },
-    //     zh: { translation: zhTranslation },
-    //     ja: { translation: jaTranslation }
-    // }
-});
+                        return obj;
+                    })(),
+                    (await import(`./i18n/${v}/${v}.json`)).default
+                )
+            };
+        })
+    );
+
+    console.log(resources);
+
+    return resources;
+};
+
+// 初始化i18n
+const initializeI18n = async () => {
+    const resources = await loadResources();
+
+    i18n.use(initReactI18next).init({
+        debug: false,
+        fallbackLng: 'zh',
+        interpolation: {
+            escapeValue: false
+        },
+        resources
+    });
+};
+
+export const Init = initializeI18n;
 
 export default i18n;

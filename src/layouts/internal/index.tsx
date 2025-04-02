@@ -178,7 +178,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                             <div className="flex items-center gap-2 px-2">
                                 <LogoIcon size={36} />
 
-                                <span className="text-lg font-bold header-text">{Name}</span>
+                                <span className="text-xl font-bold header-text">{Name}</span>
                             </div>
                         </Link>
                         {/* <div className="flex items-center justify-end">
@@ -365,7 +365,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                 </Button>
                             </CardFooter>
                         </Card> */}
-                        <Card className="mx-2 overflow-visible" shadow="sm">
+                        <Card className="mx-2 overflow-visible mb-20" shadow="sm">
                             <CardBody className="items-center py-5 text-center">
                                 <h3 className="text-medium font-medium text-default-700">
                                     Sponsor

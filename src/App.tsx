@@ -3,6 +3,7 @@
 import { HeroUIProvider, ToastProvider } from '@heroui/react';
 import { enableMapSet } from 'immer';
 import { Children, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Toaster as SonnerTotaster } from 'sonner';
 import { subscribeKey } from 'valtio/utils';
@@ -15,7 +16,7 @@ import eventStore from './stores/event';
 import { KnowledgeProvider } from '@/components/knowledge-drawer';
 import { Toaster } from '@/components/ui/toaster';
 import { useTheme } from '@/hooks/use-theme';
-import '@/lib/i18n';
+import { Init as InitI18n } from '@/lib/i18n';
 
 export function App({ children }: { children: React.ReactNode }) {
     const { theme, isDark } = useTheme();
@@ -67,22 +68,35 @@ export function App({ children }: { children: React.ReactNode }) {
 }
 
 function MyProvider({ children }: { children: React.ReactNode }) {
+    const [isInit, setIsInit] = useState(false);
+    async function init() {
+        await InitI18n();
+        setIsInit(true);
+    }
+    useEffect(() => {
+        init();
+    }, []);
+
     const navigate = useNavigate();
 
     return (
-        <HeroUIProvider navigate={navigate}>
-            <ToastProvider
-                toastProps={{
-                    variant: 'flat',
-                    timeout: 2000,
-                    classNames: {
-                        closeButton: 'opacity-100 absolute right-4 top-1/2 -translate-y-1/2'
-                    }
-                }}
-            />
-            <KnowledgeProvider>
-                <ShareProvider>{children}</ShareProvider>
-            </KnowledgeProvider>
-        </HeroUIProvider>
+        <>
+            {isInit && (
+                <HeroUIProvider navigate={navigate}>
+                    <ToastProvider
+                        toastProps={{
+                            variant: 'flat',
+                            timeout: 2000,
+                            classNames: {
+                                closeButton: 'opacity-100 absolute right-4 top-1/2 -translate-y-1/2'
+                            }
+                        }}
+                    />
+                    <KnowledgeProvider>
+                        <ShareProvider>{children}</ShareProvider>
+                    </KnowledgeProvider>
+                </HeroUIProvider>
+            )}
+        </>
     );
 }
