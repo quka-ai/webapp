@@ -5,6 +5,7 @@ import { useSnapshot } from 'valtio';
 
 import { GetUserInfo } from '@/apis/user';
 import { App } from '@/App';
+import ToolUsing from '@/components/tool-using';
 import { autoLoginDirect } from '@/lib/utils';
 import Dashboard from '@/pages/dashboard';
 import ChatSession from '@/pages/dashboard/chat/chat-session.tsx';
@@ -114,6 +115,10 @@ const routes = createBrowserRouter([
         path: '/',
         element: <App />,
         children: [
+            {
+                path: '/test',
+                element: <ToolUsing isShow title="tesst" desc="ttttdddddd" />
+            },
             {
                 index: true,
                 path: '/',
