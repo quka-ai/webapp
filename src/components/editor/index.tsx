@@ -1,13 +1,13 @@
 import Delimiter from '@coolbytes/editorjs-delimiter';
-import CodeTool from '@editorjs/code';
-import EditorJS, { BlockToolData, OutputBlockData, OutputData } from '@editorjs/editorjs';
+// import CodeTool from '@editorjs/code';
+import EditorJS, { BlockToolData, OutputData } from '@editorjs/editorjs';
 import Header from '@editorjs/header';
 import InlineCode from '@editorjs/inline-code';
 import EditorjsList from '@editorjs/list';
 import Marker from '@editorjs/marker';
 import Quote from '@editorjs/quote';
 import Table from '@editorjs/table';
-import { Skeleton } from '@heroui/react';
+import CodeTool from '@tltoulson/editorjs-codemirror';
 import { forwardRef, memo, Ref, useEffect, useImperativeHandle, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import showdown from 'showdown';
@@ -345,15 +345,8 @@ export const Editor = memo(
                     },
                     codeBox: {
                         class: CodeTool,
-                        inlineToolbar: true,
-                        shortcut: 'CMD+SHIFT+C',
-                        conversionConfig: {
-                            import(str: string): string {
-                                return str;
-                            },
-                            export(data): string {
-                                return data.code;
-                            }
+                        config: {
+                            placeholder: ''
                         }
                     },
                     inlineCode: {
