@@ -7,7 +7,7 @@ import EditorjsList from '@editorjs/list';
 import Marker from '@editorjs/marker';
 import Quote from '@editorjs/quote';
 import Table from '@editorjs/table';
-import CodeTool from '@tltoulson/editorjs-codemirror';
+import CodeTool from '@holdno/editorjs-codemirror';
 import { forwardRef, memo, Ref, useEffect, useImperativeHandle, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import showdown from 'showdown';
