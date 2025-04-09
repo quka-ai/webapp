@@ -10,7 +10,7 @@ import { type Resource } from '@/apis/resource';
 import { ListResources } from '@/apis/resource';
 import { CreateKnowledgeShareURL } from '@/apis/share';
 import KnowledgeDeletePopover from '@/components/knowledge-delete-popover';
-import KnowledgeEdit from '@/components/knowledge-edit';
+import KnowledgeEdit, { KnwoledgeEditorRefObject } from '@/components/knowledge-edit';
 import KnowledgeView from '@/components/knowledge-view';
 import ShareButton from '@/components/share-button';
 import { useMedia } from '@/hooks/use-media';
@@ -142,7 +142,7 @@ const ViewKnowledge = memo(
             };
         });
 
-        const editor = useRef();
+        const editor = useRef<KnwoledgeEditorRefObject>();
         const [saveLoading, setSaveLoading] = useState(false);
         const submit = useCallback(async () => {
             if (editor.current) {
@@ -169,9 +169,7 @@ const ViewKnowledge = memo(
                                     <ModalHeader className="flex items-center justify-between dark:text-gray-100 text-gray-800 gap-4">
                                         <Breadcrumbs className="break-all text-wrap max-w-[66%] overflow-hidden text-ellipsis">
                                             <BreadcrumbItem
-                                                onClick={() => {
-                                                    navigate('/');
-                                                }}
+                                                onClick={onClose}
                                             >
                                                 {t('Home')}
                                             </BreadcrumbItem>

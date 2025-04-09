@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 
-import KnowledgeEdit from '@/components/knowledge-edit';
+import KnowledgeEdit, { KnwoledgeEditorRefObject } from '@/components/knowledge-edit';
 import { loadSpaceResource } from '@/stores/resource';
 import spaceStore from '@/stores/space';
 
@@ -27,12 +27,12 @@ const CreateKnowledge = () => {
         return target?.title;
     }, [spaces, spaceID]);
 
-    const editor = useRef();
+    const editor = useRef<KnwoledgeEditorRefObject>();
     const [createLoading, setCreateLoading] = useState(false);
     const submit = useCallback(async () => {
         try {
             setCreateLoading(true);
-            await editor.current.submit();
+            editor.current && await editor.current.submit();
         } catch (e: any) {
             console.error(e);
         }
@@ -45,7 +45,7 @@ const CreateKnowledge = () => {
                 <Breadcrumbs>
                     <BreadcrumbItem
                         onPress={() => {
-                            navigate('/');
+                            navigate(`/dashboard/${spaceID}/knowledge`);
                         }}
                     >
                         {t('Home')}

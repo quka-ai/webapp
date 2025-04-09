@@ -18,7 +18,6 @@ export default function SpaceApplicationForm({ spaceToken, onSubmit }: SpaceAppl
             setIsLoading(true);
             try {
                 await ApplySpace(spaceToken, data);
-                console.log('submit', onSubmit);
                 onSubmit && onSubmit();
             } catch (e: any) {
                 console.error(e);
@@ -37,7 +36,7 @@ export default function SpaceApplicationForm({ spaceToken, onSubmit }: SpaceAppl
                 submit(data.applicationInfo);
             }}
         >
-            <Textarea isRequired label={t('space.ApplicationInfo')} labelPlacement="outside" name="applicationInfo" type="text" />
+            <Textarea isRequired variant='bordered' label={t('space.ApplicationInfo')} labelPlacement="outside" name="applicationInfo" type="text" />
 
             <div className="flex gap-2">
                 <Button color="primary" type="submit" isLoading={isLoading}>

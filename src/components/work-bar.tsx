@@ -29,7 +29,7 @@ import { useSnapshot } from 'valtio';
 
 import { TaskList } from './create';
 import { FilePreview, FileUploader } from './file-uploader';
-import KnowledgeEdit from './knowledge-edit';
+import KnowledgeEdit, { KnwoledgeEditorRefObject } from './knowledge-edit';
 
 import { CreateFileChunkTask } from '@/apis/chunk-task';
 import { CreateKnowledge } from '@/apis/knowledge';
@@ -451,12 +451,12 @@ const CreateKnowledgeModal = memo(
             };
         });
 
-        const editor = useRef();
+        const editor = useRef<KnwoledgeEditorRefObject>();
         const [createLoading, setCreateLoading] = useState(false);
         const submit = useCallback(async () => {
             try {
                 setCreateLoading(true);
-                await editor.current.submit();
+                editor.current && await editor.current.submit();
             } catch (e: any) {
                 console.error(e);
             }

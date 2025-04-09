@@ -8,7 +8,7 @@ import { useSnapshot } from 'valtio';
 import { CreateKnowledge, type Knowledge, UpdateKnowledge } from '@/apis/knowledge';
 import { ListResources, Resource } from '@/apis/resource';
 import KnowledgeAITaskList from '@/components/ai-tasks-list';
-import { Editor } from '@/components/editor/index';
+import { Editor, EditorRefObject } from '@/components/editor/index';
 import { useGroupedResources } from '@/hooks/use-resource';
 import resourceStore, { loadSpaceResource } from '@/stores/resource';
 import spaceStore from '@/stores/space';
@@ -28,11 +28,17 @@ export interface ClassNames {
     editor: string;
 }
 
+export interface KnwoledgeEditorRefObject {
+    submit: () => void;
+    reset: () => void;
+}
+
 export default memo(
     forwardRef(function KnowledgeEdit({ knowledge, onChange, onCancel, hideSubmit, classNames, enableScrollShadow = true, temporaryStorage }: KnowledgeEditProps, ref: any) {
         const { t } = useTranslation();
         const [title, setTitle] = useState(knowledge ? knowledge.title : '');
         const [content, setContent] = useState<string | OutputData>(knowledge ? (knowledge.blocks ? knowledge.blocks : knowledge.content) : '');
+        const [contentType, setContentType] = useState(knowledge? knowledge.content_type : 'markdown'); // text | blocks | jso
         const [tags, setTags] = useState(knowledge ? knowledge.tags : []);
         const [isInvalid, setInvalid] = useState(false);
         const [errorMessage, setErrorMessage] = useState('');
@@ -43,9 +49,11 @@ export default memo(
 
         if (!knowledge?.blocks && !knowledge?.content && temporaryStorage) {
             const cached = JSON.parse(sessionStorage.getItem(temporaryStorage) || '{}');
-            if (cached.blocks) {
+            if (knowledge && cached.blocks) {
                 knowledge.blocks = cached;
+                setContent(knowledge.blocks)
                 knowledge.content_type = 'blocks';
+                setContentType(knowledge.content_type)
             }
         }
 
@@ -86,6 +94,7 @@ export default memo(
                 setInvalid(false);
             }
             setContent(value);
+            setContentType('blocks');
             temporaryStorage && sessionStorage.setItem(temporaryStorage, JSON.stringify(value));
         }, []);
 
@@ -112,11 +121,11 @@ export default memo(
                         resource: resource || defaultResource,
                         title: title,
                         content: content,
-                        content_type: 'blocks',
+                        content_type: contentType,
                         tags: tags
                     });
                 } else {
-                    await CreateKnowledge(knowledge.space_id, resource || defaultResource, content, 'blocks');
+                    await CreateKnowledge(knowledge.space_id, resource || defaultResource, content, contentType);
                 }
 
                 toast.success(t('Success'));
@@ -130,7 +139,7 @@ export default memo(
             setLoading(false);
         }
 
-        const editor = useRef<any>();
+        const editor = useRef<EditorRefObject>();
 
         function reset() {
             if (editor.current) {
@@ -219,6 +228,7 @@ export default memo(
                                     <Editor
                                         ref={editor}
                                         autofocus
+                                        readOnly={false}
                                         className={classNames?.editor ? classNames.editor : ''}
                                         data={(() => {
                                             return knowledge.blocks || knowledge.content;

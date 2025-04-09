@@ -8,6 +8,7 @@ import { GetSpaceLandingDetail, SpaceLandingDetail } from '@/apis/space';
 import { LogoIcon, Name } from '@/components/logo';
 import SpaceApplicationForm from '@/components/space/space-application-form';
 import { SPACE_APPLICATION_STATUS } from '@/components/space/space-application-list';
+import { Icon } from '@iconify/react';
 
 export default function SpaceLnadingPage() {
     const { t } = useTranslation();
@@ -39,7 +40,6 @@ export default function SpaceLnadingPage() {
     const [detail, setDetail] = useState<SpaceLandingDetail>();
     const [isLoading, setIsLoading] = useState(false);
     const getLandingDetail = useCallback(async (token: string) => {
-        console.log('refresh landing detail');
         if (!token) {
             return;
         }
@@ -122,7 +122,7 @@ export default function SpaceLnadingPage() {
                 break;
             default:
                 return (
-                    <div className="border-box w-full flex flex-col gap-4 bg-content1 rounded-xl border-1 border-zinc-700 p-6">
+                    <div className="border-box w-full flex flex-col gap-4 bg-content1 rounded-xl border-1 border-zinc-800 p-6">
                         <Skeleton className="w-3/5 rounded-lg">
                             <div className="h-6 w-3/5 rounded-lg bg-default-200" />
                         </Skeleton>
@@ -153,6 +153,7 @@ export default function SpaceLnadingPage() {
                     <Button
                         size="sm"
                         variant="ghost"
+                        startContent={<Icon icon="material-symbols:arrow-back-ios-rounded" />}
                         onPress={() => {
                             navigator('/');
                         }}
@@ -183,7 +184,7 @@ export default function SpaceLnadingPage() {
                                 classNames={{
                                     description: 'text-default-500'
                                 }}
-                                description="xxxxxx"
+                                description=""
                                 name={detail?.user.name}
                             />
                         ) : (
@@ -203,7 +204,7 @@ export default function SpaceLnadingPage() {
                     <div className="flex flex-col gap-4 items-start">
                         <h1 className="text-xl font-semibold">{t('space.AboutTheSpace')}</h1>
                         {detail ? (
-                            <p>{detail?.desc}</p>
+                            <p dangerouslySetInnerHTML={{__html: detail?.desc.replaceAll('\n', '<br/>')}}></p>
                         ) : (
                             <div className="w-full flex flex-col gap-2">
                                 <Skeleton className="h-3 w-3/5 rounded-lg" />

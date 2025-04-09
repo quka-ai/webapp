@@ -1,12 +1,15 @@
+//@ts-ignore
 import Delimiter from '@coolbytes/editorjs-delimiter';
 // import CodeTool from '@editorjs/code';
-import EditorJS, { BlockToolData, OutputData } from '@editorjs/editorjs';
+import EditorJS, { BlockToolData, OutputBlockData, OutputData } from '@editorjs/editorjs';
 import Header from '@editorjs/header';
 import InlineCode from '@editorjs/inline-code';
 import EditorjsList from '@editorjs/list';
+//@ts-ignore
 import Marker from '@editorjs/marker';
 import Quote from '@editorjs/quote';
 import Table from '@editorjs/table';
+//@ts-ignore
 import CodeTool from '@holdno/editorjs-codemirror';
 import { forwardRef, memo, Ref, useEffect, useImperativeHandle, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,20 +22,21 @@ import './style.css';
 import { CreateUploadKey, UploadFileToKey } from '@/apis/upload';
 import Video from '@/components/editor/video-component/video-tool';
 import { useToast } from '@/hooks/use-toast';
-import { compressImage } from '@/lib/compress';
+import { compressImage, CompressResult } from '@/lib/compress';
 import { cn, randomString } from '@/lib/utils';
 import spaceStore from '@/stores/space';
+import { ToastProps } from '../ui/toast';
 
 function getUploader(toast: (d: ToastProps) => void, t: (d: string) => string, currentSelectedSpace: string) {
     return {
-        async uploadByFile(file: File): { success: number; file?: { url: string } } {
+        async uploadByFile(file: File): Promise<{ success: number; file?: { type?:string, url: string } } | undefined> {
             try {
-                let result: CompressResult = {};
+                let result = {} as CompressResult;
                 let fileKind = '';
 
                 if (file.type.startsWith('image')) {
                     result = await compressImage(file);
-                    if (result.success) {
+                    if (result.success && result.file) {
                         file = result.file;
                     }
                     fileKind = 'image';
@@ -72,7 +76,7 @@ function getUploader(toast: (d: ToastProps) => void, t: (d: string) => string, c
                         url: resp.url
                     }
                 };
-            } catch (e: Error) {
+            } catch (e: any) {
                 toast({
                     title: t('Error'),
                     // TODO: i18n
@@ -90,7 +94,7 @@ export interface EditorProps {
     placeholder?: string;
     autofocus?: boolean;
     className?: string;
-    onValueChange?: () => void;
+    onValueChange?: (value: OutputData) => void;
 }
 
 export interface EditorRefObject {
@@ -119,14 +123,14 @@ export const Editor = memo(
                 }
                 switch (dataType.toLowerCase()) {
                     case 'html':
-                        await editor.blocks.renderFromHTML(data);
+                        await editor.blocks.renderFromHTML(data as string);
                         break;
                     case 'blocks':
-                        await editor.blocks.render(data);
+                        await editor.blocks.render(data as OutputData);
                         break;
                     default: // default will be markdown
-                        if (data) {
-                            let renderData = { blocks: [] };
+                        if (data && typeof(data) === 'string' && data.split('\n').length === 1) {
+                            let renderData: OutputData = { blocks: [] };
 
                             data.split('\n').forEach(element => {
                                 renderData.blocks.push({ type: 'paragraph', data: { text: element } });
@@ -135,6 +139,8 @@ export const Editor = memo(
 
                             return;
                         }
+
+
                         showdown.extension('code', function () {
                             return [
                                 {
@@ -149,24 +155,24 @@ export const Editor = memo(
                         });
 
                         const converter = new showdown.Converter({ extensions: ['code'] });
-                        let htmlDoms = converter.makeHtml(data);
-
-                        if (!htmlDoms.trim().startsWith('<div>')) {
-                            htmlDoms = '<div>' + htmlDoms + '</div>';
-                        }
+                        let htmlDoms = converter.makeHtml(data as string) + '\n<p></p>';
 
                         try {
                             await editor.blocks.renderFromHTML(htmlDoms);
+                            return
                         } catch (e: any) {
                             console.error('editor render error', e);
-                            await editor.render({
-                                blocks: [
-                                    {
-                                        type: 'paragraph',
-                                        data: { text: data || '' }
-                                    }
-                                ]
+                        }
+
+                        if (data && typeof(data) === 'string') {
+                            let renderData: OutputData = { blocks: [] };
+
+                            data.split('\n').forEach(element => {
+                                renderData.blocks.push({ type: 'paragraph', data: { text: element } });
                             });
+                            await editor.blocks.render(renderData);
+
+                            return;
                         }
                 }
             };
@@ -264,6 +270,7 @@ export const Editor = memo(
                      * Each Tool is a Plugin. Pass them via 'class' option with necessary settings {@link docs/tools.md}
                      */
                     header: {
+                        //@ts-ignore
                         class: Header,
                         inlineToolbar: ['marker', 'link'],
                         config: {
@@ -304,6 +311,7 @@ export const Editor = memo(
                         }
                     },
                     video: {
+                        //@ts-ignore
                         class: Video,
                         config: {
                             types: 'video/*',
@@ -316,6 +324,7 @@ export const Editor = memo(
                     },
                     listv2: {
                         // include check list
+                        //@ts-ignore
                         class: EditorjsList,
                         inlineToolbar: true,
                         shortcut: 'CMD+SHIFT+L'
@@ -344,10 +353,7 @@ export const Editor = memo(
                         shortcut: 'CMD+SHIFT+M'
                     },
                     codeBox: {
-                        class: CodeTool,
-                        config: {
-                            placeholder: ''
-                        }
+                        class: CodeTool
                     },
                     inlineCode: {
                         class: InlineCode,
@@ -355,6 +361,7 @@ export const Editor = memo(
                     },
                     // link: LinkTool, import LinkTool from '@editorjs/link';
                     table: {
+                        //@ts-ignore
                         class: Table,
                         inlineToolbar: true,
                         shortcut: 'CMD+ALT+T'
@@ -378,11 +385,11 @@ export const Editor = memo(
         }, [currentSelectedSpace]);
 
         async function reRender(data: OutputData) {
-            await editor.blocks.render(data);
+            editor && await editor.blocks.render(data);
         }
 
         async function update(id: string, data: BlockToolData) {
-            await editor.blocks.update(id, data);
+            editor && await editor.blocks.update(id, data);
         }
 
         useImperativeHandle(ref, () => {

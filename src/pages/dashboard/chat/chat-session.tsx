@@ -441,8 +441,9 @@ export default function Chat() {
     useEffect(() => {
         async function load() {
             setMessages([]);
+            setAiTyping(true);
             const total = await loadData(1);
-
+            setAiTyping(false);
             if (isNew && total === 0) {
                 if (location.state && location.state.messages && location.state.messages.length === 1) {
                     NamedSession(location.state.messages[0].message);
@@ -450,8 +451,6 @@ export default function Chat() {
                     await query(location.state.messages[0].message, location.state.agent, location.state.files);
                     location.state.messages = undefined;
                 }
-            } else {
-                setAiTyping(false);
             }
         }
         if (currentSelectedSpace) {
@@ -537,7 +536,7 @@ export default function Chat() {
                                     }
                                 />
                             ))}
-                            {aiTyping && <MessageCard key="aiTyping" isLoading attempts={1} currentAttempt={1} message={''} />}
+                            {aiTyping && <MessageCard key="aiTyping" messageClassName="w-full" isLoading attempts={1} currentAttempt={1} message={''} />}
                         </div>
                         <div className="pb-40" />
                     </ScrollShadow>

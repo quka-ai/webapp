@@ -1,4 +1,4 @@
-import { Avatar, Badge, Button, Image, Link, Skeleton, Tooltip } from '@heroui/react';
+import { Avatar, Badge, Button, Image, Skeleton, Tooltip } from '@heroui/react';
 import { cn } from '@heroui/react';
 import { useClipboard } from '@heroui/use-clipboard';
 import { Icon } from '@iconify/react';
@@ -8,6 +8,10 @@ import React, { ReactNode } from 'react';
 import { RelDoc } from '@/apis/chat';
 import Markdown from '@/components/markdown';
 import { useMedia } from '@/hooks/use-media';
+
+import Zoom from 'react-medium-image-zoom'
+import 'react-medium-image-zoom/dist/styles.css'
+
 
 // import { useMedia } from '@/hooks/use-media';
 
@@ -133,9 +137,9 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
                 </div>
                 <div className="max-w-full flex flex-1 overflow-hidden flex-col items-start gap-4 relative">
                     <div className={cn('relative rounded-medium md:py-3 text-default-600', failedMessageClassName, messageClassName)}>
-                        {!hasFailed && !message ? (
+                        {!hasFailed && isLoading ? (
                             <>
-                                <div className="flex flex-col gap-3 mt-[-3px]">
+                                <div className="flex flex-col gap-3 mt-[-3px] w-full">
                                     <Skeleton className="h-6 w-3/5 rounded-lg" />
                                     <Skeleton className="h-6 w-5/6 rounded-lg" />
                                     <Skeleton className="h-6 w-5/6 rounded-lg" />
@@ -151,7 +155,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
                                         {attach && attach.length > 0 && (
                                             <div className="flex flex-wrap gap-3 m-2 mb-0">
                                                 {attach.map((v, index) => {
-                                                    return <Image key={index} className="w-40 h-50 rounded-small border-small border-default-200/50 object-cover" src={v.url} />;
+                                                    return <Zoom><Image key={index} className="w-40 h-50 rounded-small border-small border-default-200/50 object-cover" src={v.url} /></Zoom>;
                                                 })}
                                             </div>
                                         )}

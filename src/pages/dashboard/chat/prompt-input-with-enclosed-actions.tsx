@@ -12,6 +12,9 @@ import PromptInput from './prompt-input';
 import { UploadResult, useUploader } from '@/hooks/use-uploader';
 import spaceStore from '@/stores/space';
 
+import Zoom from 'react-medium-image-zoom'
+import 'react-medium-image-zoom/dist/styles.css'
+
 export default function Component(
     props: TextAreaProps & {
         classNames?: Record<'button' | 'buttonIcon', string>;
@@ -391,7 +394,9 @@ const PromptInputAssets = ({ assets, onRemoveAsset }: PromptInputAssetsProps) =>
                             </Button>
                         }
                     >
-                        <Image alt="uploaded image" className="h-24 w-24 rounded-small border-small border-default-200/50 object-cover" src={previewBase64} />
+                        <Zoom>
+                            <Image alt="uploaded image" className="h-24 w-24 rounded-small border-small border-default-200/50 object-cover" src={previewBase64} />
+                        </Zoom>
                     </Badge>
                 );
             })}

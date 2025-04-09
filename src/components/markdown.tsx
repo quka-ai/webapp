@@ -10,6 +10,9 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import stringWidth from 'string-width';
 
+import Zoom from 'react-medium-image-zoom'
+import 'react-medium-image-zoom/dist/styles.css'
+
 import { useTheme } from '@/hooks/use-theme';
 
 export default memo(function MarkdownComponent(props: Options & { isLight?: boolean }) {
@@ -20,7 +23,7 @@ export default memo(function MarkdownComponent(props: Options & { isLight?: bool
             return { a: LightLink };
         }
 
-        return { a: CustomLink, pre: Pre, table: CustomTable };
+        return { a: CustomLink, pre: Pre, img: Img, table: CustomTable };
     }, [isLight]);
 
     const rehypePlugins = useMemo(() => {
@@ -68,6 +71,14 @@ const CustomTable = ({ href, children }) => {
 
 const Pre = ({ children, ...others }: ExtraProps) => {
     return <pre className="my-2 rounded-lg overflow-hidden break-words text-wrap">{children}</pre>;
+};
+
+const Img = ({ src, alt, ...rest }: ExtraProps) => {
+    return (
+        <Zoom>
+            <img src={src} alt={alt} {...rest} />
+        </Zoom>
+    );
 };
 
 // // @ts-ignore

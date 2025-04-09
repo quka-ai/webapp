@@ -3,6 +3,7 @@ import axios from 'axios';
 import instance from './request';
 
 export interface CreateUploadKeyResponse {
+    status: string;
     static_domain: string;
     url: string;
     full_path: string;

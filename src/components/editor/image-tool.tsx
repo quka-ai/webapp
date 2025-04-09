@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { DescribeImage } from '@/apis/tools';
 import { notifyTaskProgress } from '@/stores/event';
 
-const genenrating = new Map<string, bool>();
+const genenrating = new Map<string, boolean>();
 
 let count = 0;
 
@@ -15,7 +15,7 @@ function genId() {
     return count.toString();
 }
 
-async function aiGenImageDescription(i18n: (string) => string, url: string): Promise<string | undefined> {
+async function aiGenImageDescription(i18n: (str:string) => string, url: string): Promise<string | undefined> {
     const id = genId();
 
     if (genenrating.get(url)) {

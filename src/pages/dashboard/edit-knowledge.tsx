@@ -8,7 +8,7 @@ import { GetKnowledge, type Knowledge } from '@/apis/knowledge';
 import { type Resource } from '@/apis/resource';
 import { CreateKnowledgeShareURL } from '@/apis/share';
 import KnowledgeDeletePopover from '@/components/knowledge-delete-popover';
-import KnowledgeEdit from '@/components/knowledge-edit';
+import KnowledgeEdit, { KnwoledgeEditorRefObject } from '@/components/knowledge-edit';
 import KnowledgeView from '@/components/knowledge-view';
 import ShareButton from '@/components/share-button';
 import { useMedia } from '@/hooks/use-media';
@@ -91,7 +91,7 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
         return resource ? resource.title : knowledge.resource;
     }, [knowledge, currentSpaceResources]);
 
-    const editor = useRef();
+    const editor = useRef<KnwoledgeEditorRefObject>();
     const [saveLoading, setSaveLoading] = useState(false);
     const submit = useCallback(async () => {
         if (editor.current) {
@@ -120,7 +120,7 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
             <Breadcrumbs size="lg" className="break-all text-wrap max-w-[66%] overflow-hidden text-ellipsis">
                 <BreadcrumbItem
                     onPress={() => {
-                        navigate('/');
+                        navigate(`/dashboard/${spaceID}/knowledge`);
                     }}
                 >
                     {t('Home')}

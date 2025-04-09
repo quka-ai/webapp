@@ -133,7 +133,7 @@ export default function Component() {
     }
 
     useEffect(() => {
-        if (!currentSpace) {
+        if (!currentSpace || !selectDate) {
             return;
         }
         if (!currentSelectedSpace) {
@@ -142,7 +142,7 @@ export default function Component() {
 
         if (editor.current) {
             editor.current.reRender({ blocks: [] });
-            setJournal({});
+            setJournal({} as Journal);
         }
 
         loadData(currentSpace.space_id, selectDate);
@@ -152,7 +152,7 @@ export default function Component() {
 
     const updateJournal = useCallback(
         (blocks: any) => {
-            if (!blocks.blocks) {
+            if (!blocks.blocks || !selectDate) {
                 return;
             }
 
@@ -175,7 +175,7 @@ export default function Component() {
                         description: t('Please retry')
                     });
                 })
-                .finally(e => {
+                .finally(() => {
                     setIsUpdating(false);
                 });
         },
@@ -184,7 +184,7 @@ export default function Component() {
 
     const [isChanged, setIsChanged] = useState(false);
     const canAutoUpdate = useRef(true);
-    const updateJournalDebounce = useRef(null);
+    const updateJournalDebounce = useRef<number>();
 
     const onBlocksChanged = useCallback(
         (blocks: OutputData, needToUpdate = true) => {
@@ -212,7 +212,7 @@ export default function Component() {
 
             // patch todo list
             let todos: TodoList[] = [];
-            let previousBlock: OutputBlockData = {};
+            let previousBlock = {} as OutputBlockData;
             let isConsecutive = false;
             for (const item of blocks.blocks) {
                 if (item.type === 'listv2' && item.data.style === 'checklist') {

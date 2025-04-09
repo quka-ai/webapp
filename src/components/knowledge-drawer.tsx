@@ -5,7 +5,7 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useR
 import { useTranslation } from 'react-i18next';
 import { useSnapshot } from 'valtio';
 
-import KnowledgeEdit from '@/components/knowledge-edit';
+import KnowledgeEdit, { KnwoledgeEditorRefObject } from '@/components/knowledge-edit';
 import spaceStore from '@/stores/space';
 
 export const KnowledgeDrawerContext = createContext(null);
@@ -71,20 +71,20 @@ export function KnowledgeDrawer({ temporaryStorage, handleButton, isOpen, onOpen
     const { t } = useTranslation();
     const { currentSelectedSpace } = useSnapshot(spaceStore);
     const [isLoading, setIsLoading] = useState(false);
-    const editor = useRef();
+    const editor = useRef<KnwoledgeEditorRefObject>();
 
     const submit = useCallback(async () => {
         setIsLoading(true);
         try {
-            await editor.current.submit();
+            editor.current && await editor.current.submit();
         } catch (e: any) {
-            editor.current.submit();
+            console.error(e)
         }
         setIsLoading(false);
     }, []);
 
     const resetEditor = useCallback(() => {
-        editor.current.reset();
+        editor.current && editor.current.reset();
         if (temporaryStorage) {
             sessionStorage.removeItem(temporaryStorage);
         }

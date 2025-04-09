@@ -49,7 +49,7 @@ export async function GetKnowledge(spaceID: string, knowledgeID: string): Promis
     return resp.data.data;
 }
 
-export async function CreateKnowledge(spaceID: string, resource: string, content: string, content_type: string, async: boolean = true): Promise<string> {
+export async function CreateKnowledge(spaceID: string, resource: string, content: string | OutputData, content_type: string, async: boolean = true): Promise<string> {
     const resp = await instance.post(`/${spaceID}/knowledge`, {
         resource,
         content,
@@ -62,7 +62,7 @@ export async function CreateKnowledge(spaceID: string, resource: string, content
 
 export interface UpdateKnowledgeArgs {
     title: string;
-    content: string;
+    content: string | OutputData;
     content_type: string;
     tags: string[];
     resource: string;
