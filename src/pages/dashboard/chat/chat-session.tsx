@@ -64,6 +64,8 @@ function removeMessageDaemon(messageID: string) {
     }
 }
 
+let onChatSessionMessageListReload = false;
+
 export default function Chat() {
     const { t } = useTranslation();
     const [messages, setMessages] = useImmer<Message[]>([]);
@@ -114,12 +116,13 @@ export default function Chat() {
 
     useEffect(() => {
         let queue: MessageEvent[] = [];
-        let onReload = false;
+        let isExist = false;
+        let waitReloadTimes = 0;
         const reloadFunc = async () => {
-            onReload = true;
+            onChatSessionMessageListReload = true;
             await loadData(1);
-            queue = [];
-            onReload = false;
+            // queue = [];
+            onChatSessionMessageListReload = false;
         };
 
         if (connectionStatus !== CONNECTION_OK || !sessionID || !subscribe) {
@@ -131,13 +134,25 @@ export default function Chat() {
         }
 
         const interval = () => {
+            if (isExist) {
+                return;
+            }
             setTimeout(async () => {
-                if (onReload) {
-                    interval();
-
-                    return;
-                }
                 while (true) {
+                    // reload 过程中不要消费 queue
+                    if (onChatSessionMessageListReload) {
+                        if (waitReloadTimes >= 30) {
+                            // 200ms * 30 = 6s
+                            waitReloadTimes = 0;
+                            reloadFunc();
+                            interval();
+                            return;
+                        }
+                        waitReloadTimes++;
+                        interval();
+
+                        return;
+                    }
                     const data = queue.shift();
 
                     if (!data || (data.type !== EventType.EVENT_ASSISTANT_INIT && messages.find(v => v.key === data.messageID))) {
@@ -147,10 +162,10 @@ export default function Chat() {
 
                     switch (data.type) {
                         case EventType.EVENT_ASSISTANT_INIT:
+                            setAiTyping(false);
                             if (messages.find(v => v.key === data.messageID)) {
                                 break;
                             }
-                            setAiTyping(false);
                             setMessages((prev: Message[]) => {
                                 prev.push({
                                     key: data.messageID,
@@ -173,8 +188,12 @@ export default function Chat() {
                             for (let i = 0; i < messageRunes.length; i += 2) {
                                 setMessages((prev: Message[]) => {
                                     const todo = prev.find(todo => todo.key === data.messageID);
+                                    if (!todo) {
+                                        reloadFunc();
+                                        return;
+                                    }
 
-                                    if (!todo || todo.len !== data.startAt) {
+                                    if (todo.len !== data.startAt) {
                                         return;
                                     }
 
@@ -213,7 +232,10 @@ export default function Chat() {
                         case EventType.EVENT_ASSISTANT_FAILED:
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
-
+                                if (!todo) {
+                                    reloadFunc();
+                                    return;
+                                }
                                 if (todo) {
                                     todo.status = 'failed';
                                 }
@@ -245,6 +267,7 @@ export default function Chat() {
 
             switch (type) {
                 case EventType.EVENT_ASSISTANT_INIT:
+                    setIsWaitingMessageInit(false);
                     queue.push({
                         messageID: data.message_id,
                         type: EventType.EVENT_ASSISTANT_INIT,
@@ -316,7 +339,10 @@ export default function Chat() {
             }
         });
 
-        return unSubscribe;
+        return () => {
+            isExist = true;
+            unSubscribe();
+        };
     }, [connectionStatus, sessionID]);
 
     const loadData = useCallback(
@@ -373,6 +399,18 @@ export default function Chat() {
     const urlParams = new URLSearchParams(window.location.search);
     const isNew = urlParams.get('isNew');
 
+    const isGenerating = useMemo<boolean>(() => {
+        if (!messages) {
+            return false;
+        }
+        if (aiTyping) {
+            return true;
+        }
+        if (messages.length < 2 || messages[messages.length - 1].status === 'continue') {
+            return true;
+        }
+    }, [aiTyping, messages]);
+
     const query = useCallback(
         async (message: string, agent: string, files?: Attach[]) => {
             if (!currentSelectedSpace || !sessionID) {
@@ -405,6 +443,7 @@ export default function Chat() {
 
                 // waiting ws response
                 setAiTyping(true);
+                onChatSessionMessageListReload = true;
 
                 sessionID && notifySessionReload(sessionID);
 
@@ -544,6 +583,7 @@ export default function Chat() {
                     <div className="mt-auto flex flex-col gap-2 max-w-[760px] w-full">
                         <PromptInputWithEnclosedActions
                             allowAttach={true}
+                            isLoading={isGenerating}
                             classNames={{
                                 button: 'bg-default-foreground opacity-100 w-[30px] h-[30px] !min-w-[30px] self-center',
                                 buttonIcon: 'text-background',

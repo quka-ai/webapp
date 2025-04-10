@@ -12,12 +12,14 @@ import spaceStore from '@/stores/space';
 export default function Chat() {
     const navigate = useNavigate();
     const { currentSelectedSpace } = useSnapshot(spaceStore);
+    const { isLoading, setIsLoading } = useState(false);
 
     const onSubmit = useCallback<(msg: string, agent: string, files?: Attach[]) => Promise<void>>(
         async (message: string, agent: string, files?: Attach[]) => {
             if (!currentSelectedSpace) {
                 throw new Error('uninited');
             }
+            setIsLoading(true);
 
             message = message.replace(/\n/g, '  \n');
             // create new session
@@ -41,6 +43,7 @@ export default function Chat() {
                 throw e;
                 console.error(e);
             }
+            setIsLoading(false);
         },
         [currentSelectedSpace]
     );
@@ -58,6 +61,7 @@ export default function Chat() {
                         <PromptInputWithEnclosedActions
                             autoFocus={true}
                             allowAttach={true}
+                            isLoading={isLoading}
                             classNames={{
                                 button: 'bg-default-foreground opacity-100 w-[30px] h-[30px] !min-w-[30px] self-center',
                                 buttonIcon: 'text-background',

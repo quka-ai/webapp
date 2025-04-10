@@ -4,6 +4,8 @@ import { VisuallyHidden } from '@react-aria/visually-hidden';
 import { t } from 'i18next';
 import { KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import Zoom from 'react-medium-image-zoom';
+import 'react-medium-image-zoom/dist/styles.css';
 import { toast } from 'sonner';
 import { useSnapshot } from 'valtio';
 
@@ -12,12 +14,10 @@ import PromptInput from './prompt-input';
 import { UploadResult, useUploader } from '@/hooks/use-uploader';
 import spaceStore from '@/stores/space';
 
-import Zoom from 'react-medium-image-zoom'
-import 'react-medium-image-zoom/dist/styles.css'
-
 export default function Component(
     props: TextAreaProps & {
         classNames?: Record<'button' | 'buttonIcon', string>;
+        isLoading?: boolean;
         selectedUseMemory: boolean;
         allowAttach: boolean;
         onSubmitFunc: (data: string, agent: string, files: Attach[]) => Promise<void>;
@@ -25,7 +25,6 @@ export default function Component(
 ) {
     const { t } = useTranslation();
     const [prompt, setPrompt] = useState<string>('');
-    const [loading, setLoading] = useState<boolean>(false);
 
     const [useRag, setUseRag] = useState(false);
 
@@ -42,7 +41,7 @@ export default function Component(
     const inputRef = useRef<any>();
 
     const handleKeyDown = async (event: KeyboardEvent) => {
-        if (loading) {
+        if (props.isLoading) {
             return;
         }
         // 阻止默认的提交行为
@@ -133,8 +132,8 @@ export default function Component(
 
                 if (!blob) continue;
 
-                if (blob.size > 10 * 1024 * 1024) {
-                    // 10MB
+                if (blob.size > 20 * 1024 * 1024) {
+                    // 20MB
                     toast.error('File size exceeds the limit of 10MB');
                     continue;
                 }
@@ -214,7 +213,6 @@ export default function Component(
             }
         }
 
-        setLoading(true);
         try {
             await props.onSubmitFunc(prompt, useRag ? 'rag' : '', files);
             setPrompt('');
@@ -222,7 +220,6 @@ export default function Component(
         } catch (e: any) {
             console.error(e);
         }
-        setLoading(false);
     }, [prompt, useRag, assets, currentSelectedSpace]);
 
     return (
@@ -286,7 +283,7 @@ export default function Component(
                                     variant={!prompt ? 'flat' : 'solid'}
                                     onPress={submit}
                                 >
-                                    {loading ? (
+                                    {props.isLoading ? (
                                         <Spinner />
                                     ) : (
                                         <Icon
