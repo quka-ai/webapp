@@ -1,7 +1,6 @@
 import { Badge, Button, cn, Image, Listbox, ListboxItem, Spinner, Switch, type TextAreaProps, Tooltip, useDisclosure } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { VisuallyHidden } from '@react-aria/visually-hidden';
-import { t } from 'i18next';
 import { KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Zoom from 'react-medium-image-zoom';
@@ -18,9 +17,9 @@ export default function Component(
     props: TextAreaProps & {
         classNames?: Record<'button' | 'buttonIcon', string>;
         isLoading?: boolean;
-        selectedUseMemory: boolean;
+        selectedUseMemory?: boolean;
         allowAttach: boolean;
-        onSubmitFunc: (data: string, agent: string, files: Attach[]) => Promise<void>;
+        onSubmitFunc?: (data: string, agent: string, files: Attach[]) => Promise<void>;
     }
 ) {
     const { t } = useTranslation();
@@ -71,7 +70,7 @@ export default function Component(
     };
 
     const { isOpen, onOpen, onClose } = useDisclosure();
-    function setSelectedKeys(e) {
+    function setSelectedKeys(e: any) {
         setPrompt(prompt + e + ' ');
         onClose();
         inputRef.current.focus();

@@ -113,8 +113,6 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
             [onAttemptFeedback]
         );
 
-        const { isMobile } = useMedia();
-
         return (
             <div {...props} ref={ref} className={cn('flex flex-col md:flex-row md:gap-2', className)}>
                 <div className="relative flex-none md:py-1">
@@ -137,7 +135,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
                 </div>
                 <div className="max-w-full flex flex-1 overflow-hidden flex-col items-start gap-4 relative">
                     <div className={cn('relative rounded-medium md:py-3 text-default-600', failedMessageClassName, messageClassName)}>
-                        {!hasFailed && isLoading ? (
+                        {!hasFailed && !message ? (
                             <>
                                 <div className="flex flex-col gap-3 mt-[-3px] w-full">
                                     <Skeleton className="h-6 w-3/5 rounded-lg" />

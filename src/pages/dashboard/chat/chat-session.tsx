@@ -1,5 +1,5 @@
 import { Accordion, AccordionItem, Avatar, Listbox, ListboxItem, ScrollShadow } from '@heroui/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import runes from 'runes';
@@ -8,7 +8,7 @@ import { useSnapshot } from 'valtio';
 
 import { GenChatMessageID, GetChatSessionHistory, GetMessageExt, MessageDetail, NamedChatSession, SendMessage } from '@/apis/chat';
 import KnowledgeModal from '@/components/knowledge-modal';
-import { LogoIcon, Name } from '@/components/logo';
+import { LogoIcon } from '@/components/logo';
 import { useMedia } from '@/hooks/use-media';
 import useUserAvatar from '@/hooks/use-user-avatar';
 import { FireTowerMsg } from '@/lib/firetower';
@@ -26,9 +26,9 @@ interface Message {
     status: 'success' | 'failed' | 'continue' | undefined;
     sequence: number;
     spaceID: string;
-    attach: Attach[];
-    ext: MessageExt;
-    len: number;
+    attach?: Attach[];
+    ext?: MessageExt;
+    len?: number;
 }
 
 interface MessageEvent {
@@ -184,7 +184,6 @@ export default function Chat() {
                             break;
                         case EventType.EVENT_ASSISTANT_CONTINUE:
                             const messageRunes = runes(data.message);
-                            const totalLength = messageRunes.length;
                             for (let i = 0; i < messageRunes.length; i += 2) {
                                 setMessages((prev: Message[]) => {
                                     const todo = prev.find(todo => todo.key === data.messageID);
@@ -200,7 +199,13 @@ export default function Chat() {
                                     let char = messageRunes.slice(i, i + 2); // append two words at once
 
                                     todo.message += char.join('');
+                                    if (!todo.len) {
+                                        todo.len = 0
+                                    }
                                     todo.len += char.length;
+                                    if (!data.startAt) {
+                                        data.startAt = 0
+                                    }
                                     data.startAt += char.length;
                                 });
 
@@ -267,7 +272,6 @@ export default function Chat() {
 
             switch (type) {
                 case EventType.EVENT_ASSISTANT_INIT:
-                    setIsWaitingMessageInit(false);
                     queue.push({
                         messageID: data.message_id,
                         type: EventType.EVENT_ASSISTANT_INIT,
@@ -409,6 +413,7 @@ export default function Chat() {
         if (messages.length < 2 || messages[messages.length - 1].status === 'continue') {
             return true;
         }
+        return false
     }, [aiTyping, messages]);
 
     const query = useCallback(
@@ -443,7 +448,6 @@ export default function Chat() {
 
                 // waiting ws response
                 setAiTyping(true);
-                onChatSessionMessageListReload = true;
 
                 sessionID && notifySessionReload(sessionID);
 
@@ -482,15 +486,16 @@ export default function Chat() {
             setMessages([]);
             setAiTyping(true);
             const total = await loadData(1);
-            setAiTyping(false);
             if (isNew && total === 0) {
                 if (location.state && location.state.messages && location.state.messages.length === 1) {
                     NamedSession(location.state.messages[0].message);
                     setSelectedUseMemory(location.state.agent === 'rag');
                     await query(location.state.messages[0].message, location.state.agent, location.state.files);
                     location.state.messages = undefined;
+                    return
                 }
             }
+            setAiTyping(false);
         }
         if (currentSelectedSpace) {
             if (!sessionID || (messages && messages.length > 0 && messages[0].spaceID !== currentSelectedSpace)) {
