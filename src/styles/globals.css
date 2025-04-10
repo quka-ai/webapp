@@ -113,3 +113,8 @@ pre code.hljs {
 [data-rmiz-modal-overlay="visible"] {
     background-color: #000 !important;
 }
+
+.katex-display {
+    width: 100%;
+    overflow-x: auto;
+}

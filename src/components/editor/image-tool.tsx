@@ -71,6 +71,7 @@ export default class CustomImage extends ImageTool {
                 if (result) {
                     this._data.caption = result;
                     this.ui.fillCaption(this._data.caption);
+                    this.ui.applyTune('caption', true);
                 }
 
                 return;
