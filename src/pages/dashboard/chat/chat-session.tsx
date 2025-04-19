@@ -371,7 +371,7 @@ export default function Chat() {
                             key: v.meta.message_id,
                             message: v.meta.message.text,
                             role: v.meta.role === 1 ? 'user' : 'assistant',
-                            status: v.meta.complete === 1 ? 'success' : 'failed',
+                            status: v.meta.complete !== 4 ? 'success' : 'failed',
                             sequence: v.meta.sequence,
                             spaceID: currentSelectedSpace,
                             attach: v.meta.attach,

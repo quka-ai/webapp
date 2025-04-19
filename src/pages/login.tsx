@@ -18,6 +18,9 @@ export default function Component() {
     const { t } = useTranslation();
     const [mode, setMode] = useState('login');
 
+    const icpCode = import.meta.env.VITE_ICP_CODE;
+    const icpLink = import.meta.env.VITE_ICP_LINK || '#';
+
     return (
         <div
             className="flex h-screen w-screen items-center justify-end overflow-hidden bg-content1 p-2 sm:p-4 lg:p-8"
@@ -36,12 +39,15 @@ export default function Component() {
             </div>
 
             {/* Testimonial */}
-            <div className="absolute bottom-10 left-10 hidden md:block">
-                <p className="max-w-xl text-white/60">
-                    <span className="font-medium">“</span>
-                    {t('knowledgeCreateButtonTitle')}
-                    <span className="font-medium">”</span>
-                </p>
+            <div className="absolute bottom-4 left-10 hidden md:block flex flex-col">
+                <div className="text-center text-tiny text-default-400 md:text-start">
+                    &copy; 2025 {Name}. All rights reserved.{' '}
+                    {icpCode && (
+                        <a href={icpLink} target="_blank">
+                            {icpCode}
+                        </a>
+                    )}
+                </div>
             </div>
             {mode === 'login' ? <LoginComponent changeMode={v => setMode(v)} /> : <SignUp changeMode={v => setMode(v)} />}
         </div>
