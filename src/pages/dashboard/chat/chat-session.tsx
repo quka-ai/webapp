@@ -1,5 +1,5 @@
 import { Accordion, AccordionItem, Avatar, Listbox, ListboxItem, ScrollShadow } from '@heroui/react';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import runes from 'runes';
@@ -8,7 +8,7 @@ import { useSnapshot } from 'valtio';
 
 import { GenChatMessageID, GetChatSessionHistory, GetMessageExt, MessageDetail, NamedChatSession, SendMessage } from '@/apis/chat';
 import KnowledgeModal from '@/components/knowledge-modal';
-import { LogoIcon, Name } from '@/components/logo';
+import { LogoIcon } from '@/components/logo';
 import { useMedia } from '@/hooks/use-media';
 import useUserAvatar from '@/hooks/use-user-avatar';
 import { FireTowerMsg } from '@/lib/firetower';
@@ -26,9 +26,9 @@ interface Message {
     status: 'success' | 'failed' | 'continue' | undefined;
     sequence: number;
     spaceID: string;
-    attach: Attach[];
-    ext: MessageExt;
-    len: number;
+    attach?: Attach[];
+    ext?: MessageExt;
+    len?: number;
 }
 
 interface MessageEvent {
@@ -63,6 +63,8 @@ function removeMessageDaemon(messageID: string) {
         messageDaemon.delete(messageID);
     }
 }
+
+let onChatSessionMessageListReload = false;
 
 export default function Chat() {
     const { t } = useTranslation();
@@ -114,12 +116,13 @@ export default function Chat() {
 
     useEffect(() => {
         let queue: MessageEvent[] = [];
-        let onReload = false;
+        let isExist = false;
+        let waitReloadTimes = 0;
         const reloadFunc = async () => {
-            onReload = true;
+            onChatSessionMessageListReload = true;
             await loadData(1);
-            queue = [];
-            onReload = false;
+            // queue = [];
+            onChatSessionMessageListReload = false;
         };
 
         if (connectionStatus !== CONNECTION_OK || !sessionID || !subscribe) {
@@ -131,13 +134,25 @@ export default function Chat() {
         }
 
         const interval = () => {
+            if (isExist) {
+                return;
+            }
             setTimeout(async () => {
-                if (onReload) {
-                    interval();
-
-                    return;
-                }
                 while (true) {
+                    // reload 过程中不要消费 queue
+                    if (onChatSessionMessageListReload) {
+                        if (waitReloadTimes >= 30) {
+                            // 200ms * 30 = 6s
+                            waitReloadTimes = 0;
+                            reloadFunc();
+                            interval();
+                            return;
+                        }
+                        waitReloadTimes++;
+                        interval();
+
+                        return;
+                    }
                     const data = queue.shift();
 
                     if (!data || (data.type !== EventType.EVENT_ASSISTANT_INIT && messages.find(v => v.key === data.messageID))) {
@@ -147,10 +162,10 @@ export default function Chat() {
 
                     switch (data.type) {
                         case EventType.EVENT_ASSISTANT_INIT:
+                            setAiTyping(false);
                             if (messages.find(v => v.key === data.messageID)) {
                                 break;
                             }
-                            setAiTyping(false);
                             setMessages((prev: Message[]) => {
                                 prev.push({
                                     key: data.messageID,
@@ -169,19 +184,28 @@ export default function Chat() {
                             break;
                         case EventType.EVENT_ASSISTANT_CONTINUE:
                             const messageRunes = runes(data.message);
-                            const totalLength = messageRunes.length;
                             for (let i = 0; i < messageRunes.length; i += 2) {
                                 setMessages((prev: Message[]) => {
                                     const todo = prev.find(todo => todo.key === data.messageID);
+                                    if (!todo) {
+                                        reloadFunc();
+                                        return;
+                                    }
 
-                                    if (!todo || todo.len !== data.startAt) {
+                                    if (todo.len !== data.startAt) {
                                         return;
                                     }
 
                                     let char = messageRunes.slice(i, i + 2); // append two words at once
 
                                     todo.message += char.join('');
+                                    if (!todo.len) {
+                                        todo.len = 0
+                                    }
                                     todo.len += char.length;
+                                    if (!data.startAt) {
+                                        data.startAt = 0
+                                    }
                                     data.startAt += char.length;
                                 });
 
@@ -213,7 +237,10 @@ export default function Chat() {
                         case EventType.EVENT_ASSISTANT_FAILED:
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
-
+                                if (!todo) {
+                                    reloadFunc();
+                                    return;
+                                }
                                 if (todo) {
                                     todo.status = 'failed';
                                 }
@@ -316,7 +343,10 @@ export default function Chat() {
             }
         });
 
-        return unSubscribe;
+        return () => {
+            isExist = true;
+            unSubscribe();
+        };
     }, [connectionStatus, sessionID]);
 
     const loadData = useCallback(
@@ -341,7 +371,7 @@ export default function Chat() {
                             key: v.meta.message_id,
                             message: v.meta.message.text,
                             role: v.meta.role === 1 ? 'user' : 'assistant',
-                            status: v.meta.complete === 1 ? 'success' : 'failed',
+                            status: v.meta.complete !== 4 ? 'success' : 'failed',
                             sequence: v.meta.sequence,
                             spaceID: currentSelectedSpace,
                             attach: v.meta.attach,
@@ -372,6 +402,19 @@ export default function Chat() {
     const location = useLocation();
     const urlParams = new URLSearchParams(window.location.search);
     const isNew = urlParams.get('isNew');
+
+    const isGenerating = useMemo<boolean>(() => {
+        if (!messages) {
+            return false;
+        }
+        if (aiTyping) {
+            return true;
+        }
+        if (messages.length < 2 || messages[messages.length - 1].status === 'continue') {
+            return true;
+        }
+        return false
+    }, [aiTyping, messages]);
 
     const query = useCallback(
         async (message: string, agent: string, files?: Attach[]) => {
@@ -443,15 +486,16 @@ export default function Chat() {
             setMessages([]);
             setAiTyping(true);
             const total = await loadData(1);
-            setAiTyping(false);
             if (isNew && total === 0) {
                 if (location.state && location.state.messages && location.state.messages.length === 1) {
                     NamedSession(location.state.messages[0].message);
                     setSelectedUseMemory(location.state.agent === 'rag');
                     await query(location.state.messages[0].message, location.state.agent, location.state.files);
                     location.state.messages = undefined;
+                    return
                 }
             }
+            setAiTyping(false);
         }
         if (currentSelectedSpace) {
             if (!sessionID || (messages && messages.length > 0 && messages[0].spaceID !== currentSelectedSpace)) {
@@ -544,6 +588,7 @@ export default function Chat() {
                     <div className="mt-auto flex flex-col gap-2 max-w-[760px] w-full">
                         <PromptInputWithEnclosedActions
                             allowAttach={true}
+                            isLoading={isGenerating}
                             classNames={{
                                 button: 'bg-default-foreground opacity-100 w-[30px] h-[30px] !min-w-[30px] self-center',
                                 buttonIcon: 'text-background',

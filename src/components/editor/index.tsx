@@ -264,7 +264,7 @@ export const Editor = memo(
                 /**
                  * Id of Element that should contain the Editor
                  */
-                holder: 'brew-editor-' + randomID,
+                holder: 'quka-editor-' + randomID,
                 tools: {
                     /**
                      * Each Tool is a Plugin. Pass them via 'class' option with necessary settings {@link docs/tools.md}
@@ -289,7 +289,8 @@ export const Editor = memo(
                             types: 'image/*',
                             features: {
                                 border: false,
-                                stretch: false
+                                stretch: false,
+                                caption: 'optional'
                             },
                             actions: [
                                 {
@@ -402,7 +403,7 @@ export const Editor = memo(
         return (
             //     <Skeleton isLoaded={isReady}>
             // </Skeleton>
-            <div id={'brew-editor-' + randomID} className={cn('editor sm:mx-[60px]', className)} />
+            <div id={'quka-editor-' + randomID} className={cn('editor sm:mx-[60px]', className)} />
         );
     })
 );

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
@@ -6,18 +6,20 @@ import { useSnapshot } from 'valtio';
 import PromptInputWithEnclosedActions from './prompt-input-with-enclosed-actions';
 
 import { CreateChatSession } from '@/apis/chat';
-import { LogoIcon, Name } from '@/components/logo';
+import { LogoIcon } from '@/components/logo';
 import spaceStore from '@/stores/space';
 
 export default function Chat() {
     const navigate = useNavigate();
     const { currentSelectedSpace } = useSnapshot(spaceStore);
+    const [ isLoading, setIsLoading ] = useState(false);
 
     const onSubmit = useCallback<(msg: string, agent: string, files?: Attach[]) => Promise<void>>(
         async (message: string, agent: string, files?: Attach[]) => {
             if (!currentSelectedSpace) {
                 throw new Error('uninited');
             }
+            setIsLoading(true);
 
             message = message.replace(/\n/g, '  \n');
             // create new session
@@ -41,6 +43,7 @@ export default function Chat() {
                 throw e;
                 console.error(e);
             }
+            setIsLoading(false);
         },
         [currentSelectedSpace]
     );
@@ -55,9 +58,10 @@ export default function Chat() {
                         <LogoIcon size={60} />
                     </div>
                     <div className="flex flex-col w-full">
-                        <PromptInputWithEnclosedActions
+                        <PromptInputWithEnclosedActions 
                             autoFocus={true}
                             allowAttach={true}
+                            isLoading={isLoading}
                             classNames={{
                                 button: 'bg-default-foreground opacity-100 w-[30px] h-[30px] !min-w-[30px] self-center',
                                 buttonIcon: 'text-background',
