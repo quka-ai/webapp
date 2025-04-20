@@ -15,7 +15,6 @@ import { setCurrentSelectedSpace, setUserSpaces } from '@/stores/space';
 import userStore, { setHost, setUserAccessToken, setUserInfo, setUserLoginToken } from '@/stores/user';
 
 export default function Component() {
-    const { t } = useTranslation();
     const [mode, setMode] = useState('login');
 
     const icpCode = import.meta.env.VITE_ICP_CODE;
