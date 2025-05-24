@@ -176,7 +176,19 @@
     }
 }
 
+@media (max-width: 800px) {
+    .codex-editor {
+        max-width: calc(100% - 120px);
+        margin: 0 auto
+    }
+}
+
 @media (max-width: 650px) {
+    .codex-editor {
+        max-width: 100%;
+        margin: 0 auto
+    }
+
     .ce-toolbar__actions {
         right: auto !important;
     }
