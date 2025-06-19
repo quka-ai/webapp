@@ -273,9 +273,9 @@ export default function Component() {
             <div className="flex flex-col gap-6 overflow-y-auto pb-16">
                 <div className="mx-auto relative">
                     <Calendar
-                        aria-label="Date (Max Date Value)"
                         value={currentSelectedDate}
-                        minValue={today(getLocalTimeZone()).add({ days: -31 })}
+                        firstDayOfWeek="mon"
+                        minValue={today(getLocalTimeZone()).add({ days: -32 })}
                         maxValue={today(getLocalTimeZone())}
                         onChange={v => {
                             redirectTo(v);

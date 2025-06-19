@@ -84,6 +84,7 @@
     "chatNotice": "对话生成的内容并不一定正确，注意甄别。",
     "chatToAgent": "使用@唤起特定助理进行对话",
     "UseMemory": "使用记忆",
+    "UseSearch": "使用搜索",
     "memories count": "关于{{title}}的记忆共有{{total}}条",
     "createCardTag1": "自动为您生成记忆标题及标签",
     "createCardTag2": "自动为您的记忆进行嵌入",

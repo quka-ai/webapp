@@ -84,6 +84,7 @@
     "chatNotice": "The generated data may contain errors, please verify.",
     "chatToAgent": "Use @ to send a message to agent",
     "UseMemory": "Use Memory",
+    "UseSearch": "Use Search",
     "memories count": "{{total}} memories about {{title}}",
     "createCardTag1": "Auto Title & Tags",
     "createCardTag2": "Embedding your memory",

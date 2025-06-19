@@ -26,6 +26,7 @@ export default function Component(
     const [prompt, setPrompt] = useState<string>('');
 
     const [useRag, setUseRag] = useState(false);
+    const [useSearch, setUseSearch] = useState(false);
 
     function setSelectedUseMemory(value: boolean) {
         setUseRag(value);
@@ -324,6 +325,23 @@ export default function Component(
                         {/* <Button size="sm" startContent={<Icon className="text-default-500" icon="solar:notes-linear" width={18} />} variant="flat">
                         Templates
                     </Button> */}
+
+                        <Switch
+                            classNames={{
+                                base: cn(
+                                    'inline-flex flex-row-reverse hover:bg-content2 items-center bg-default-100',
+                                    'justify-between cursor-pointer rounded-lg gap-2 pl-1 pr-2 border-2 border-transparent',
+                                    'border-default h-8'
+                                ),
+                                wrapper: 'p-0 h-4 w-10 overflow-visible'
+                            }}
+                            isSelected={useSearch}
+                            onValueChange={setUseSearch}
+                        >
+                            <div className="flex flex-col gap-1">
+                                <p className="text-sm text-default-500">{t('UseSearch')}</p>
+                            </div>
+                        </Switch>
                     </div>
                     <div className="flex flex-row justify-end items-end gap-4">
                         <Switch

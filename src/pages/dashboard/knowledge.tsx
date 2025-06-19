@@ -102,12 +102,17 @@ export default memo(function Component() {
                 setHasMore(_ => false);
             }
 
-            if (resp.list && _dataList.length > 0) {
-                resp.list.forEach(v => {
-                    _dataList.push(v);
-                });
+            // 处理响应数据：清理HTML标签和隐藏敏感信息
+            const processedList = (resp.list || []).map(v => ({
+                ...v,
+                content: v.content
+                    .replace(/\$hidden\[([^\]]*)\]/g, '[Secret]') // 隐藏敏感信息
+            }));
+
+            if (_dataList.length > 0) {
+                _dataList.push(...processedList);
             } else {
-                _dataList = resp.list || [];
+                _dataList = processedList;
             }
             setDataList(_ => _dataList);
             setTotal(_ => resp.total);
@@ -157,8 +162,7 @@ export default memo(function Component() {
                 return;
             }
             if (viewKnowledge && viewKnowledge.current) {
-                // @ts-ignore
-                viewKnowledge.current.show(knowledge);
+                viewKnowledge.current.show(knowledge.id);
             }
         },
         [viewKnowledge]
