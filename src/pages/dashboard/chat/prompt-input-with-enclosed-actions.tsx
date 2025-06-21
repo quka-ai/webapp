@@ -12,6 +12,7 @@ import PromptInput from './prompt-input';
 
 import { UploadResult, useUploader } from '@/hooks/use-uploader';
 import spaceStore from '@/stores/space';
+import SearchSwitch from '@/components/search-switch';
 
 export default function Component(
     props: TextAreaProps & {
@@ -326,22 +327,8 @@ export default function Component(
                         Templates
                     </Button> */}
 
-                        <Switch
-                            classNames={{
-                                base: cn(
-                                    'inline-flex flex-row-reverse hover:bg-content2 items-center bg-default-100',
-                                    'justify-between cursor-pointer rounded-lg gap-2 pl-1 pr-2 border-2 border-transparent',
-                                    'border-default h-8'
-                                ),
-                                wrapper: 'p-0 h-4 w-10 overflow-visible'
-                            }}
-                            isSelected={useSearch}
-                            onValueChange={setUseSearch}
-                        >
-                            <div className="flex flex-col gap-1">
-                                <p className="text-sm text-default-500">{t('UseSearch')}</p>
-                            </div>
-                        </Switch>
+                        {/* <SearchSwitch size="lg" isSelected={useSearch} onValueChange={()=>{setUseSearch(!useSearch)}} /> */}
+
                     </div>
                     <div className="flex flex-row justify-end items-end gap-4">
                         <Switch
