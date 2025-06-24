@@ -84,7 +84,7 @@ const SecretSetting = React.forwardRef<HTMLDivElement, BillingSettingCardProps>(
                         <span className="text-default-400 text-sm font-semibold">{t('TotalTokens', { total: tokenList.length })}</span>
                     </div>
                     <div className="flex gap-3">
-                        <Button variant="ghost" size={isMobile ? 'lg' : 'base'} onPress={onOpen}>
+                        <Button variant="ghost" size={isMobile ? 'lg' : 'sm'} onPress={onOpen}>
                             {t('Create')}
                         </Button>
                     </div>
