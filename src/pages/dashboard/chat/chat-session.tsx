@@ -6,7 +6,7 @@ import runes from 'runes';
 import { useImmer } from 'use-immer';
 import { useSnapshot } from 'valtio';
 
-import { GenChatMessageID, GetChatSessionHistory, GetMessageExt, MessageDetail, NamedChatSession, SendMessage } from '@/apis/chat';
+import { GenChatMessageID, GetChatSessionHistory, GetMessageExt, MessageDetail, NamedChatSession, SendMessage, StopChatStream  } from '@/apis/chat';
 import KnowledgeModal from '@/components/knowledge-modal';
 import { LogoIcon } from '@/components/logo';
 import { useMedia } from '@/hooks/use-media';
@@ -17,7 +17,7 @@ import PromptInputWithEnclosedActions from '@/pages/dashboard/chat/prompt-input-
 import { notifySessionNamedEvent, notifySessionReload } from '@/stores/session';
 import socketStore, { CONNECTION_OK } from '@/stores/socket';
 import spaceStore from '@/stores/space';
-import { EventType } from '@/types/chat';
+import { EventType, StreamMessage, MessageType, ToolTips, ToolStatus } from '@/types/chat';
 
 interface Message {
     key: string;
@@ -29,6 +29,7 @@ interface Message {
     attach?: Attach[];
     ext?: MessageExt;
     len?: number;
+    toolTips?: ToolTips[];
 }
 
 interface MessageEvent {
@@ -39,6 +40,7 @@ interface MessageEvent {
     sessionID?: string;
     startAt?: number;
     sequence?: number;
+    toolTips?: ToolTips[];
 }
 
 function delay(ms: number) {
@@ -183,6 +185,17 @@ export default function Chat() {
 
                             break;
                         case EventType.EVENT_ASSISTANT_CONTINUE:
+                            if (data.toolTips) {
+                                console.log('data.toolTips', data.toolTips);
+                                setMessages((prev: Message[]) => {
+                                    const todo = prev.find(todo => todo.key === data.messageID);
+                                    if (!todo) {
+                                        return;
+                                    }
+                                    todo.toolTips = data.toolTips;
+                                });
+                                break;
+                            }
                             const messageRunes = runes(data.message);
                             for (let i = 0; i < messageRunes.length; i += 2) {
                                 setMessages((prev: Message[]) => {
@@ -269,76 +282,61 @@ export default function Chat() {
             }
 
             const { type, data } = msg.data;
+            const streamData = data as StreamMessage;
 
             switch (type) {
                 case EventType.EVENT_ASSISTANT_INIT:
                     queue.push({
-                        messageID: data.message_id,
+                        messageID: streamData.message_id,
                         type: EventType.EVENT_ASSISTANT_INIT,
                         startAt: 0,
-                        sequence: data.sequence,
-                        spaceID: data.space_id,
-                        sessionID: data.session_id,
+                        sequence: data.sequence, // sequence不在StreamMessage中，保持使用data
+                        spaceID: data.space_id, // space_id不在StreamMessage中，保持使用data
+                        sessionID: streamData.session_id,
                         message: ''
                     });
-                    // setMessages((prev: Message[]): Message[] => {
-                    //     prev.push({
-                    //         key: data.message_id,
-                    //         message: '',
-                    //         role: 'assistant',
-                    //         status: 'continue',
-                    //         sequence: data.sequence,
-                    //         loading: true
-                    //     });
-                    // });
                     break;
                 case EventType.EVENT_ASSISTANT_CONTINUE:
-                    queue.push({
-                        messageID: data.message_id,
-                        type: EventType.EVENT_ASSISTANT_CONTINUE,
-                        startAt: data.start_at,
-                        message: data.message
-                    });
-                    // setMessages((prev: Message[]) => {
-                    //     const todo = prev.find(todo => todo.key === data.message_id);
-                    //     if (!todo) {
-                    //     }
-                    //     if (todo?.message.length !== data.start_at) {
-                    //         console.warn('reload history');
-                    //     }
-                    //     todo.message += data.message;
-                    // });
+                    if (streamData.msg_type === MessageType.MESSAGE_TYPE_TOOL_TIPS) {
+                        const newToolTips: ToolTips[] = [];
+                        if (streamData.tool_tips) {
+                            newToolTips.push(streamData.tool_tips);
+                        }
+
+                        console.log('newToolTips', newToolTips);
+
+                        queue.push({
+                            messageID: streamData.message_id,
+                            type: EventType.EVENT_ASSISTANT_CONTINUE,
+                            startAt: streamData.start_at,
+                            toolTips: newToolTips
+                        });
+                        // 可以在这里处理tool tips相关逻辑
+                    } else {
+                        queue.push({
+                            messageID: streamData.message_id,
+                            type: EventType.EVENT_ASSISTANT_CONTINUE,
+                            startAt: streamData.start_at,
+                            message: streamData.message || ''
+                        });
+                    }
                     break;
                 case EventType.EVENT_ASSISTANT_DONE:
                     queue.push({
-                        messageID: data.message_id,
+                        messageID: streamData.message_id,
                         type: EventType.EVENT_ASSISTANT_DONE,
-                        startAt: data.start_at,
+                        startAt: streamData.start_at,
                         message: ''
                     });
-                    // setMessages((prev: Message[]) => {
-                    //     const todo = prev.find(todo => todo.key === data.message_id);
-
-                    //     if (todo?.message.length !== data.start_at) {
-                    //         console.warn('reload history');
-                    //     } else {
-                    //         todo.status = 'success';
-                    //     }
-                    // });
                     // todo load this message exts
                     break;
                 case EventType.EVENT_ASSISTANT_FAILED:
                     queue.push({
-                        messageID: data.message_id,
+                        messageID: streamData.message_id,
                         type: EventType.EVENT_ASSISTANT_FAILED,
                         startAt: 0,
                         message: ''
                     });
-                    // setMessages((prev: Message[]) => {
-                    //     const todo = prev.find(todo => todo.key === data.message_id);
-
-                    //     todo.status = 'failed';
-                    // });
                     break;
             }
         });
@@ -521,13 +519,23 @@ export default function Chat() {
 
     const { isMobile } = useMedia();
 
+    const stopChatStream = useCallback(
+        async (messageID: string) => {
+            if (!currentSelectedSpace || !sessionID) {
+                return;
+            }
+            await StopChatStream(currentSelectedSpace, sessionID, messageID);
+        },
+        [currentSelectedSpace, sessionID]
+    );
+
     return (
         <>
             <div className="overflow-hidden w-full h-full flex flex-col relative px-3">
                 <main className="h-full w-full relative gap-4 py-3 flex flex-col justify-center items-center">
                     <ScrollShadow ref={ssDom} hideScrollBar className="w-full py-6 flex-grow items-center">
                         <div className="w-full m-auto max-w-[760px] overflow-hidden relative flex flex-col gap-4">
-                            {messages.map(({ key, role, message, attach, status, ext }) => (
+                            {messages.map(({ key, role, message, attach, status, ext, toolTips }) => (
                                 <MessageCard
                                     key={key}
                                     avatar={role === 'assistant' ? <LogoIcon size={isMobile ? '30' : '38'} /> : <Avatar src={userAvatar} size={isMobile ? 'sm' : 'md'} />}
@@ -538,6 +546,7 @@ export default function Chat() {
                                     status={status}
                                     ext={ext}
                                     role={role}
+                                    toolTips={toolTips}
                                     extContent={
                                         role === 'assistant' &&
                                         ext &&
@@ -597,8 +606,9 @@ export default function Chat() {
                             placeholder={t('chatToAgent')}
                             selectedUseMemory={selectedUseMemory}
                             onSubmitFunc={query}
+                            onStopFunc={stopChatStream}
                         />
-                        <p className="p-2 text-center text-small font-medium leading-5 text-default-500">{t('chatNotice')}</p>
+                        <p className="text-center text-small font-medium leading-5 text-default-500">{t('chatNotice')}</p>
                     </div>
                 </main>
             </div>

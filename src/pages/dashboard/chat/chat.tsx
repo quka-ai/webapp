@@ -70,7 +70,7 @@ export default function Chat() {
                             placeholder={t('chatToAgent')}
                             onSubmitFunc={onSubmit}
                         />
-                        <p className="p-2 text-center text-small font-medium leading-5 text-default-500">{t('chatNotice')}</p>
+                        <p className="py-2 text-center text-small font-medium leading-5 text-default-500">{t('chatNotice')}</p>
                     </div>
                 </div>
                 <div className="mt-auto flex max-w-full flex-col gap-2" />

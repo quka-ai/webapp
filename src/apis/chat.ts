@@ -17,6 +17,10 @@ export async function GetMessageExt(spaceID: string, sessionID: string, messageI
     return resp.data.data;
 }
 
+export async function StopChatStream(spaceID: string, sessionID: string, messageID: string): Promise<void> {
+    await instance.post(`/${spaceID}/chat/${sessionID}/message/${messageID}/stop`);
+}
+
 export async function CreateChatSession(spaceID: string): Promise<string> {
     const resp = await instance.post(`/${spaceID}/chat`);
 
