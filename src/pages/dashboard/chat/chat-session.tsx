@@ -414,6 +414,7 @@ export default function Chat() {
         return false
     }, [aiTyping, messages]);
 
+
     const query = useCallback(
         async (message: string, agent: string, files?: Attach[]) => {
             if (!currentSelectedSpace || !sessionID) {
@@ -520,11 +521,11 @@ export default function Chat() {
     const { isMobile } = useMedia();
 
     const stopChatStream = useCallback(
-        async (messageID: string) => {
+        async () => {
             if (!currentSelectedSpace || !sessionID) {
                 return;
             }
-            await StopChatStream(currentSelectedSpace, sessionID, messageID);
+            await StopChatStream(currentSelectedSpace, sessionID);
         },
         [currentSelectedSpace, sessionID]
     );

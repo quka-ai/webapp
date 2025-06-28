@@ -21,6 +21,7 @@ export default function Component(
         selectedUseMemory?: boolean;
         allowAttach: boolean;
         onSubmitFunc?: (data: string, agent: string, files: Attach[]) => Promise<void>;
+        onStopFunc?: () => Promise<void>;
     }
 ) {
     const { t } = useTranslation();
@@ -274,26 +275,43 @@ export default function Component(
                                 <Icon className="text-default-500" icon="solar:microphone-3-linear" width={20} />
                             </Button>
                         )} */}
-                            <Tooltip showArrow content="Send message">
-                                <Button
-                                    isIconOnly
-                                    className={props?.classNames?.button || ''}
-                                    color={!prompt ? 'default' : 'primary'}
-                                    isDisabled={!prompt}
-                                    radius="full"
-                                    variant={!prompt ? 'flat' : 'solid'}
-                                    onPress={submit}
-                                >
-                                    {props.isLoading ? (
-                                        <Spinner />
-                                    ) : (
+
+                            <Tooltip showArrow content={props.isLoading ? 'Stop' : 'Send message'}>
+                                {props.isLoading ? (
+                                    <Button
+                                        isIconOnly
+                                        className={props?.classNames?.button || ''}
+                                        color='default'
+                                        radius="full"
+                                        variant='flat'
+                                        onPress={() => props.onStopFunc?.()}
+                                    >
                                         <Icon
-                                            className={cn('[&>path]:stroke-[2px]', !prompt ? 'text-default-500' : 'text-primary-foreground', props?.classNames?.buttonIcon || '')}
-                                            icon="solar:arrow-up-linear"
-                                            width={20}
-                                        />
+                                                className={cn('[&>path]:stroke-[2px]', !prompt ? 'text-default-500' : 'text-primary-foreground', props?.classNames?.buttonIcon || '')}
+                                                icon="material-symbols-light:stop-rounded"
+                                                width={20}
+                                                
+                                            />
+                                    </Button>
+                                    ) : (
+                                        <Button
+                                            isIconOnly
+                                            className={props?.classNames?.button || ''}
+                                            color={!prompt ? 'default' : 'primary'}
+                                            isDisabled={!prompt && !props.isLoading}
+                                            radius="full"
+                                            variant={!prompt ? 'flat' : 'solid'}
+                                            onPress={submit}
+                                        >
+                                            <Icon
+                                                    className={cn('[&>path]:stroke-[2px]', !prompt ? 'text-default-500' : 'text-primary-foreground', props?.classNames?.buttonIcon || '')}
+                                                    icon="solar:arrow-up-linear"
+                                                    width={20}
+                                                    
+                                                />
+                                        </Button>
                                     )}
-                                </Button>
+                                
                             </Tooltip>
                         </div>
                     }
