@@ -4,17 +4,15 @@ import { useClipboard } from '@heroui/use-clipboard';
 import { Icon } from '@iconify/react';
 import { t } from 'i18next';
 import React, { ReactNode, useMemo } from 'react';
+import Zoom from 'react-medium-image-zoom';
+import 'react-medium-image-zoom/dist/styles.css';
 
 import { RelDoc } from '@/apis/chat';
 import Markdown from '@/components/markdown';
-import { useMedia } from '@/hooks/use-media';
-import { ToolTips, ToolStatus } from '@/types/chat';
-
-import Zoom from 'react-medium-image-zoom'
-import 'react-medium-image-zoom/dist/styles.css'
 import AnimatedShinyText from '@/components/shiny-text';
 import ToolUsing from '@/components/tool-using';
-
+import { useMedia } from '@/hooks/use-media';
+import { ToolStatus, ToolTips } from '@/types/chat';
 
 // import { useMedia } from '@/hooks/use-media';
 
@@ -119,7 +117,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
         );
 
         const toolTipsDom = useMemo(() => {
-            return <ToolUsing toolTips={toolTips} />
+            return <ToolUsing toolTips={toolTips} />;
         }, [toolTips]);
 
         return (
@@ -147,7 +145,6 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
                         {toolTipsDom}
                         {!hasFailed && !message ? (
                             <>
-                                
                                 <div className="flex flex-col gap-3 mt-[-3px] w-full">
                                     <Skeleton className="h-6 w-3/5 rounded-lg" />
                                     <Skeleton className="h-6 w-5/6 rounded-lg" />
@@ -160,12 +157,16 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
                                     failedMessage
                                 ) : (
                                     <>
-                                        
                                         <Markdown className="text-wrap break-words text-gray-600 dark:text-gray-300 leading-loose">{message}</Markdown>
+
                                         {attach && attach.length > 0 && (
                                             <div className="flex flex-wrap gap-3 m-2 mb-0">
                                                 {attach.map((v, index) => {
-                                                    return <Zoom><Image key={index} className="w-40 h-50 rounded-small border-small border-default-200/50 object-cover" src={v.url} /></Zoom>;
+                                                    return (
+                                                        <Zoom key={index}>
+                                                            <Image className="w-40 h-50 rounded-small border-small border-default-200/50 object-cover" src={v.url} />
+                                                        </Zoom>
+                                                    );
                                                 })}
                                             </div>
                                         )}

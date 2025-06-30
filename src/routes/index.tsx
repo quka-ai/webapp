@@ -22,6 +22,7 @@ import Reset from '@/pages/reset';
 import ShareKnowledge from '@/pages/share/knowledge';
 import ShareSessionPage from '@/pages/share/session';
 import SpaceLnadingPage from '@/pages/space-landing';
+import Test from '@/pages/test';
 import { setLoginRedirect } from '@/stores/event';
 import { buildTower } from '@/stores/socket';
 import spaceStore, { loadUserSpaces, setCurrentSelectedSpace } from '@/stores/space';
@@ -73,7 +74,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
                     }
                 }
             }
-            Login(accessToken ? '' : 'authorization', accessToken || loginToken);
+            Login(accessToken ? '' : 'authorization', accessToken || loginToken || '');
         }
     }, [isLogin, currentSelectedSpace, spaces]);
 
@@ -85,7 +86,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
           })();
 }
 
-function PreLogin({ init, children }: { init: boolean; children: ReactNode }) {
+function PreLogin({ init, children }: { init?: boolean; children: ReactNode }) {
     const { accessToken, loginToken, userInfo } = useSnapshot(userStore);
     const isLogin = useMemo(() => {
         return accessToken || loginToken;
@@ -117,7 +118,7 @@ const routes = createBrowserRouter([
         children: [
             {
                 path: '/test',
-                element: <ToolUsing isShow title="tesst" desc="ttttdddddd" />
+                element: <Test />
             },
             {
                 index: true,

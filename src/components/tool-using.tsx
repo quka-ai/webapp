@@ -1,7 +1,9 @@
 import { Spinner } from '@heroui/react';
 import { ReactNode } from 'react';
+
 import AnimatedShinyText from './shiny-text';
-import { ToolTips, ToolStatus } from '@/types/chat';
+
+import { ToolStatus, ToolTips } from '@/types/chat';
 
 export interface ToolUsingProps {
     // Define any props you want to pass to the ToolUsing component
@@ -25,9 +27,15 @@ export default function ToolUsing({ toolTips }: ToolUsingProps) {
     //     }
     // ]
 
-    return toolTips?.map((toolTip: ToolTips) => {
-        return <AnimatedShinyText key={toolTip.id} animate={toolTip.status === ToolStatus.TOOL_STATUS_RUNNING} className="inline-flex items-center justify-center pb-4 transition ease-out">
-            <span>{toolTip.status === ToolStatus.TOOL_STATUS_RUNNING ? '😶‍🌫️' : '🫡'} {toolTip.content}</span>
-        </AnimatedShinyText>
-    }) || [];
+    return (
+        toolTips?.map((toolTip: ToolTips) => {
+            return (
+                <AnimatedShinyText key={toolTip.id} animate={toolTip.status === ToolStatus.TOOL_STATUS_RUNNING} className="inline-flex items-center justify-center pb-4 transition ease-out">
+                    <span>
+                        {toolTip.status === ToolStatus.TOOL_STATUS_RUNNING ? '😶‍🌫️' : '👌🏼'} {toolTip.content}
+                    </span>
+                </AnimatedShinyText>
+            );
+        }) || []
+    );
 }
