@@ -10,9 +10,9 @@ import { useSnapshot } from 'valtio';
 
 import PromptInput from './prompt-input';
 
+import IconSwitch from '@/components/icon-switch';
 import { UploadResult, useUploader } from '@/hooks/use-uploader';
 import spaceStore from '@/stores/space';
-import SearchSwitch from '@/components/search-switch';
 
 export default function Component(
     props: TextAreaProps & {
@@ -278,40 +278,30 @@ export default function Component(
 
                             <Tooltip showArrow content={props.isLoading ? 'Stop' : 'Send message'}>
                                 {props.isLoading ? (
+                                    <Button isIconOnly className={props?.classNames?.button || ''} color="default" radius="full" variant="flat" onPress={() => props.onStopFunc?.()}>
+                                        <Icon
+                                            className={cn('[&>path]:stroke-[2px]', !prompt ? 'text-default-500' : 'text-primary-foreground', props?.classNames?.buttonIcon || '')}
+                                            icon="material-symbols-light:stop-rounded"
+                                            width={20}
+                                        />
+                                    </Button>
+                                ) : (
                                     <Button
                                         isIconOnly
                                         className={props?.classNames?.button || ''}
-                                        color='default'
+                                        color={!prompt ? 'default' : 'primary'}
+                                        isDisabled={!prompt && !props.isLoading}
                                         radius="full"
-                                        variant='flat'
-                                        onPress={() => props.onStopFunc?.()}
+                                        variant={!prompt ? 'flat' : 'solid'}
+                                        onPress={submit}
                                     >
                                         <Icon
-                                                className={cn('[&>path]:stroke-[2px]', !prompt ? 'text-default-500' : 'text-primary-foreground', props?.classNames?.buttonIcon || '')}
-                                                icon="material-symbols-light:stop-rounded"
-                                                width={20}
-                                                
-                                            />
+                                            className={cn('[&>path]:stroke-[2px]', !prompt ? 'text-default-500' : 'text-primary-foreground', props?.classNames?.buttonIcon || '')}
+                                            icon="solar:arrow-up-linear"
+                                            width={20}
+                                        />
                                     </Button>
-                                    ) : (
-                                        <Button
-                                            isIconOnly
-                                            className={props?.classNames?.button || ''}
-                                            color={!prompt ? 'default' : 'primary'}
-                                            isDisabled={!prompt && !props.isLoading}
-                                            radius="full"
-                                            variant={!prompt ? 'flat' : 'solid'}
-                                            onPress={submit}
-                                        >
-                                            <Icon
-                                                    className={cn('[&>path]:stroke-[2px]', !prompt ? 'text-default-500' : 'text-primary-foreground', props?.classNames?.buttonIcon || '')}
-                                                    icon="solar:arrow-up-linear"
-                                                    width={20}
-                                                    
-                                                />
-                                        </Button>
-                                    )}
-                                
+                                )}
                             </Tooltip>
                         </div>
                     }
@@ -345,8 +335,7 @@ export default function Component(
                         Templates
                     </Button> */}
 
-                        {/* <SearchSwitch size="lg" isSelected={useSearch} onValueChange={()=>{setUseSearch(!useSearch)}} /> */}
-
+                        {/* <IconSwitch size="lg" selectedIcon="fluent:globe-search-20-filled" icon="fluent:globe-search-20-regular" isSelected={useSearch} onValueChange={()=>{setUseSearch(!useSearch)}} /> */}
                     </div>
                     <div className="flex flex-row justify-end items-end gap-4">
                         <Switch

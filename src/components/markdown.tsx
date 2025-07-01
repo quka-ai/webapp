@@ -18,8 +18,8 @@ import { useTheme } from '@/hooks/use-theme';
 const preprocessMathContent = (content: string): string => {
     // 保护已经正确格式化的数学公式
     const protectedContent = content
-        // 首先处理 $hidden[xxx] 格式，直接转义这种格式的$符号
-        .replace(/\$hidden\[([^\]]+)\]/g, '\\$hidden[$1]')
+        // 首先处理 $hidden[xxx] 格式，提取内容并直接显示，去掉hidden包装
+        .replace(/\$hidden\[([^\]]+)\]/g, '$1')
         // 保护 $$...$$（块级数学公式）和 $...$ 中确实是数学公式的内容
         .replace(/\$\$([^$]+)\$\$/g, (match, formula) => {
             // 检查是否包含数学符号或LaTeX命令
