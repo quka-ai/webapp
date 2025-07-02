@@ -6,7 +6,7 @@ import runes from 'runes';
 import { useImmer } from 'use-immer';
 import { useSnapshot } from 'valtio';
 
-import { GenChatMessageID, GetChatSessionHistory, GetMessageExt, MessageDetail, NamedChatSession, SendMessage, StopChatStream  } from '@/apis/chat';
+import { GenChatMessageID, GetChatSessionHistory, GetMessageExt, MessageDetail, NamedChatSession, SendMessage, StopChatStream } from '@/apis/chat';
 import KnowledgeModal from '@/components/knowledge-modal';
 import { LogoIcon } from '@/components/logo';
 import { useMedia } from '@/hooks/use-media';
@@ -17,7 +17,7 @@ import PromptInputWithEnclosedActions from '@/pages/dashboard/chat/prompt-input-
 import { notifySessionNamedEvent, notifySessionReload } from '@/stores/session';
 import socketStore, { CONNECTION_OK } from '@/stores/socket';
 import spaceStore from '@/stores/space';
-import { EventType, StreamMessage, MessageType, ToolTips, ToolStatus } from '@/types/chat';
+import { EventType, MessageType, StreamMessage, ToolStatus, ToolTips } from '@/types/chat';
 
 interface Message {
     key: string;
@@ -213,11 +213,11 @@ export default function Chat() {
 
                                     todo.message += char.join('');
                                     if (!todo.len) {
-                                        todo.len = 0
+                                        todo.len = 0;
                                     }
                                     todo.len += char.length;
                                     if (!data.startAt) {
-                                        data.startAt = 0
+                                        data.startAt = 0;
                                     }
                                     data.startAt += char.length;
                                 });
@@ -234,6 +234,7 @@ export default function Chat() {
 
                             break;
                         case EventType.EVENT_ASSISTANT_DONE:
+                            setAiTyping(false);
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
                                 if (!todo || todo.len !== data.startAt) {
@@ -303,13 +304,12 @@ export default function Chat() {
                             newToolTips.push(streamData.tool_tips);
                         }
 
-                        console.log('newToolTips', newToolTips);
-
                         queue.push({
                             messageID: streamData.message_id,
                             type: EventType.EVENT_ASSISTANT_CONTINUE,
                             startAt: streamData.start_at,
-                            toolTips: newToolTips
+                            toolTips: newToolTips,
+                            message: ''
                         });
                         // 可以在这里处理tool tips相关逻辑
                     } else {
@@ -411,12 +411,11 @@ export default function Chat() {
         if (messages.length < 2 || messages[messages.length - 1].status === 'continue') {
             return true;
         }
-        return false
+        return false;
     }, [aiTyping, messages]);
 
-
     const query = useCallback(
-        async (message: string, agent: string, files?: Attach[]) => {
+        async (message: string, agent: string, args: ChatArgs, files?: Attach[]) => {
             if (!currentSelectedSpace || !sessionID) {
                 return;
             }
@@ -429,6 +428,8 @@ export default function Chat() {
                     messageID: msgID,
                     message: message,
                     agent: agent,
+                    enableThinking: args.enableThinking,
+                    enableSearch: args.enableSearch,
                     files: files
                 });
 
@@ -480,6 +481,9 @@ export default function Chat() {
     const navigate = useNavigate();
 
     const [selectedUseMemory, setSelectedUseMemory] = useState(localStorage.getItem('selectedUseMemory') === 'true');
+    const [selectedEnableThinking, setSelectedEnableThinking] = useState(localStorage.getItem('selectedEnableThinking') === 'true');
+    const [selectedEnableSearch, setSelectedEnableSearch] = useState(localStorage.getItem('selectedEnableSearch') === 'true');
+
     useEffect(() => {
         async function load() {
             setMessages([]);
@@ -489,9 +493,11 @@ export default function Chat() {
                 if (location.state && location.state.messages && location.state.messages.length === 1) {
                     NamedSession(location.state.messages[0].message);
                     setSelectedUseMemory(location.state.agent === 'rag');
-                    await query(location.state.messages[0].message, location.state.agent, location.state.files);
+                    setSelectedEnableThinking(location.state.args.enableThinking);
+                    setSelectedEnableSearch(location.state.args.enableSearch);
+                    await query(location.state.messages[0].message, location.state.agent, location.state.args, location.state.files);
                     location.state.messages = undefined;
-                    return
+                    return;
                 }
             }
             setAiTyping(false);
@@ -520,15 +526,12 @@ export default function Chat() {
 
     const { isMobile } = useMedia();
 
-    const stopChatStream = useCallback(
-        async () => {
-            if (!currentSelectedSpace || !sessionID) {
-                return;
-            }
-            await StopChatStream(currentSelectedSpace, sessionID);
-        },
-        [currentSelectedSpace, sessionID]
-    );
+    const stopChatStream = useCallback(async () => {
+        if (!currentSelectedSpace || !sessionID) {
+            return;
+        }
+        await StopChatStream(currentSelectedSpace, sessionID);
+    }, [currentSelectedSpace, sessionID]);
 
     return (
         <>
@@ -606,6 +609,8 @@ export default function Chat() {
                             }}
                             placeholder={t('chatToAgent')}
                             selectedUseMemory={selectedUseMemory}
+                            selectedEnableSearch={selectedEnableSearch}
+                            selectedEnableThinking={selectedEnableThinking}
                             onSubmitFunc={query}
                             onStopFunc={stopChatStream}
                         />

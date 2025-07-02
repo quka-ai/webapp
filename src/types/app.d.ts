@@ -1,3 +1,8 @@
+declare type ChatArgs = {
+    enableThinking: boolean;
+    enableSearch: boolean;
+};
+
 declare type Resource = {
     id: string;
     title: string;

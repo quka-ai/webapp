@@ -101,6 +101,8 @@ export interface SendMessageArgs {
     messageID: string;
     message: string;
     agent: string;
+    enableThinking: boolean;
+    enableSearch: boolean;
     files?: Attach[];
 }
 
@@ -113,7 +115,9 @@ export async function SendMessage(spaceID: string, sessionID: string, args: Send
         message_id: args.messageID,
         message: args.message,
         agent: args.agent,
-        files: args.files
+        files: args.files,
+        enable_thinking: args.enableThinking,
+        enable_search: args.enableSearch
     });
 
     return resp.data.data;

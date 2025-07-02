@@ -1,4 +1,4 @@
-import { Badge, Button, cn, Image, Listbox, ListboxItem, Spinner, Switch, type TextAreaProps, Tooltip, useDisclosure } from '@heroui/react';
+import { Badge, Button, cn, Image, Listbox, ListboxItem, Switch, type TextAreaProps, Tooltip, useDisclosure } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { VisuallyHidden } from '@react-aria/visually-hidden';
 import { KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -19,8 +19,10 @@ export default function Component(
         classNames?: Record<'button' | 'buttonIcon', string>;
         isLoading?: boolean;
         selectedUseMemory?: boolean;
+        selectedEnableSearch?: boolean;
+        selectedEnableThinking?: boolean;
         allowAttach: boolean;
-        onSubmitFunc?: (data: string, agent: string, files: Attach[]) => Promise<void>;
+        onSubmitFunc?: (data: string, agent: string, args: ChatArgs, files: Attach[]) => Promise<void>;
         onStopFunc?: () => Promise<void>;
     }
 ) {
@@ -28,12 +30,31 @@ export default function Component(
     const [prompt, setPrompt] = useState<string>('');
 
     const [useRag, setUseRag] = useState(false);
-    const [useSearch, setUseSearch] = useState(false);
+    const [enableSearch, setEnableSearch] = useState(false);
+    const [enableThinking, setEnableThinking] = useState(false);
 
     function setSelectedUseMemory(value: boolean) {
         setUseRag(value);
         localStorage.setItem('selectedUseMemory', value.toString());
     }
+
+    function setSelectedEnableSearch(value: boolean) {
+        setEnableSearch(value);
+        localStorage.setItem('selectedEnableSearch', value.toString());
+    }
+
+    function setSelectedEnableThinking(value: boolean) {
+        setEnableThinking(value);
+        localStorage.setItem('selectedEnableThinking', value.toString());
+    }
+
+    useEffect(() => {
+        setEnableSearch(props.selectedEnableSearch === undefined ? localStorage.getItem('selectedEnableSearch') === 'true' : props.selectedEnableSearch);
+    }, [props.selectedEnableSearch]);
+
+    useEffect(() => {
+        setEnableThinking(props.selectedEnableThinking === undefined ? localStorage.getItem('selectedEnableThinking') === 'true' : props.selectedEnableThinking);
+    }, [props.selectedEnableThinking]);
 
     useEffect(() => {
         setUseRag(props.selectedUseMemory === undefined ? localStorage.getItem('selectedUseMemory') === 'true' : props.selectedUseMemory);
@@ -80,7 +101,7 @@ export default function Component(
     }
 
     useEffect(() => {
-        const handleKeyDown = (event: KeyboardEvent) => {
+        const handleKeyDown = (event: globalThis.KeyboardEvent) => {
             if (event.key === 'Escape' && isOpen) {
                 onClose();
                 inputRef.current.focus();
@@ -121,7 +142,7 @@ export default function Component(
         ];
     }, []);
 
-    const [assets, setAssets] = useState<string[]>([]);
+    const [assets, setAssets] = useState<File[]>([]);
     const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
         if (!props.allowAttach) {
             return;
@@ -175,38 +196,24 @@ export default function Component(
         const files: Attach[] = [];
         if (assets && assets.length > 0) {
             try {
-                const res: UploadResult[] = await new Promise((resolve, reject) => {
-                    toast.promise(
-                        Promise.all(
-                            assets.map((file: File) => {
-                                return uploader(currentSelectedSpace, file, 'chat', 'chat');
-                            })
-                        )
-                            .then((values: UploadResult[]) => {
-                                resolve(values);
-                            })
-                            .catch(err => {
-                                console.log('got errr', err);
-                                reject(err);
-                            }),
-                        {
-                            loading: t(`Uploading`, { target: t('Attach') }),
-                            success: (values: UploadResult[]) => {
-                                resolve(values);
-                                return t(`Success`);
-                            },
-                            error: err => {
-                                reject(err);
-                                return err;
-                            }
-                        }
-                    );
+                const uploadPromise = Promise.all(
+                    assets.map((file: File) => {
+                        return uploader(currentSelectedSpace, file, 'chat', 'chat');
+                    })
+                );
+
+                toast.promise(uploadPromise, {
+                    loading: t(`Uploading`, { target: t('Attach') }),
+                    success: t(`Success`),
+                    error: err => err
                 });
+
+                const res: UploadResult[] = await uploadPromise;
 
                 res.forEach(v => {
                     files.push({
                         type: 'image',
-                        url: v.file?.url
+                        url: v.file?.url || ''
                     });
                 });
             } catch (err: any) {
@@ -216,13 +223,13 @@ export default function Component(
         }
 
         try {
-            await props.onSubmitFunc(prompt, useRag ? 'rag' : '', files);
+            await props.onSubmitFunc?.(prompt, useRag ? 'rag' : '', { enableSearch, enableThinking }, files);
             setPrompt('');
             setAssets([]);
         } catch (e: any) {
             console.error(e);
         }
-    }, [prompt, useRag, assets, currentSelectedSpace]);
+    }, [prompt, useRag, assets, currentSelectedSpace, enableSearch, enableThinking]);
 
     return (
         <>
@@ -244,6 +251,7 @@ export default function Component(
                             disallowEmptySelection
                             aria-label="Single agent selection"
                             className="absolute bottom-1 left-0 bg-content2 rounded-xl z-50"
+                            // @ts-ignore
                             autoFocus="first"
                             selectionMode="single"
                             variant="flat"
@@ -335,7 +343,26 @@ export default function Component(
                         Templates
                     </Button> */}
 
-                        {/* <IconSwitch size="lg" selectedIcon="fluent:globe-search-20-filled" icon="fluent:globe-search-20-regular" isSelected={useSearch} onValueChange={()=>{setUseSearch(!useSearch)}} /> */}
+                        <IconSwitch
+                            size="lg"
+                            className="text-default-500"
+                            selectedIcon="fluent-emoji-flat:thinking-face"
+                            icon="fluent-emoji-high-contrast:thinking-face"
+                            isSelected={enableThinking}
+                            onValueChange={v => {
+                                setSelectedEnableThinking(v);
+                            }}
+                        />
+                        <IconSwitch
+                            size="lg"
+                            className="text-default-500"
+                            selectedIcon="streamline-plump-color:web"
+                            icon="streamline-plump:web"
+                            isSelected={enableSearch}
+                            onValueChange={v => {
+                                setSelectedEnableSearch(v);
+                            }}
+                        />
                     </div>
                     <div className="flex flex-row justify-end items-end gap-4">
                         <Switch
@@ -368,13 +395,12 @@ interface PromptInputAssetsProps {
 }
 
 const PromptInputAssets = ({ assets, onRemoveAsset }: PromptInputAssetsProps) => {
-    if (assets.length === 0) return null;
-
     const [previewList, setPreviewList] = useState<string[]>([]);
+
     useEffect(() => {
         Promise.all(
             assets.map((file, index) => {
-                return new Promise((resolve, reject) => {
+                return new Promise<string>((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = () => {
                         const base64data = reader.result as string;
@@ -387,6 +413,8 @@ const PromptInputAssets = ({ assets, onRemoveAsset }: PromptInputAssetsProps) =>
             setPreviewList(values);
         });
     }, [assets]);
+
+    if (assets.length === 0) return null;
 
     return (
         <>
