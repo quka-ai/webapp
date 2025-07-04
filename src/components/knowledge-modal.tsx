@@ -131,7 +131,7 @@ const ViewKnowledge = memo(
                 return '';
             }
 
-            const resource = currentSpaceResources.find((v: Resource) => v.id === knowledge.resource);
+            const resource = currentSpaceResources.find((v: any) => v.id === knowledge.resource);
 
             return resource ? resource.title : knowledge.resource;
         }, [knowledge, currentSpaceResources]);
@@ -168,11 +168,7 @@ const ViewKnowledge = memo(
                                 <>
                                     <ModalHeader className="flex items-center justify-between dark:text-gray-100 text-gray-800 gap-4">
                                         <Breadcrumbs className="break-all text-wrap max-w-[66%] overflow-hidden text-ellipsis">
-                                            <BreadcrumbItem
-                                                onClick={onClose}
-                                            >
-                                                {t('Home')}
-                                            </BreadcrumbItem>
+                                            <BreadcrumbItem onClick={onClose}>{t('Home')}</BreadcrumbItem>
                                             <BreadcrumbItem onClick={onClose}>{spaceTitle === 'Main' ? t('MainSpace') : spaceTitle}</BreadcrumbItem>
                                             <BreadcrumbItem>{knowledgeResource}</BreadcrumbItem>
                                             <BreadcrumbItem>{knowledge.id}</BreadcrumbItem>

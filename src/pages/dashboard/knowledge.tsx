@@ -105,8 +105,7 @@ export default memo(function Component() {
             // 处理响应数据：清理HTML标签和隐藏敏感信息
             const processedList = (resp.list || []).map(v => ({
                 ...v,
-                content: v.content
-                    .replace(/\$hidden\[([^\]]*)\]/g, '[Secret]') // 隐藏敏感信息
+                content: v.content.replace(/\$hidden\[([^\]]*)\]/g, '[Secret]') // 隐藏敏感信息
             }));
 
             if (_dataList.length > 0) {
@@ -151,9 +150,7 @@ export default memo(function Component() {
     }
 
     // show / edit / create knowledge detail
-    // @ts-ignore
-    const viewKnowledge = useRef(null);
-    // @ts-ignore
+    const viewKnowledge = useRef<{ show: (id: string) => void }>(null);
 
     const showKnowledge = useCallback(
         (knowledge: Knowledge) => {

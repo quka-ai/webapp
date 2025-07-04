@@ -10,7 +10,7 @@ export default defineConfig(({ mode }) => {
             'process.env': env
         },
         server: {
-            port: 51173
+            port: 5173
         },
         plugins: [react(), tsconfigPaths()]
     };
