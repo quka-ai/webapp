@@ -16,6 +16,11 @@ import Journal from '@/pages/dashboard/journal/journal';
 import Knowledge from '@/pages/dashboard/knowledge';
 import Setting from '@/pages/dashboard/setting/setting';
 import SpaceSetting from '@/pages/dashboard/space-setting/setting';
+import AIAdmin from '@/pages/dashboard/ai-admin/ai-admin';
+import Providers from '@/pages/dashboard/ai-admin/providers/providers';
+import Models from '@/pages/dashboard/ai-admin/models/models';
+import System from '@/pages/dashboard/ai-admin/system/system';
+import Usage from '@/pages/dashboard/ai-admin/usage/usage';
 import Forgot from '@/pages/forgot';
 import Login from '@/pages/login';
 import Reset from '@/pages/reset';
@@ -204,7 +209,7 @@ const routes = createBrowserRouter([
                     {
                         path: ':spaceID/chat/session/:sessionID',
                         element: <ChatSession />
-                    }
+                    },
                 ]
             },
             {
@@ -214,6 +219,32 @@ const routes = createBrowserRouter([
                         <SpaceSetting />
                     </ProtectedRoute>
                 )
+            },
+            {
+                path: '/dashboard/ai-admin',
+                element: (
+                    <ProtectedRoute>
+                        <AIAdmin />
+                    </ProtectedRoute>
+                ),
+                children: [
+                    {
+                        path: 'providers',
+                        element: <Providers />
+                    },
+                    {
+                        path: 'models',
+                        element: <Models />
+                    },
+                    {
+                        path: 'system',
+                        element: <System />
+                    },
+                    {
+                        path: 'usage',
+                        element: <Usage />
+                    }
+                ]
             },
             {
                 path: '/user/*',
