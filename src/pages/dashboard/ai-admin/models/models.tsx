@@ -169,10 +169,10 @@ export default function Models() {
         setDeleteLoadingIds(prev => new Set([...prev, modelToDelete.id]));
         try {
             await modelConfigAPI.deleteModelConfig(modelToDelete.id);
-            
+
             // 直接从本地状态中移除，避免触发全局loading
             setModels(prev => prev.filter(m => m.id !== modelToDelete.id));
-            
+
             toast.success(t('Model configuration deleted successfully'));
         } catch (error) {
             console.error('Failed to delete model:', error);
@@ -202,12 +202,10 @@ export default function Models() {
             if (model) {
                 const newStatus = model.status === 1 ? 0 : 1;
                 await modelConfigAPI.updateModelConfig(modelId, { status: newStatus });
-                
+
                 // 直接更新本地状态，避免触发全局loading
-                setModels(prev => prev.map(m => 
-                    m.id === modelId ? { ...m, status: newStatus } : m
-                ));
-                
+                setModels(prev => prev.map(m => (m.id === modelId ? { ...m, status: newStatus } : m)));
+
                 toast.success(t('Model status updated successfully'));
             }
         } catch (error) {
@@ -228,19 +226,17 @@ export default function Models() {
         try {
             if (editingModel) {
                 const updatedModel = await modelConfigAPI.updateModelConfig(editingModel.id, formData);
-                
+
                 // 直接更新本地状态，避免触发全局loading
-                setModels(prev => prev.map(m => 
-                    m.id === editingModel.id ? { ...m, ...updatedModel } : m
-                ));
-                
+                setModels(prev => prev.map(m => (m.id === editingModel.id ? { ...m, ...updatedModel } : m)));
+
                 toast.success(t('Model configuration updated successfully'));
             } else {
                 const newModel = await modelConfigAPI.createModelConfig(formData);
-                
+
                 // 直接添加到本地状态，避免触发全局loading
                 setModels(prev => [newModel, ...prev]);
-                
+
                 toast.success(t('Model configuration created successfully'));
             }
 
@@ -297,25 +293,29 @@ export default function Models() {
                             placeholder={t('Filter by provider')}
                             aria-label={t('Filter by provider')}
                             selectedKeys={providerFilter ? [providerFilter] : []}
-                            onSelectionChange={keys => handleProviderFilter(Array.from(keys)[0] as string)}
                             className="md:w-48"
+                            onSelectionChange={keys => handleProviderFilter(Array.from(keys)[0] as string)}
                         >
-                            <SelectItem key="all">{t('All Providers')}</SelectItem>
-                            {providers.map(provider => (
-                                <SelectItem key={provider.id}>{provider.name}</SelectItem>
-                            ))}
+                            <>
+                                <SelectItem key="all">{t('All Providers')}</SelectItem>
+                                {providers.map(provider => (
+                                    <SelectItem key={provider.id}>{provider.name}</SelectItem>
+                                ))}
+                            </>
                         </Select>
                         <Select
                             placeholder={t('Filter by type')}
                             aria-label={t('Filter by type')}
                             selectedKeys={typeFilter ? [typeFilter] : []}
-                            onSelectionChange={keys => handleTypeFilter(Array.from(keys)[0] as string)}
                             className="md:w-48"
+                            onSelectionChange={keys => handleTypeFilter(Array.from(keys)[0] as string)}
                         >
-                            <SelectItem key="all">{t('All Types')}</SelectItem>
-                            {modelTypes.map(type => (
-                                <SelectItem key={type.key}>{type.label}</SelectItem>
-                            ))}
+                            <>
+                                <SelectItem key="all">{t('All Types')}</SelectItem>
+                                {modelTypes.map(type => (
+                                    <SelectItem key={type.key}>{type.label}</SelectItem>
+                                ))}
+                            </>
                         </Select>
                     </div>
                 </CardBody>
