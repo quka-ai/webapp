@@ -1,39 +1,12 @@
-import {
-    BreadcrumbItem,
-    Breadcrumbs,
-    Button,
-    ButtonGroup,
-    Card,
-    CardBody,
-    CardFooter,
-    CardHeader,
-    Chip,
-    Image,
-    Link,
-    Modal,
-    ModalBody,
-    ModalContent,
-    ModalFooter,
-    ModalHeader,
-    Progress,
-    ScrollShadow,
-    Skeleton,
-    Textarea,
-    useDisclosure
-} from '@heroui/react';
-import { Icon } from '@iconify/react';
-import { current } from 'immer';
+import { Button, Card, CardBody, CardFooter, CardHeader, Chip, Progress, ScrollShadow } from '@heroui/react';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { useMediaQuery } from 'usehooks-ts';
 import { useSnapshot } from 'valtio';
 import { subscribeKey } from 'valtio/utils';
 
 import { GetKnowledge, type Knowledge, ListKnowledge } from '@/apis/knowledge';
-import CreateKnowledge from '@/components/create';
 import GoTop from '@/components/go-top';
-import KnowledgeEdit from '@/components/knowledge-edit';
 import KnowledgeModal from '@/components/knowledge-modal';
 import MainQuery from '@/components/main-query';
 import Markdown from '@/components/markdown';
@@ -42,11 +15,10 @@ import { useMedia } from '@/hooks/use-media';
 import { useRole } from '@/hooks/use-role';
 import { useUserAgent } from '@/hooks/use-user-agent';
 import { FireTowerMsg } from '@/lib/firetower';
-import knowledgeStore, { onKnowledgeSearchKeywordsChange } from '@/stores/knowledge';
+import knowledgeStore from '@/stores/knowledge';
 import resourceStore from '@/stores/resource';
 import socketStore, { CONNECTION_OK } from '@/stores/socket';
 import spaceStore from '@/stores/space';
-import { Role } from '@/types';
 
 export default memo(function Component() {
     const { t } = useTranslation();

@@ -32,7 +32,7 @@ const CreateKnowledge = () => {
     const submit = useCallback(async () => {
         try {
             setCreateLoading(true);
-            editor.current && await editor.current.submit();
+            editor.current && (await editor.current.submit());
         } catch (e: any) {
             console.error(e);
         }
@@ -61,7 +61,7 @@ const CreateKnowledge = () => {
                 </Breadcrumbs>
             </div>
             <div className="w-full overflow-hidden p-4">
-                <KnowledgeEdit ref={editor} knowledge={{ space_id: spaceID }} classNames={{ editor: '!mx-0 ' }} hideSubmit />
+                <KnowledgeEdit ref={editor} hideSubmit knowledge={{ space_id: spaceID }} classNames={{ editor: '!mx-0 ' }} />
             </div>
             <div className="fixed w-full left-0 bottom-0 h-14 flex justify-center items-center bg-content1 z-50">
                 <ButtonGroup variant="flat" size="md" className="mb-4">

@@ -9,6 +9,7 @@ export interface Provider {
     config: {
         timeout: number;
         max_retries: number;
+        is_reader?: boolean;
         [key: string]: any;
     };
     created_at: number;
@@ -32,7 +33,7 @@ export interface ModelConfig {
     };
     created_at: number;
     updated_at: number;
-    provider: {
+    provider?: {
         id: string;
         name: string;
         api_url?: string;
@@ -127,6 +128,7 @@ export interface ProviderFormData {
     config: {
         timeout: number;
         max_retries: number;
+        is_reader?: boolean;
         [key: string]: any;
     };
 }
@@ -146,16 +148,6 @@ export interface ModelFormData {
     };
 }
 
-// 模型类型标签映射
-export const ModelTypeLabels: Record<ModelConfig['model_type'], string> = {
-    chat: '聊天',
-    embedding: '向量化',
-    vision: '视觉',
-    rerank: '重排序',
-    reader: '阅读',
-    enhance: '增强'
-};
-
 // 模型类型颜色映射
 export const ModelTypeColors: Record<ModelConfig['model_type'], string> = {
     chat: 'primary',
@@ -164,12 +156,6 @@ export const ModelTypeColors: Record<ModelConfig['model_type'], string> = {
     rerank: 'warning',
     reader: 'danger',
     enhance: 'default'
-};
-
-// 状态标签映射
-export const StatusLabels: Record<0 | 1, string> = {
-    0: '禁用',
-    1: '启用'
 };
 
 // 状态颜色映射

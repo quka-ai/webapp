@@ -1,8 +1,8 @@
-import type { CardProps } from "@heroui/react";
+import type { CardProps } from '@heroui/react';
 
-import React from 'react';
-import { Button, Card, CardBody, CardHeader, Chip, Tabs, Tab, ScrollShadow, CardFooter } from "@heroui/react";
+import { Button, Card, CardBody, CardFooter, CardHeader, Chip, ScrollShadow, Tab, Tabs } from '@heroui/react';
 import { Icon } from '@iconify/react';
+import React from 'react';
 
 import NotificationItem from './notification-item';
 

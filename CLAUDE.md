@@ -147,6 +147,11 @@ npm run preview
 - i18next configuration in `src/lib/i18n.ts`
 - Language files in `src/lib/i18n/[lang]/`
 - Automatic language detection
+- **IMPORTANT**: For new features/pages, create separate i18n files instead of adding to global translation files:
+  - Create `src/lib/i18n/[lang]/[feature-name].json` for new features
+  - Add the namespace to `namespaces` array in `src/lib/i18n.ts`
+  - Use `useTranslation('[feature-name]')` in components for feature-specific translations
+  - Use `useTranslation()` for common/global translations like "Back", "Cancel", etc.
 
 ### Real-time Features
 - WebSocket connection management in `src/stores/socket.ts`
@@ -168,3 +173,159 @@ npm run preview
 - **i18next** - Internationalization
 - **framer-motion** - Animations
 - **tailwindcss** - CSS framework
+
+## Development Best Practices & Common Pitfalls
+
+### React State Management & useEffect
+1. **Avoid Infinite Loops in useEffect**
+   - NEVER include state setters that are called within the useEffect in the dependency array
+   - Separate UI state from business logic state to prevent circular dependencies
+   - Example pitfall:
+   ```typescript
+   // ❌ BAD - Causes infinite loop
+   const [loading, setLoading] = useState(false);
+   useEffect(() => {
+     setLoading(true); // This changes 'loading'
+     // ... async operation
+     setLoading(false);
+   }, [loading]); // 'loading' is in dependency array - INFINITE LOOP!
+   
+   // ✅ GOOD - Separate states
+   const [isInitialLoad, setIsInitialLoad] = useState(true); // Never changes after first load
+   const [showSkeleton, setShowSkeleton] = useState(false); // UI-only state, not in dependencies
+   useEffect(() => {
+     setShowSkeleton(true);
+     // ... async operation
+     setShowSkeleton(false);
+   }, [otherDependencies]); // Only external dependencies
+   ```
+
+2. **Debounce Search Inputs**
+   - Always debounce search inputs to prevent excessive API calls
+   - Use separate state for input value and debounced value
+   ```typescript
+   const [searchTerm, setSearchTerm] = useState(''); // User input
+   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(''); // Debounced value
+   
+   useEffect(() => {
+     const timer = setTimeout(() => {
+       setDebouncedSearchTerm(searchTerm);
+     }, 500);
+     return () => clearTimeout(timer);
+   }, [searchTerm]);
+   ```
+
+### API Integration & Data Handling
+1. **Handle Null/Undefined API Response Fields**
+   - Always provide fallback values for potentially missing fields
+   - Use optional chaining and nullish coalescing
+   ```typescript
+   // ❌ BAD - Can cause runtime errors
+   setFormData({
+     name: provider.name,
+     api_key: provider.api_key, // Could be undefined
+   });
+   
+   // ✅ GOOD - Safe handling
+   setFormData({
+     name: provider.name || '',
+     api_key: provider.api_key || '',
+     status: provider.status ?? 1,
+     config: {
+       timeout: provider.config?.timeout || 30000,
+       ...provider.config
+     }
+   });
+   ```
+
+2. **Form Validation Safety**
+   - Always check for null/undefined before calling string methods
+   ```typescript
+   // ❌ BAD - Runtime error if field is undefined
+   if (!formData.name.trim()) { /* ... */ }
+   
+   // ✅ GOOD - Safe validation
+   if (!formData.name || !formData.name.trim()) { /* ... */ }
+   ```
+
+3. **API Response Structure**
+   - Project uses wrapped API responses: `{ code, message, data }`
+   - Always access actual data via `response.data.data`
+   - API base path `/api/v1` is set in request instance, use relative paths in API functions
+
+### UI/UX Best Practices
+1. **Loading States Strategy**
+   - **Skeleton screens**: For initial page loads and search results (new data)
+   - **Spinner buttons**: For individual operations (status toggle, delete)
+   - **Regular loading**: For pagination and filtering (same dataset)
+   ```typescript
+   // Show skeleton for: first load, search operations
+   // Show spinner on buttons for: CRUD operations
+   // Show regular loading for: pagination, filtering
+   ```
+
+2. **HeroUI Component Accessibility**
+   - DropdownItem with complex content needs `textValue` prop for screen readers
+   - Select components need `aria-label` when no visible label is present
+   ```typescript
+   // ✅ Accessible DropdownItem
+   <DropdownItem textValue="Delete" onPress={onDelete}>
+     <div className="flex items-center gap-2">
+       <Icon icon="delete" />
+       Delete
+     </div>
+   </DropdownItem>
+   
+   // ✅ Accessible Select without label
+   <Select
+     placeholder="Filter by status"
+     aria-label="Filter by status"
+   >
+   ```
+
+3. **Responsive Design Considerations**
+   - Always test mobile layouts for forms and complex components
+   - Use conditional rendering for mobile vs desktop when needed
+   - HeroUI components generally handle responsive design well, but custom layouts need attention
+
+### Time & Date Handling
+1. **Unix Timestamps from API**
+   - Backend returns seconds-based Unix timestamps
+   - JavaScript Date expects milliseconds - multiply by 1000
+   ```typescript
+   // ✅ Correct timestamp handling
+   const formatDate = (timestamp: number) => {
+     if (!timestamp) return '-';
+     const date = new Date(timestamp * 1000); // Convert seconds to milliseconds
+     return date.toLocaleDateString();
+   };
+   ```
+
+### Internationalization (i18n)
+1. **Feature-Specific Translations**
+   - Create separate translation files for each major feature
+   - Add namespace to `src/lib/i18n.ts` namespaces array
+   - Use `useTranslation('feature-name')` for feature-specific translations
+
+2. **Async Translation Loading Issues**
+   - Ensure proper async loading in `loadResources` function
+   - Use `Promise.all()` instead of `forEach` for parallel loading
+   ```typescript
+   // ✅ Correct async loading
+   await Promise.all(
+     namespaces.map(async (namespace) => {
+       // Load translation files
+     })
+   );
+   ```
+
+### Error Handling
+1. **User Feedback**
+   - Use `toast` from 'sonner' for user notifications
+   - Provide specific error messages for different failure scenarios
+   - Always handle both network errors and business logic errors
+
+2. **Graceful Degradation**
+   - Provide fallback UI states for empty data
+   - Handle missing/corrupted data gracefully
+   - Show appropriate empty states with actionable next steps

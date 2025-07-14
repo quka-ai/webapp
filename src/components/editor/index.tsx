@@ -1,7 +1,7 @@
 //@ts-ignore
 import Delimiter from '@coolbytes/editorjs-delimiter';
 // import CodeTool from '@editorjs/code';
-import EditorJS, { BlockToolData, OutputBlockData, OutputData } from '@editorjs/editorjs';
+import EditorJS, { BlockToolData, OutputData } from '@editorjs/editorjs';
 import Header from '@editorjs/header';
 import InlineCode from '@editorjs/inline-code';
 import EditorjsList from '@editorjs/list';
@@ -16,6 +16,8 @@ import { useTranslation } from 'react-i18next';
 import showdown from 'showdown';
 import { useSnapshot } from 'valtio';
 
+import { ToastProps } from '../ui/toast';
+
 import CustomImage from './image-tool';
 import './style.css';
 
@@ -25,11 +27,10 @@ import { useToast } from '@/hooks/use-toast';
 import { compressImage, CompressResult } from '@/lib/compress';
 import { cn, randomString } from '@/lib/utils';
 import spaceStore from '@/stores/space';
-import { ToastProps } from '../ui/toast';
 
 function getUploader(toast: (d: ToastProps) => void, t: (d: string) => string, currentSelectedSpace: string) {
     return {
-        async uploadByFile(file: File): Promise<{ success: number; file?: { type?:string, url: string } } | undefined> {
+        async uploadByFile(file: File): Promise<{ success: number; file?: { type?: string; url: string } } | undefined> {
             try {
                 let result = {} as CompressResult;
                 let fileKind = '';
@@ -129,7 +130,7 @@ export const Editor = memo(
                         await editor.blocks.render(data as OutputData);
                         break;
                     default: // default will be markdown
-                        if (data && typeof(data) === 'string' && data.split('\n').length === 1) {
+                        if (data && typeof data === 'string' && data.split('\n').length === 1) {
                             let renderData: OutputData = { blocks: [] };
 
                             data.split('\n').forEach(element => {
@@ -139,7 +140,6 @@ export const Editor = memo(
 
                             return;
                         }
-
 
                         showdown.extension('code', function () {
                             return [
@@ -159,12 +159,12 @@ export const Editor = memo(
 
                         try {
                             await editor.blocks.renderFromHTML(htmlDoms);
-                            return
+                            return;
                         } catch (e: any) {
                             console.error('editor render error', e);
                         }
 
-                        if (data && typeof(data) === 'string') {
+                        if (data && typeof data === 'string') {
                             let renderData: OutputData = { blocks: [] };
 
                             data.split('\n').forEach(element => {
@@ -386,11 +386,11 @@ export const Editor = memo(
         }, [currentSelectedSpace]);
 
         async function reRender(data: OutputData) {
-            editor && await editor.blocks.render(data);
+            editor && (await editor.blocks.render(data));
         }
 
         async function update(id: string, data: BlockToolData) {
-            editor && await editor.blocks.update(id, data);
+            editor && (await editor.blocks.update(id, data));
         }
 
         useImperativeHandle(ref, () => {

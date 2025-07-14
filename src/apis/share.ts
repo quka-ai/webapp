@@ -35,13 +35,13 @@ export async function CreateKnowledgeShareURL(spaceID: string, embeddingURL: str
 }
 
 export interface CreateSpaceShareURLResponse {
-    token: string; 
-    url: string
+    token: string;
+    url: string;
 }
 
 export async function CreateSpaceShareURL(spaceID: string, embeddingURL: string): Promise<CreateSpaceShareURLResponse> {
     let resp = await instance.post(`/space/${spaceID}/share`, {
-        embedding_url: embeddingURL,
+        embedding_url: embeddingURL
     });
 
     return resp.data.data;

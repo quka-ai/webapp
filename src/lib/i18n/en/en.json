@@ -237,6 +237,7 @@
     "TotalTokens": "Total {{total}} tokens",
     "Token": "Token",
     "Secret": "Secret",
+    "AI Model Management": "AI Model Management",
     "CreatedTime": "Created Time",
     "ExpiredTime": "Expired Time",
     "NewTokenTitle": "Create a new token",

@@ -32,7 +32,6 @@ import SidebarDrawer from './sidebar-drawer';
 import WorkSpaceSelection from './space-selection';
 
 import { ChatSession, GetChatSessionList } from '@/apis/chat';
-import { ListResources } from '@/apis/resource';
 import { GithubIcon } from '@/components/icons';
 import { LogoIcon, Name } from '@/components/logo';
 import ResourceManage from '@/components/resource-modal';
@@ -40,11 +39,12 @@ import { useChatPageCondition } from '@/hooks/use-chat-page';
 import { useMedia } from '@/hooks/use-media';
 import { usePlan } from '@/hooks/use-plan';
 import { useGroupedResources } from '@/hooks/use-resource';
-import resourceStore, { loadSpaceResource, setCurrentSelectedResource, setSpaceResource } from '@/stores/resource';
+import { useRole } from '@/hooks/use-role';
+import resourceStore, { loadSpaceResource, setCurrentSelectedResource } from '@/stores/resource';
 import sessionStore, { setCurrentSelectedSession } from '@/stores/session';
 import { closeSocket } from '@/stores/socket';
 import spaceStore from '@/stores/space';
-import userStore, { logout, setUserAccessToken, setUserInfo } from '@/stores/user';
+import userStore, { logout } from '@/stores/user';
 
 interface SidebarItem {
     id: string;
@@ -63,6 +63,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
     const { userInfo } = useSnapshot(userStore);
     const { isChat } = useChatPageCondition();
     const { sessionID } = useParams();
+    const { isManager } = useRole();
 
     const { groupedResources, resourceList, resourceLoading, listResource } = useResourceMode();
 
@@ -138,6 +139,9 @@ export default function Component({ children }: { children: React.ReactNode }) {
                 break;
             case 'setting':
                 navigate('/user/setting');
+                break;
+            case 'ai-admin':
+                navigate('/dashboard/ai-admin');
                 break;
             default:
         }
@@ -429,7 +433,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                             )}
                         </DropdownTrigger>
                         <DropdownMenu aria-label="Account switcher" variant="flat" onAction={userAction}>
-                            <DropdownSection classNames={{ heading: 'text-sm mb-2' }} showDivider title={t('UserMenu')}>
+                            <DropdownSection showDivider classNames={{ heading: 'text-sm mb-2' }} title={t('UserMenu')}>
                                 <DropdownItem key="setting" textValue="setting">
                                     <div className="flex items-center gap-x-3">
                                         <div className="flex flex-col">
@@ -437,6 +441,15 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                         </div>
                                     </div>
                                 </DropdownItem>
+                                {isManager && (
+                                    <DropdownItem key="ai-admin" textValue="ai-admin">
+                                        <div className="flex items-center gap-x-3">
+                                            <div className="flex flex-col">
+                                                <p className="text-base font-medium text-default-600">{t('AI Model Management')}</p>
+                                            </div>
+                                        </div>
+                                    </DropdownItem>
+                                )}
                             </DropdownSection>
                             <DropdownSection>
                                 <DropdownItem key="logout" color="danger" textValue="logout">

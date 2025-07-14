@@ -7,29 +7,37 @@ import { initReactI18next } from 'react-i18next';
 // import zhTranslation from './i18n/zh.json';
 
 const supportLang = ['zh', 'en', 'ja'];
-const namespaces = ['space', 'space-setting'];
+const namespaces = ['space', 'space-setting', 'ai-admin'];
 
 let resources = {};
 
 const loadResources = async () => {
-    const resources = {};
+    const resources: any = {};
 
     await Promise.all(
         supportLang.map(async v => {
-            resources[v] = {
-                translation: Object.assign(
-                    (() => {
-                        let obj = {};
+            resources[v] = {};
 
-                        namespaces.forEach(async ns => {
-                            obj[ns] = (await import(`./i18n/${v}/${ns}.json`)).default;
-                        });
+            // 加载主翻译文件
+            try {
+                const mainTranslation = (await import(`./i18n/${v}/${v}.json`)).default;
+                resources[v].translation = mainTranslation;
+            } catch (error) {
+                console.warn(`Failed to load main translation for language ${v}:`, error);
+                resources[v].translation = {};
+            }
 
-                        return obj;
-                    })(),
-                    (await import(`./i18n/${v}/${v}.json`)).default
-                )
-            };
+            // 加载命名空间翻译文件
+            await Promise.all(
+                namespaces.map(async ns => {
+                    try {
+                        resources[v][ns] = (await import(`./i18n/${v}/${ns}.json`)).default;
+                    } catch (error) {
+                        console.warn(`Failed to load namespace ${ns} for language ${v}:`, error);
+                        resources[v][ns] = {};
+                    }
+                })
+            );
         })
     );
 
@@ -45,6 +53,8 @@ const initializeI18n = async () => {
     i18n.use(initReactI18next).init({
         debug: false,
         fallbackLng: 'zh',
+        defaultNS: 'translation',
+        ns: ['translation', ...namespaces],
         interpolation: {
             escapeValue: false
         },

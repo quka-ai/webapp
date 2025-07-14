@@ -76,7 +76,7 @@ export default function KnowledgeSharePage() {
     }, [knowledge]);
     return (
         <section className="h-screen flex flex-col w-full p-4 overflow-hidden items-center bg-content2">
-            <ShareHeader controlsContent={controlsContent} type="knowledge" createdUser={knowledge ? knowledge.user_id : ''}></ShareHeader>
+            <ShareHeader controlsContent={controlsContent} type="knowledge" createdUser={knowledge ? knowledge.user_id : ''} />
             <main className="flex gap-6 w-full max-w-[1400px] h-full items-stretch justify-center relative">
                 {/* Controls */}
                 <div className="hidden w-[260px] overflow-hidden flex-col gap-4 lg:flex sticky top-0">{controlsContent}</div>

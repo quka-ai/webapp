@@ -237,6 +237,7 @@
     "TotalTokens": "共计 {{total}} 个密钥",
     "Token": "密钥",
     "Secret": "密钥",
+    "AI Model Management": "AI 模型管理",
     "CreatedTime": "创建时间",
     "ExpiredTime": "过期时间",
     "NewTokenTitle": "创建新密钥",

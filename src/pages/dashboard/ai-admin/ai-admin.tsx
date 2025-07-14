@@ -1,10 +1,26 @@
-import { Tab, Tabs } from '@heroui/react';
+import { Button, Tab, Tabs } from '@heroui/react';
+import { Icon } from '@iconify/react';
+import React, { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useNavigate, Outlet, useLocation } from 'react-router-dom';
-import { useEffect } from 'react';
 
-export default function AIAdmin() {
+import { useRole } from '@/hooks/use-role';
+
+interface AIAdminProps {
+    className?: string;
+}
+
+const AIAdmin = React.forwardRef<HTMLDivElement, AIAdminProps>(({ className, ...props }, ref) => {
+    const { t } = useTranslation('ai-admin');
+    const { t: tGlobal } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
+    const { isManager } = useRole();
+
+    function back() {
+        // 直接返回仪表板，因为AI管理是全局功能
+        navigate('/dashboard');
+    }
 
     // 从当前路径中提取当前选中的tab
     const getCurrentTab = () => {
@@ -18,6 +34,14 @@ export default function AIAdmin() {
 
     const currentTab = getCurrentTab();
 
+    // 权限检查：只有manager（admin或chief）可以访问
+    useEffect(() => {
+        if (!isManager) {
+            navigate('/dashboard', { replace: true });
+            return;
+        }
+    }, [isManager, navigate]);
+
     // 如果是根路径，重定向到providers
     useEffect(() => {
         if (location.pathname === '/dashboard/ai-admin' || location.pathname === '/dashboard/ai-admin/') {
@@ -29,49 +53,53 @@ export default function AIAdmin() {
         navigate(`/dashboard/ai-admin/${key}`);
     };
 
-    return (
-        <div className="flex flex-col h-full">
-            {/* 页面标题 */}
-            <div className="flex flex-col gap-2 mb-6">
-                <h1 className="text-2xl font-bold">AI 模型管理</h1>
-                <p className="text-default-500">管理AI模型提供商、模型配置和系统设置</p>
-            </div>
+    // 如果用户没有管理权限，不渲染内容
+    if (!isManager) {
+        return null;
+    }
 
-            {/* Tab导航 */}
-            <div className="flex flex-col flex-1">
+    return (
+        <div className="w-full flex flex-col items-center">
+            <div className="w-full p-4 box-border">
+                <Button startContent={<Icon icon="material-symbols:arrow-back-ios-rounded" />} variant="bordered" onPress={back}>
+                    {tGlobal('Back')}
+                </Button>
+            </div>
+            <div className="w-full max-w-2xl flex-1 p-4">
+                {/* Title */}
+                <div className="flex items-center gap-x-3">
+                    <h1 className="text-3xl font-bold leading-9 text-default-foreground">{tGlobal('AI Model Management')}</h1>
+                </div>
+                <h2 className="mt-2 text-small text-default-500">{t('Manage AI model providers, model configurations and system settings')}</h2>
+                {/*  Tabs */}
                 <Tabs
+                    fullWidth
                     selectedKey={currentTab}
                     onSelectionChange={(key) => handleTabChange(key as string)}
-                    variant="underlined"
                     classNames={{
-                        tabList: "gap-6 w-full relative rounded-none p-0 border-b border-divider",
-                        cursor: "w-full bg-primary",
-                        tab: "max-w-fit px-0 h-12",
-                        tabContent: "group-data-[selected=true]:text-primary"
+                        base: 'mt-6',
+                        cursor: 'bg-content1 dark:bg-content1',
+                        panel: 'w-full p-0 pt-4'
                     }}
                 >
-                    <Tab key="providers" title="模型提供商">
-                        <div className="py-4">
-                            <Outlet />
-                        </div>
+                    <Tab key="providers" title={t('Model Providers')}>
+                        <Outlet />
                     </Tab>
-                    <Tab key="models" title="模型配置">
-                        <div className="py-4">
-                            <Outlet />
-                        </div>
+                    <Tab key="models" title={t('Model Configuration')}>
+                        <Outlet />
                     </Tab>
-                    <Tab key="system" title="系统状态">
-                        <div className="py-4">
-                            <Outlet />
-                        </div>
+                    <Tab key="usage" title={t('Usage Configuration')}>
+                        <Outlet />
                     </Tab>
-                    <Tab key="usage" title="使用配置">
-                        <div className="py-4">
-                            <Outlet />
-                        </div>
+                    <Tab key="system" title={t('System Status')}>
+                        <Outlet />
                     </Tab>
                 </Tabs>
             </div>
         </div>
     );
-}
+});
+
+AIAdmin.displayName = 'AIAdmin';
+
+export default AIAdmin;

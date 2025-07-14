@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useSnapshot } from 'valtio';
 
 import userStore from '@/stores/user';
-import { Role } from '@/types';
 
 export function usePlan(): { userIsPro: boolean; isPlatform: boolean; userPlan: string } {
     const { userInfo } = useSnapshot(userStore);

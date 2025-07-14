@@ -1,5 +1,6 @@
 import { Modal, ModalContent, ModalHeader, ModalBody, ModalFooter, Button } from '@heroui/react';
-import { AlertTriangle } from 'lucide-react';
+import { Icon } from '@iconify/react';
+import { useTranslation } from 'react-i18next';
 
 interface DeleteConfirmProps {
     isOpen: boolean;
@@ -18,6 +19,8 @@ export default function DeleteConfirm({
     content, 
     isLoading = false 
 }: DeleteConfirmProps) {
+    const { t } = useTranslation('ai-admin');
+    
     return (
         <Modal 
             isOpen={isOpen} 
@@ -31,7 +34,7 @@ export default function DeleteConfirm({
             <ModalContent>
                 <ModalHeader className="flex flex-col gap-1">
                     <div className="flex items-center gap-2">
-                        <AlertTriangle className="w-5 h-5 text-warning" />
+                        <Icon icon="material-symbols:warning" width={20} height={20} className="text-warning" />
                         <span>{title}</span>
                     </div>
                 </ModalHeader>
@@ -45,14 +48,14 @@ export default function DeleteConfirm({
                         onPress={onClose}
                         disabled={isLoading}
                     >
-                        取消
+                        {t('Cancel')}
                     </Button>
                     <Button 
                         color="danger" 
                         onPress={onConfirm}
                         isLoading={isLoading}
                     >
-                        确认删除
+                        {t('Delete')}
                     </Button>
                 </ModalFooter>
             </ModalContent>

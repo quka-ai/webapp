@@ -1,4 +1,4 @@
-import { Accordion, AccordionItem, Avatar, Button, Listbox, ListboxItem, ScrollShadow, User } from '@heroui/react';
+import { Avatar, Button, ScrollShadow, User } from '@heroui/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
