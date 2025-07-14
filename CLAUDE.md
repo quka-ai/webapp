@@ -283,7 +283,36 @@ npm run preview
    >
    ```
 
-3. **Responsive Design Considerations**
+3. **HeroUI Select Component TypeScript Issues**
+   - **Problem**: `Type 'Element[]' is not assignable to type 'CollectionElement<object>'`
+   - **Cause**: HeroUI Select component has strict typing for children, doesn't accept arrays of SelectItem directly
+   - **Solution**: Wrap mapped SelectItem arrays in React Fragment
+   ```typescript
+   // ❌ BAD - TypeScript error
+   <Select>
+     <SelectItem key="all">All Items</SelectItem>
+     {items.map(item => (
+       <SelectItem key={item.id}>{item.name}</SelectItem>
+     ))}
+   </Select>
+   
+   // ✅ GOOD - Wrap in React Fragment
+   <Select>
+     <>
+       <SelectItem key="all">All Items</SelectItem>
+       {items.map(item => (
+         <SelectItem key={item.id}>{item.name}</SelectItem>
+       ))}
+     </>
+   </Select>
+   ```
+   - **Key Points**:
+     - SelectItem uses `key` prop as both React key and selection value
+     - Don't add `value` prop to SelectItem (not supported)
+     - `selectedKeys` array should contain the `key` values
+     - `onSelectionChange` returns Set of `key` values
+
+4. **Responsive Design Considerations**
    - Always test mobile layouts for forms and complex components
    - Use conditional rendering for mobile vs desktop when needed
    - HeroUI components generally handle responsive design well, but custom layouts need attention
