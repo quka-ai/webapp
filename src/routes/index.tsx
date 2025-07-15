@@ -6,7 +6,7 @@ import { useSnapshot } from 'valtio';
 import { GetUserInfo } from '@/apis/user';
 import { App } from '@/App';
 import ToolUsing from '@/components/tool-using';
-import { autoLoginDirect } from '@/lib/utils';
+import { autoLoginDirect, processAvatarUrl } from '@/lib/utils';
 import Dashboard from '@/pages/dashboard';
 import ChatSession from '@/pages/dashboard/chat/chat-session.tsx';
 import Chat from '@/pages/dashboard/chat/chat.tsx';
@@ -56,8 +56,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
                     const resp = await GetUserInfo();
                     setUserInfo({
                         userID: resp.user_id,
-                        // avatar: resp.avatar,
-                        avatar: resp.avatar || 'https://avatar.vercel.sh/' + resp.user_id,
+                        avatar: processAvatarUrl(resp.avatar, resp.user_id, true),
                         userName: resp.user_name,
                         email: resp.email,
                         planID: resp.plan_id,

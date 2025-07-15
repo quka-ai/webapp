@@ -183,154 +183,167 @@ export default function Usage() {
     return (
         <div className="space-y-6">
             {/* 页面标题 */}
-            <Card>
-                <CardBody>
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-lg font-semibold mb-2">{t('Usage Configuration')}</h3>
-                            <p className="text-default-600">
-                                {t('Configure AI models for different functional modules, including chat, vectorization, vision, etc.')}
-                            </p>
-                        </div>
-                        
-                        {hasChanges && (
-                            <div className="flex gap-2">
-                                <Button
-                                    variant="light"
-                                    onPress={handleResetConfig}
-                                    isDisabled={saving}
-                                >
-                                    {t('Reset')}
-                                </Button>
-                                <Button
-                                    color="primary"
-                                    startContent={<Icon icon="material-symbols:save" />}
-                                    onPress={handleSaveConfig}
-                                    isLoading={saving}
-                                >
-                                    {t('Save Changes')}
-                                </Button>
-                            </div>
-                        )}
-                    </div>
-                </CardBody>
-            </Card>
+            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h2 className="text-xl font-semibold">{t('Usage Configuration')}</h2>
+                    <p className="text-sm text-default-600 mt-1">
+                        {t('Configure AI models for different functional modules, including chat, vectorization, vision, etc.')}
+                    </p>
+                </div>
+                <div className="flex gap-2 h-10">
+                    <Button
+                        variant="light"
+                        onPress={handleResetConfig}
+                        isDisabled={saving || !hasChanges}
+                        className={`transition-opacity duration-200 ${hasChanges ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                    >
+                        {t('Reset')}
+                    </Button>
+                    <Button
+                        color="primary"
+                        startContent={saving ? null : <Icon icon="material-symbols:save" />}
+                        onPress={handleSaveConfig}
+                        isLoading={saving}
+                        isDisabled={!hasChanges}
+                        spinnerPlacement="start"
+                        className={`transition-opacity duration-200 ${hasChanges ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                    >
+                        {t('Save Changes')}
+                    </Button>
+                </div>
+            </div>
             
             {/* 配置表单 */}
-            <Card>
-                <CardHeader>
-                    <div className="flex items-center gap-2">
-                        <Icon icon="material-symbols:settings-applications" className="text-primary" />
-                        <h4 className="text-md font-medium">{t('Module Configuration')}</h4>
-                    </div>
-                </CardHeader>
-                <CardBody>
-                    {loading ? (
-                        // 加载骨架屏
-                        <div className="space-y-6">
-                            {Array.from({ length: 6 }).map((_, index) => (
-                                <div key={index} className="flex items-center gap-4 p-4 border rounded-lg">
-                                    <Skeleton className="w-10 h-10 rounded" />
+            <div className="space-y-4">
+                {loading ? (
+                    // 加载骨架屏
+                    Array.from({ length: 6 }).map((_, index) => (
+                        <Card key={index}>
+                            <CardBody className="p-6">
+                                <div className="flex items-center gap-4">
+                                    <Skeleton className="w-10 h-10 rounded-lg" />
                                     <div className="flex-1 space-y-2">
                                         <Skeleton className="h-4 w-24" />
                                         <Skeleton className="h-3 w-48" />
                                     </div>
                                     <Skeleton className="h-10 w-64" />
                                 </div>
-                            ))}
-                        </div>
-                    ) : usageConfig ? (
-                        <div className="space-y-6">
-                            {moduleConfigs.map((module) => {
-                                const availableModels = getModelsForType(module.key);
-                                const selectedModelId = usageConfig[module.key];
-                                const selectedModel = getSelectedModelInfo(selectedModelId);
-                                
-                                return (
-                                    <div key={module.key} className="flex items-center gap-4 p-4 border rounded-lg hover:bg-default-50 transition-colors">
+                            </CardBody>
+                        </Card>
+                    ))
+                ) : usageConfig ? (
+                    moduleConfigs.map((module) => {
+                        const availableModels = getModelsForType(module.key);
+                        const selectedModelId = usageConfig[module.key];
+                        const selectedModel = getSelectedModelInfo(selectedModelId);
+                        
+                        return (
+                            <Card key={module.key} className="hover:shadow-lg transition-shadow">
+                                <CardBody className="p-4 sm:p-6">
+                                    <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                                         {/* 模块图标和信息 */}
-                                        <div className={`p-2 rounded-lg bg-${module.color}/10 flex-shrink-0`}>
-                                            <Icon 
-                                                icon={module.icon} 
-                                                width={24} 
-                                                className={`text-${module.color}`} 
-                                            />
-                                        </div>
-                                        
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h5 className="font-medium text-default-900">{module.label}</h5>
-                                                {module.required && (
-                                                    <Chip color="danger" size="sm" variant="flat">
-                                                        {t('Required')}
-                                                    </Chip>
+                                        <div className="flex items-center gap-3 flex-1">
+                                            <div className={`p-2 rounded-lg bg-${module.color}/10 flex-shrink-0`}>
+                                                <Icon 
+                                                    icon={module.icon} 
+                                                    width={24} 
+                                                    className={`text-${module.color}`} 
+                                                />
+                                            </div>
+                                            
+                                            <div className="flex-1 min-w-0">
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <h3 className="text-lg font-semibold text-foreground">
+                                                        {module.label}
+                                                    </h3>
+                                                    {module.required && (
+                                                        <Chip color="danger" size="sm" variant="flat">
+                                                            {t('Required')}
+                                                        </Chip>
+                                                    )}
+                                                </div>
+                                                <p className="text-sm text-default-600">
+                                                    {module.description}
+                                                </p>
+                                                {selectedModel && (
+                                                    <div className="flex items-center gap-1 mt-2 text-xs text-default-500">
+                                                        <Icon icon="material-symbols:info-outline" width={12} />
+                                                        <span>{selectedModel.provider} • {selectedModel.name}</span>
+                                                    </div>
                                                 )}
                                             </div>
-                                            <p className="text-sm text-default-500">{module.description}</p>
-                                            {selectedModel && (
-                                                <div className="flex items-center gap-1 mt-1 text-xs text-default-400">
-                                                    <Icon icon="material-symbols:info-outline" width={12} />
-                                                    <span>{selectedModel.provider} • {selectedModel.name}</span>
-                                                </div>
-                                            )}
                                         </div>
                                         
                                         {/* 模型选择器 */}
-                                        <div className="w-64 flex-shrink-0">
-                                            <Select
-                                                placeholder={t('Select model')}
-                                                selectedKeys={selectedModelId ? [selectedModelId] : []}
-                                                onSelectionChange={(keys) => {
-                                                    const selected = Array.from(keys)[0] as string;
-                                                    handleConfigChange(module.key, selected);
-                                                }}
-                                                isDisabled={availableModels.length === 0}
-                                                size="sm"
-                                            >
-                                                {availableModels.map((model) => (
-                                                    <SelectItem 
-                                                        key={model.id}
-                                                        textValue={`${model.display_name || model.model_name} (${model.provider?.name})`}
-                                                    >
-                                                        <div className="flex flex-col">
-                                                            <span className="font-medium">
-                                                                {model.display_name || model.model_name}
-                                                            </span>
-                                                            <span className="text-xs text-default-500">
-                                                                {model.provider?.name}
-                                                            </span>
-                                                        </div>
-                                                    </SelectItem>
-                                                ))}
-                                            </Select>
-                                            
-                                            {availableModels.length === 0 && (
-                                                <p className="text-xs text-danger mt-1">
-                                                    {t('No available models for this type')}
-                                                </p>
-                                            )}
+                                        <div className="w-full sm:w-64 flex-shrink-0">
+                                            <div className="flex flex-col">
+                                                <Select
+                                                    placeholder={t('Select model')}
+                                                    selectedKeys={selectedModelId ? [selectedModelId] : []}
+                                                    onSelectionChange={(keys) => {
+                                                        const selected = Array.from(keys)[0] as string;
+                                                        handleConfigChange(module.key, selected);
+                                                    }}
+                                                    isDisabled={availableModels.length === 0}
+                                                    size="sm"
+                                                    aria-label={`${module.label} model selection`}
+                                                    className="w-full"
+                                                >
+                                                    <>
+                                                        {availableModels.map((model) => (
+                                                            <SelectItem 
+                                                                key={model.id}
+                                                                textValue={`${model.display_name || model.model_name} (${model.provider?.name})`}
+                                                            >
+                                                                <div className="flex flex-col">
+                                                                    <span className="font-medium">
+                                                                        {model.display_name || model.model_name}
+                                                                    </span>
+                                                                    <span className="text-xs text-default-500">
+                                                                        {model.provider?.name}
+                                                                    </span>
+                                                                </div>
+                                                            </SelectItem>
+                                                        ))}
+                                                    </>
+                                                </Select>
+                                                
+                                                {availableModels.length === 0 && (
+                                                    <p className="text-xs text-danger mt-1">
+                                                        {t('No available models for this type')}
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
                                     </div>
-                                );
-                            })}
-                        </div>
-                    ) : (
-                        <div className="text-center py-8">
-                            <Icon icon="material-symbols:error-outline" width={48} className="text-default-400 mb-2" />
-                            <p className="text-default-500">{t('Failed to load usage configuration')}</p>
-                            <Button
-                                variant="light"
-                                color="primary"
-                                startContent={<Icon icon="material-symbols:refresh" />}
-                                onPress={loadData}
-                                className="mt-2"
-                            >
-                                {t('Retry')}
-                            </Button>
-                        </div>
-                    )}
-                </CardBody>
-            </Card>
+                                </CardBody>
+                            </Card>
+                        );
+                    })
+                ) : (
+                    <Card>
+                        <CardBody className="p-12">
+                            <div className="text-center">
+                                <Icon icon="material-symbols:error-outline" width={48} className="mx-auto text-default-400 mb-4" />
+                                <h3 className="text-lg font-medium mb-2">
+                                    {t('Failed to load usage configuration')}
+                                </h3>
+                                <p className="text-default-500 mb-4">
+                                    {t('Unable to load the usage configuration. Please try again.')}
+                                </p>
+                                <Button
+                                    variant="light"
+                                    color="primary"
+                                    startContent={<Icon icon="material-symbols:refresh" />}
+                                    onPress={loadData}
+                                >
+                                    {t('Retry')}
+                                </Button>
+                            </div>
+                        </CardBody>
+                    </Card>
+                )}
+            </div>
         </div>
     );
 }

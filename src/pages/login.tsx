@@ -8,7 +8,7 @@ import { useSnapshot } from 'valtio';
 import { Login, LoginWithAccessToken } from '@/apis/user';
 import { LogoIcon, Name } from '@/components/logo';
 import { toast } from '@/hooks/use-toast';
-import { md5 } from '@/lib/utils';
+import { md5, processAvatarUrl } from '@/lib/utils';
 import SignUp from '@/pages/signup';
 import eventStore from '@/stores/event';
 import { setCurrentSelectedSpace, setUserSpaces } from '@/stores/space';
@@ -131,8 +131,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
             setUserAccessToken(accessToken);
             setUserInfo({
                 userID: resp.user_id,
-                // avatar: resp.avatar,
-                avatar: resp.avatar || 'https://avatar.vercel.sh/' + resp.user_id,
+                avatar: processAvatarUrl(resp.avatar, resp.user_id, false),
                 userName: resp.user_name,
                 email: resp.email,
                 planID: resp.plan_id,

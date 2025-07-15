@@ -27,7 +27,6 @@ const AIAdmin = React.forwardRef<HTMLDivElement, AIAdminProps>(({ className, ...
         const path = location.pathname;
         if (path.includes('/providers')) return 'providers';
         if (path.includes('/models')) return 'models';
-        if (path.includes('/system')) return 'system';
         if (path.includes('/usage')) return 'usage';
         return 'providers'; // 默认选中providers
     };
@@ -70,7 +69,7 @@ const AIAdmin = React.forwardRef<HTMLDivElement, AIAdminProps>(({ className, ...
                 <div className="flex items-center gap-x-3">
                     <h1 className="text-3xl font-bold leading-9 text-default-foreground">{tGlobal('AI Model Management')}</h1>
                 </div>
-                <h2 className="mt-2 text-small text-default-500">{t('Manage AI model providers, model configurations and system settings')}</h2>
+                <h2 className="mt-2 text-small text-default-500">{t('Manage AI model providers, model configurations and usage settings')}</h2>
                 {/*  Tabs */}
                 <Tabs
                     fullWidth
@@ -89,9 +88,6 @@ const AIAdmin = React.forwardRef<HTMLDivElement, AIAdminProps>(({ className, ...
                         <Outlet />
                     </Tab>
                     <Tab key="usage" title={t('Usage Configuration')}>
-                        <Outlet />
-                    </Tab>
-                    <Tab key="system" title={t('System Status')}>
                         <Outlet />
                     </Tab>
                 </Tabs>

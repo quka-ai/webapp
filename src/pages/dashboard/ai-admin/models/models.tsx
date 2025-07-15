@@ -407,11 +407,11 @@ export default function Models() {
             {/* 删除确认弹窗 */}
             <DeleteConfirm
                 isOpen={deleteConfirmOpen}
-                onClose={handleCancelDelete}
-                onConfirm={handleConfirmDelete}
                 title={t('Delete Model Configuration')}
                 content={t('Are you sure you want to delete this model configuration?')}
                 isLoading={modelToDelete ? deleteLoadingIds.has(modelToDelete.id) : false}
+                onClose={handleCancelDelete}
+                onConfirm={handleConfirmDelete}
             />
         </div>
     );
