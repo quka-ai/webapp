@@ -1,5 +1,6 @@
 import { Button, Divider, Input, Link } from '@heroui/react';
 import { Icon } from '@iconify/react';
+import { AxiosError } from 'axios';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -168,7 +169,8 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
             });
 
             navigate(loginRedirect || '/dashboard', { replace: true });
-        } catch (e: AxiosError) {
+        } catch (e: any) {
+            e = e as AxiosError;
             if (e.response?.status === 403) {
                 toast({
                     title: t('Notify'),

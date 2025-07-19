@@ -1,6 +1,7 @@
 import { OutputData } from '@editorjs/editorjs';
 
 import instance from './request';
+import { only } from 'node:test';
 
 export interface Knowledge {
     content: string;
@@ -39,10 +40,11 @@ export async function ListKnowledge(spaceID: string, keywords: string, resource:
     return resp.data.data;
 }
 
-export async function GetKnowledge(spaceID: string, knowledgeID: string): Promise<Knowledge> {
+export async function GetKnowledge(spaceID: string, knowledgeID: string, onlyPreview: boolean): Promise<Knowledge> {
     const resp = await instance.get(`/${spaceID}/knowledge`, {
         params: {
-            id: knowledgeID
+            id: knowledgeID,
+            only_preview: onlyPreview
         }
     });
 

@@ -65,18 +65,13 @@ export function randomString(e) {
  */
 export function processAvatarUrl(avatar: string | null | undefined, userId: string, useStaticFallback: boolean = false): string {
     // 如果头像不存在，使用fallback
-    if (!avatar) {
-        return useStaticFallback ? '/images/default_avatar.png' : `https://avatar.vercel.sh/${userId}`;
+    if (!avatar || avatar.startsWith('/') || !avatar.includes('://')) {
+        return useStaticFallback ? '/image/default_avatar.png' : `https://avatar.vercel.sh/${userId}`;
     }
 
     // 如果头像是完整URL（包含协议），直接返回
     if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
         return avatar;
-    }
-
-    // 如果头像只是路径（没有host），使用fallback
-    if (avatar.startsWith('/') || !avatar.includes('://')) {
-        return useStaticFallback ? '/images/default_avatar.png' : `https://avatar.vercel.sh/${userId}`;
     }
 
     // 其他情况直接返回

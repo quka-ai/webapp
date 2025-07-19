@@ -1,8 +1,6 @@
 import {
     Button,
     Input,
-    Select,
-    SelectItem,
     Switch,
     Textarea,
     Divider,
@@ -162,17 +160,12 @@ export default function ProviderForm({ provider, onSubmit, onCancel, loading = f
             description: 'Official OpenAI API'
         },
         {
-            name: 'Azure OpenAI',
-            api_url: 'https://YOUR_RESOURCE_NAME.openai.azure.com',
-            description: 'Microsoft Azure OpenAI Service'
+            name: '白山云',
+            api_url: 'https://api.edgefn.net/v1',
+            description: '白山智算云 API',
         },
         {
-            name: 'Anthropic',
-            api_url: 'https://api.anthropic.com',
-            description: 'Anthropic Claude API'
-        },
-        {
-            name: 'Jina',
+            name: 'Jina(Reader)',
             api_url: 'https://r.jina.ai',
             description: 'Jina Reader API (with Reader support)',
             is_reader: true

@@ -245,7 +245,7 @@ const KnowledgeList = memo(
                 case 'Done':
                     const doneLogic = async function () {
                         try {
-                            const data = await GetKnowledge(currentSelectedSpace, onEvent.data.data.knowledge_id);
+                            const data = await GetKnowledge(currentSelectedSpace, onEvent.data.data.knowledge_id, true);
                             const newDataList = dataList.map(item => {
                                 if (item.id === onEvent.data.data.knowledge_id) {
                                     return data;
