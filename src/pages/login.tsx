@@ -55,7 +55,7 @@ export default function Component() {
     );
 }
 
-const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode: (v) => void }) {
+const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode: (v:any) => void }) {
     const { t } = useTranslation();
     const [isVisible, setIsVisible] = useState(false);
     const [useTokenLogin, setUseTokenLogin] = useState(false);
@@ -161,7 +161,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
             setUserLoginToken(resp.token);
             setUserInfo({
                 userID: resp.meta.user_id,
-                avatar: resp.meta.avatar || 'https://avatar.vercel.sh/' + resp.meta.user_id,
+                avatar: resp.meta.avatar || '/image/default_avatar.png',
                 userName: resp.meta.user_name,
                 email: resp.meta.email,
                 planID: resp.meta.plan_id,

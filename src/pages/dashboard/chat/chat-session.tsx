@@ -105,7 +105,9 @@ export default function Chat() {
 
                     if (todo) {
                         todo.ext = {
-                            relDocs: resp.rel_docs
+                            relDocs: resp.rel_docs,
+                            toolName: resp.tool_name,
+                            toolArgs: resp.tool_args
                         };
                     }
                 });
@@ -163,11 +165,28 @@ export default function Chat() {
                     }
 
                     switch (data.type) {
+                        case EventType.EVENT_TOOL_INIT:
+                             setMessages((prev: Message[]) => {
+                                prev.push({
+                                    key: data.messageID,
+                                    spaceID: data.spaceID || currentSelectedSpace,
+                                    message: '',
+                                    role: 'tool',
+                                    status: 'continue',
+                                    sequence: data.sequence || 0,
+                                    len: 0,
+                                    ext: {}
+                                });
+                            });
+
+                            setMessageDaemon(data.messageID, reloadFunc);
+                            break;
                         case EventType.EVENT_ASSISTANT_INIT:
                             setAiTyping(false);
                             if (messages.find(v => v.key === data.messageID)) {
                                 break;
                             }
+                           
                             setMessages((prev: Message[]) => {
                                 prev.push({
                                     key: data.messageID,
@@ -184,7 +203,7 @@ export default function Chat() {
                             setMessageDaemon(data.messageID, reloadFunc);
 
                             break;
-                        case EventType.EVENT_ASSISTANT_CONTINUE:
+                        case EventType.EVENT_ASSISTANT_CONTINUE || EventType.EVENT_TOOL_CONTINUE:
                             if (data.toolTips) {
                                 console.log('data.toolTips', data.toolTips);
                                 setMessages((prev: Message[]) => {
@@ -233,7 +252,7 @@ export default function Chat() {
                             setMessageDaemon(data.messageID, reloadFunc);
 
                             break;
-                        case EventType.EVENT_ASSISTANT_DONE:
+                        case EventType.EVENT_ASSISTANT_DONE || EventType.EVENT_TOOL_DONE:
                             setAiTyping(false);
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
@@ -248,7 +267,7 @@ export default function Chat() {
                             // todo load this message exts
                             removeMessageDaemon(data.messageID);
                             break;
-                        case EventType.EVENT_ASSISTANT_FAILED:
+                        case EventType.EVENT_ASSISTANT_FAILED || EventType.EVENT_TOOL_FAILED:
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
                                 if (!todo) {
@@ -365,16 +384,33 @@ export default function Chat() {
                 const newMsgs =
                     resp.list &&
                     resp.list.map((v: MessageDetail): Message => {
+                        let role = ''
+                        switch (v.meta.role) {
+                            case 1:
+                            role = 'user';
+                            break;
+                            case 2:
+                                role = 'assistant'
+                                break;
+                            case 4:
+                                role = 'tool'
+                                break;
+                                default:
+                                    role = 'assistant'
+                                    break;
+                        }
                         return {
                             key: v.meta.message_id,
                             message: v.meta.message.text,
-                            role: v.meta.role === 1 ? 'user' : 'assistant',
+                            role: role,
                             status: v.meta.complete !== 4 ? 'success' : 'failed',
                             sequence: v.meta.sequence,
                             spaceID: currentSelectedSpace,
                             attach: v.meta.attach,
                             ext: {
-                                relDocs: v.ext?.rel_docs
+                                relDocs: v.ext?.rel_docs,
+                                toolName: v.ext?.tool_name,
+                                toolArgs: v.ext?.tool_args
                             }
                         };
                     });

@@ -1,7 +1,6 @@
 import { OutputData } from '@editorjs/editorjs';
 
 import instance from './request';
-import { only } from 'node:test';
 
 export interface Knowledge {
     content: string;

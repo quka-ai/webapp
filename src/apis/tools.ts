@@ -9,6 +9,7 @@ export async function DescribeImage(url: string): Promise<string> {
 }
 
 export interface ReadResponse {
+  ai_result: {
     warning: string;
     title: string;
     description: string;
@@ -16,7 +17,9 @@ export interface ReadResponse {
     content: string;
     usage: {
         tokens: number;
-    };
+    }
+  }
+  type: string;
 }
 
 export async function Reader(url: string): Promise<ReadResponse> {

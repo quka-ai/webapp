@@ -19,6 +19,7 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
     const [isLoading, setIsLoading] = useState(true);
 
     const { t } = useTranslation();
+    const { t: tSpaceSetting } = useTranslation('space-setting');
 
     const [spaceUsers, setSpaceUsers] = useImmer<SpaceUser[]>([]);
     const [page, setPage] = useImmer(1);
@@ -230,7 +231,7 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
                                 input: 'text-small',
                                 inputWrapper: 'h-full rounded-xl font-normal text-default-500'
                             }}
-                            placeholder={t('space-setting.ApplicationSearchPlaceholder')}
+                            placeholder={tSpaceSetting('ApplicationSearchPlaceholder')}
                             size="sm"
                             startContent={<Icon className="text-default-500" icon="solar:magnifer-linear" width={18} />}
                             type="search"

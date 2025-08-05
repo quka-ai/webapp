@@ -143,6 +143,9 @@ export default function Component({ children }: { children: React.ReactNode }) {
             case 'ai-admin':
                 navigate('/dashboard/ai-admin');
                 break;
+            case 'user-admin':
+                navigate('/dashboard/user-admin');
+                break;
             default:
         }
     }, []);
@@ -446,6 +449,15 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                         <div className="flex items-center gap-x-3">
                                             <div className="flex flex-col">
                                                 <p className="text-base font-medium text-default-600">{t('AI Model Management')}</p>
+                                            </div>
+                                        </div>
+                                    </DropdownItem>
+                                )}
+                                {isManager && (
+                                    <DropdownItem key="user-admin" textValue="user-admin">
+                                        <div className="flex items-center gap-x-3">
+                                            <div className="flex flex-col">
+                                                <p className="text-base font-medium text-default-600">{t('User Management')}</p>
                                             </div>
                                         </div>
                                     </DropdownItem>

@@ -21,6 +21,8 @@ import Providers from '@/pages/dashboard/ai-admin/providers/providers';
 import Models from '@/pages/dashboard/ai-admin/models/models';
 import System from '@/pages/dashboard/ai-admin/system/system';
 import Usage from '@/pages/dashboard/ai-admin/usage/usage';
+import UserAdmin from '@/pages/dashboard/user-admin/user-admin';
+import Users from '@/pages/dashboard/user-admin/users/users';
 import Forgot from '@/pages/forgot';
 import Login from '@/pages/login';
 import Reset from '@/pages/reset';
@@ -242,6 +244,20 @@ const routes = createBrowserRouter([
                     {
                         path: 'usage',
                         element: <Usage />
+                    }
+                ]
+            },
+            {
+                path: '/dashboard/user-admin',
+                element: (
+                    <ProtectedRoute>
+                        <UserAdmin />
+                    </ProtectedRoute>
+                ),
+                children: [
+                    {
+                        path: 'users',
+                        element: <Users />
                     }
                 ]
             },

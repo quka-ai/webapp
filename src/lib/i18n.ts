@@ -7,7 +7,7 @@ import { initReactI18next } from 'react-i18next';
 // import zhTranslation from './i18n/zh.json';
 
 const supportLang = ['zh', 'en', 'ja'];
-const namespaces = ['space', 'space-setting', 'ai-admin'];
+const namespaces = ['space', 'space-setting', 'ai-admin', 'user-admin'];
 
 let resources = {};
 

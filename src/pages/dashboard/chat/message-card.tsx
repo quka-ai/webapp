@@ -38,6 +38,8 @@ export type MessageCardProps = React.HTMLAttributes<HTMLDivElement> & {
 
 export interface MessageExt {
     relDocs?: RelDoc[];
+    toolName?: string; 
+    toolArgs?: string;
 }
 
 const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
@@ -45,6 +47,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
         {
             avatar,
             message,
+            role,
             showFeedback,
             attempts = 1,
             attach,
@@ -57,6 +60,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
             onAttemptFeedback,
             className,
             messageClassName,
+            ext,
             extContent,
             toolTips,
             ...props
@@ -117,13 +121,26 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
         );
 
         const toolTipsDom = useMemo(() => {
+            if (!toolTips && !ext?.toolName) {
+                return <></>
+            }
+
+            if (!toolTips && ext?.toolName) {
+                toolTips = [{
+                    id: '',
+                    tool_name: ext.toolName,
+                    status: ToolStatus.TOOL_STATUS_SUCCESS,
+                    content: ""
+                }]
+            }
+
             return <ToolUsing toolTips={toolTips} />;
-        }, [toolTips]);
+        }, [toolTips, ext]);
 
         return (
             <div {...props} ref={ref} className={cn('flex flex-col md:flex-row md:gap-2', className)}>
                 <div className="relative flex-none md:py-1">
-                    <Badge
+                    {role === 'tool' ? <></> : <Badge
                         isOneChar
                         color="danger"
                         content={<Icon className="text-background" icon="gravity-ui:circle-exclamation-fill" />}
@@ -138,76 +155,78 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
                                 <Avatar />
                             </Skeleton>
                         )}
-                    </Badge>
+                    </Badge>}
+                    
                 </div>
                 <div className="max-w-full flex flex-1 overflow-hidden flex-col items-start gap-4 relative">
                     <div className={cn('relative rounded-medium py-3', failedMessageClassName, messageClassName)}>
-                        {toolTipsDom}
-                        {!hasFailed && !message ? (
-                            <>
-                                <div className="flex flex-col gap-3 mt-[-3px] w-full">
-                                    <Skeleton className="h-6 w-3/5 rounded-lg" />
-                                    <Skeleton className="h-6 w-5/6 rounded-lg" />
-                                    <Skeleton className="h-6 w-5/6 rounded-lg" />
-                                </div>
-                            </>
-                        ) : (
-                            <div ref={messageRef} className={'text-small gap-1 text-default-600'}>
-                                {hasFailed ? (
-                                    failedMessage
-                                ) : (
-                                    <>
-                                        <Markdown className="text-wrap break-words text-gray-600 dark:text-gray-300 leading-loose">{message}</Markdown>
+                        {role === 'tool' ? toolTipsDom : <>
+                            {!hasFailed && !message ? (
+                                <>
+                                    <div className="flex flex-col gap-3 mt-[-3px] w-full">
+                                        <Skeleton className="h-6 w-3/5 rounded-lg" />
+                                        <Skeleton className="h-6 w-5/6 rounded-lg" />
+                                        <Skeleton className="h-6 w-5/6 rounded-lg" />
+                                    </div>
+                                </>
+                            ) : (
+                                <div ref={messageRef} className={'text-small gap-1 text-default-600'}>
+                                    {hasFailed ? (
+                                        failedMessage
+                                    ) : (
+                                        <>
+                                            <Markdown className="text-wrap break-words text-gray-600 dark:text-gray-300 leading-loose">{message}</Markdown>
 
-                                        {attach && attach.length > 0 && (
-                                            <div className="flex flex-wrap gap-3 m-2 mb-0">
-                                                {attach.map((v, index) => {
-                                                    return (
-                                                        <Zoom key={index}>
-                                                            <Image className="w-40 h-50 rounded-small border-small border-default-200/50 object-cover" src={v.url} />
-                                                        </Zoom>
-                                                    );
-                                                })}
-                                            </div>
+                                            {attach && attach.length > 0 && (
+                                                <div className="flex flex-wrap gap-3 m-2 mb-0">
+                                                    {attach.map((v, index) => {
+                                                        return (
+                                                            <Zoom key={index}>
+                                                                <Image className="w-40 h-50 rounded-small border-small border-default-200/50 object-cover" src={v.url} />
+                                                            </Zoom>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            )}
+                            {showFeedback && !hasFailed && (
+                                <div className="absolute right-2 top-2 flex rounded-full bg-content2 shadow-small">
+                                    <Button isIconOnly radius="full" size="sm" variant="light" onPress={handleCopy}>
+                                        {copied ? <Icon className="text-lg text-default-600" icon="gravity-ui:check" /> : <Icon className="text-lg text-default-600" icon="gravity-ui:copy" />}
+                                    </Button>
+                                    <Button isIconOnly radius="full" size="sm" variant="light" onPress={() => handleFeedback(true)}>
+                                        {feedback === 'like' ? (
+                                            <Icon className="text-lg text-default-600" icon="gravity-ui:thumbs-up-fill" />
+                                        ) : (
+                                            <Icon className="text-lg text-default-600" icon="gravity-ui:thumbs-up" />
                                         )}
-                                    </>
-                                )}
-                            </div>
-                        )}
-                        {showFeedback && !hasFailed && (
-                            <div className="absolute right-2 top-2 flex rounded-full bg-content2 shadow-small">
-                                <Button isIconOnly radius="full" size="sm" variant="light" onPress={handleCopy}>
-                                    {copied ? <Icon className="text-lg text-default-600" icon="gravity-ui:check" /> : <Icon className="text-lg text-default-600" icon="gravity-ui:copy" />}
-                                </Button>
-                                <Button isIconOnly radius="full" size="sm" variant="light" onPress={() => handleFeedback(true)}>
-                                    {feedback === 'like' ? (
-                                        <Icon className="text-lg text-default-600" icon="gravity-ui:thumbs-up-fill" />
-                                    ) : (
-                                        <Icon className="text-lg text-default-600" icon="gravity-ui:thumbs-up" />
-                                    )}
-                                </Button>
-                                <Button isIconOnly radius="full" size="sm" variant="light" onPress={() => handleFeedback(false)}>
-                                    {feedback === 'dislike' ? (
-                                        <Icon className="text-lg text-default-600" icon="gravity-ui:thumbs-down-fill" />
-                                    ) : (
-                                        <Icon className="text-lg text-default-600" icon="gravity-ui:thumbs-down" />
-                                    )}
-                                </Button>
-                            </div>
-                        )}
-                        {attempts > 1 && !hasFailed && (
-                            <div className="flex w-full items-center justify-end">
-                                <button onClick={() => onAttemptChange?.(currentAttempt > 1 ? currentAttempt - 1 : 1)}>
-                                    <Icon className="cursor-pointer text-default-400 hover:text-default-500" icon="gravity-ui:circle-arrow-left" />
-                                </button>
-                                <button onClick={() => onAttemptChange?.(currentAttempt < attempts ? currentAttempt + 1 : attempts)}>
-                                    <Icon className="cursor-pointer text-default-400 hover:text-default-500" icon="gravity-ui:circle-arrow-right" />
-                                </button>
-                                <p className="px-1 text-tiny font-medium text-default-500">
-                                    {currentAttempt}/{attempts}
-                                </p>
-                            </div>
-                        )}
+                                    </Button>
+                                    <Button isIconOnly radius="full" size="sm" variant="light" onPress={() => handleFeedback(false)}>
+                                        {feedback === 'dislike' ? (
+                                            <Icon className="text-lg text-default-600" icon="gravity-ui:thumbs-down-fill" />
+                                        ) : (
+                                            <Icon className="text-lg text-default-600" icon="gravity-ui:thumbs-down" />
+                                        )}
+                                    </Button>
+                                </div>
+                            )}
+                            {attempts > 1 && !hasFailed && (
+                                <div className="flex w-full items-center justify-end">
+                                    <button onClick={() => onAttemptChange?.(currentAttempt > 1 ? currentAttempt - 1 : 1)}>
+                                        <Icon className="cursor-pointer text-default-400 hover:text-default-500" icon="gravity-ui:circle-arrow-left" />
+                                    </button>
+                                    <button onClick={() => onAttemptChange?.(currentAttempt < attempts ? currentAttempt + 1 : attempts)}>
+                                        <Icon className="cursor-pointer text-default-400 hover:text-default-500" icon="gravity-ui:circle-arrow-right" />
+                                    </button>
+                                    <p className="px-1 text-tiny font-medium text-default-500">
+                                        {currentAttempt}/{attempts}
+                                    </p>
+                                </div>
+                            )}
+                        </>}
                     </div>
                     {showFeedback && attempts > 1 && (
                         <div className="flex items-center justify-between rounded-medium border-small border-default-100 px-4 py-3 shadow-small">

@@ -102,11 +102,17 @@ const WorkBar = memo(function WorkBar({ onSubmit, isShowCreate, onShowChange }: 
             setReadLoading(true);
             try {
                 const resp = await Reader(readEndpoint);
-                if (resp.warning && resp.warning.length > 0) {
-                    setKnowledgeContent(resp.warning);
-                } else {
-                    setKnowledgeContent([resp.url, resp.title, resp.description, resp.content].join('\n\n'));
+                switch (resp.type) {
+                    case "ai":
+                        const data = resp.ai_result
+                        if (data.warning && data.warning.length > 0) {
+                            setKnowledgeContent(data.warning);
+                        } else {
+                            setKnowledgeContent(["URL: " + data.url, data.title, data.description, data.content].join('\n\n'));
+                        }
+                    break;
                 }
+                
                 setReadEndpoint('');
             } catch (e: any) {
                 console.error(e);

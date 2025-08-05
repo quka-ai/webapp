@@ -94,7 +94,6 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
         }
 
         if (!emailRegex.test(email)) {
-            console.log('err')
             setErrorEmail({
                 invalid: true,
                 errorMessage: 'email address is wrong'
@@ -206,7 +205,7 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
                 <div>
                     <p className="text-base font-medium text-default-700">{t('Email Address')}</p>
                     <p className="mt-1 text-sm font-normal text-default-400">The email address associated with your account.</p>
-                    <Input
+                    {email && <Input
                         className="mt-2"
                         placeholder="Type your email"
                         type="email"
@@ -214,7 +213,7 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
                         errorMessage={errorEmail.errorMessage}
                         defaultValue={email}
                         onValueChange={setEmail}
-                    />
+                    />}
                 </div>
                 <Spacer y={2} />
                 <Button isDisabled={disabled} className="mt-4 bg-default-foreground text-background" isLoading={loading} onPress={updateUserProfile}>

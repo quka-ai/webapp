@@ -60,11 +60,7 @@ function handleAxiosError(error: AxiosError) {
     }
 
     toast.error(i18n.t('RequestError'), {
-        description: error.response 
-            ? (error.response.data as any)?.meta?.message 
-                ? (error.response.data as any).meta.message + ', ' + error.message 
-                : error.message
-            : error.message
+        description: error.response ? ((error.response.data as any)?.meta?.message ? (error.response.data as any).meta.message + ', ' + error.message : error.message) : error.message
     });
 }
 

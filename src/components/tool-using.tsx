@@ -32,7 +32,7 @@ export default function ToolUsing({ toolTips }: ToolUsingProps) {
             return (
                 <AnimatedShinyText key={toolTip.id} animate={toolTip.status === ToolStatus.TOOL_STATUS_RUNNING} className="inline-flex items-center justify-center pb-4 transition ease-out">
                     <span>
-                        {toolTip.status === ToolStatus.TOOL_STATUS_RUNNING ? '😶‍🌫️' : '👌🏼'} {toolTip.content}
+                        {toolTip.status === ToolStatus.TOOL_STATUS_RUNNING ? '😶‍🌫️' : '👌🏼'} {toolTip.tool_name}
                     </span>
                 </AnimatedShinyText>
             );

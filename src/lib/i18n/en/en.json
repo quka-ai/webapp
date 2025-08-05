@@ -238,6 +238,7 @@
     "Token": "Token",
     "Secret": "Secret",
     "AI Model Management": "AI Model Management",
+    "User Management": "User Management",
     "CreatedTime": "Created Time",
     "ExpiredTime": "Expired Time",
     "NewTokenTitle": "Create a new token",

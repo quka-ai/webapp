@@ -203,5 +203,7 @@
     "DropHere": "ここにドロップ",
     "SystemError": "システムエラー",
     "UseSearch": "検索を使用",
-    "UseMemory": "記憶を使用"
+    "UseMemory": "記憶を使用",
+    "AI Model Management": "AIモデル管理",
+    "User Management": "ユーザー管理"
 }

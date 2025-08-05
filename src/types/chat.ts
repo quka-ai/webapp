@@ -5,6 +5,10 @@ export enum EventType {
     EVENT_ASSISTANT_CONTINUE = 2,
     EVENT_ASSISTANT_DONE = 3,
     EVENT_ASSISTANT_FAILED = 4,
+    EVENT_TOOL_INIT = 5,
+    EVENT_TOOL_CONTINUE = 6,
+    EVENT_TOOL_DONE = 7,
+    EVENT_TOOL_FAILED = 8,
     /** EVENT_MESSAGE_PUBLISH - match MessageDetail */
     EVENT_MESSAGE_PUBLISH = 100,
     /** EVENT_MESSAGE_ACK - match SendMessageReply */

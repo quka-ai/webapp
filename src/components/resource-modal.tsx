@@ -56,9 +56,6 @@ const ResourceManage = memo(
         }
 
         const create = useCallback(async () => {
-            if (!id) {
-                return;
-            }
             setIsLoading(true);
             try {
                 await CreateResource(currentSelectedSpace, id, title, cycle, tag, description);
@@ -119,7 +116,7 @@ const ResourceManage = memo(
                             </ModalHeader>
                             <ModalBody className="w-full overflow-hidden flex flex-col items-center">
                                 <div className="w-full h-full md:max-w-[650px]">
-                                    <div className="flex flex-wrap gap-1">
+                                    {/* <div className="flex flex-wrap gap-1">
                                         <Input
                                             isRequired
                                             isDisabled={!isCreate}
@@ -132,9 +129,10 @@ const ResourceManage = memo(
                                             description={t('ResourceIDInputDescription')}
                                             onValueChange={setID}
                                         />
-                                    </div>
+                                    </div> */}
                                     <div className="w-full my-5 dark:text-gray-100 text-gray-800 text-lg overflow-hidden">
                                         <Input
+                                            isRequired
                                             label={t('Title')}
                                             variant="bordered"
                                             placeholder="Resource title"

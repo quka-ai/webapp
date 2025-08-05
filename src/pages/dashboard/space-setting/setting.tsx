@@ -21,6 +21,7 @@ export interface SpaceSettingCardProps {
 
 const Setting = React.forwardRef<HTMLDivElement, SpaceSettingCardProps>(({ onClose, ...props }, ref) => {
     const { t } = useTranslation();
+    const { t: tSpaceSetting } = useTranslation('space-setting');
     const { currentSelectedSpace } = useSnapshot(spaceStore);
     const navigate = useNavigate();
 
@@ -43,7 +44,7 @@ const Setting = React.forwardRef<HTMLDivElement, SpaceSettingCardProps>(({ onClo
                 </Button>
 
                 <ShareButton
-                    text={t('space-setting.ShareButton')}
+                    text={tSpaceSetting('ShareButton')}
                     genUrlFunc={async () => {
                         try {
                             const res = await CreateSpaceShareURL(currentSelectedSpace, window.location.origin + '/s/sp/{token}');
@@ -78,7 +79,7 @@ const Setting = React.forwardRef<HTMLDivElement, SpaceSettingCardProps>(({ onClo
                                 {/* <UserManagement /> */}
                                 <SpaceUserSetting />
                             </Tab>
-                            <Tab key="invite" title={t('space-setting.UserApplication')}>
+                            <Tab key="invite" title={tSpaceSetting('UserApplication')}>
                                 {/* <UserManagement /> */}
                                 <SpaceUserApplications />
                             </Tab>

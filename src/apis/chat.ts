@@ -2,6 +2,8 @@ import instance from './request';
 
 export interface ChatMessageExt {
     rel_docs: RelDoc[];
+    tool_name: string;
+    tool_args: string;
 }
 
 export interface RelDoc {
@@ -76,6 +78,8 @@ export interface MessageDetail {
         rel_docs: RelDoc[];
         evaluate: number;
         is_evaluate_enable: boolean;
+        tool_name: string;
+        tool_args: string;
     };
 }
 

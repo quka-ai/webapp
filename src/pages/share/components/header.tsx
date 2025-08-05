@@ -53,7 +53,7 @@ export default memo(function ShareHeader({ controlsContent, type, createdUser }:
             const resp = await GetUserInfo();
             setUserInfo({
                 userID: resp.user_id,
-                avatar: processAvatarUrl(resp.avatar, resp.user_id, false),
+                avatar: processAvatarUrl(resp.avatar, resp.user_id, true),
                 userName: resp.user_name,
                 email: resp.email,
                 planID: resp.plan_id,

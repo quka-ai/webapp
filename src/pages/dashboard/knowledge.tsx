@@ -144,6 +144,7 @@ export default memo(function Component() {
     const onDelete = useCallback(
         (knowledgeID: string) => {
             setDataList(dataList.filter(a => a.id !== knowledgeID));
+            setTotal(prevTotal => prevTotal - 1);
         },
         [dataList]
     );
