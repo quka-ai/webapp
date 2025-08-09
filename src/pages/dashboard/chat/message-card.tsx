@@ -140,7 +140,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
         return (
             <div {...props} ref={ref} className={cn('flex flex-col md:flex-row md:gap-2', className)}>
                 <div className="relative flex-none md:py-1">
-                    {role === 'tool' ? <></> : <Badge
+                    {role === 'tool' ? <div className="w-10"/> : <Badge
                         isOneChar
                         color="danger"
                         content={<Icon className="text-background" icon="gravity-ui:circle-exclamation-fill" />}
@@ -159,7 +159,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
                     
                 </div>
                 <div className="max-w-full flex flex-1 overflow-hidden flex-col items-start gap-4 relative">
-                    <div className={cn('relative rounded-medium py-3', failedMessageClassName, messageClassName)}>
+                    <div className={cn('relative rounded-medium', failedMessageClassName, messageClassName, role === 'tool' ? '' : 'py-3')}>
                         {role === 'tool' ? toolTipsDom : <>
                             {!hasFailed && !message ? (
                                 <>

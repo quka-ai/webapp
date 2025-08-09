@@ -47,7 +47,7 @@ function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const messageDaemon: Map<string, number> = new Map();
+const messageDaemon: Map<string, NodeJS.Timeout> = new Map();
 
 function setMessageDaemon(messageID: string, callback: () => void) {
     const existInterval = messageDaemon.get(messageID);
@@ -75,7 +75,7 @@ export default function Chat() {
     const { currentSelectedSpace } = useSnapshot(spaceStore);
     const userAvatar = useUserAvatar();
     const { sessionID } = useParams();
-    const pageSize: number = 20;
+    const pageSize: number = 100;
     const [page, setPage] = useState<number>(1);
     // const [onEvent, setEvent] = useState<FireTowerMsg | null>();
     const { subscribe, connectionStatus } = useSnapshot(socketStore);
@@ -159,8 +159,7 @@ export default function Chat() {
                     }
                     const data = queue.shift();
 
-                    if (!data || (data.type !== EventType.EVENT_ASSISTANT_INIT && messages.find(v => v.key === data.messageID))) {
-                        data && queue.unshift(data);
+                    if (!data) {
                         break;
                     }
 
@@ -203,18 +202,7 @@ export default function Chat() {
                             setMessageDaemon(data.messageID, reloadFunc);
 
                             break;
-                        case EventType.EVENT_ASSISTANT_CONTINUE || EventType.EVENT_TOOL_CONTINUE:
-                            if (data.toolTips) {
-                                console.log('data.toolTips', data.toolTips);
-                                setMessages((prev: Message[]) => {
-                                    const todo = prev.find(todo => todo.key === data.messageID);
-                                    if (!todo) {
-                                        return;
-                                    }
-                                    todo.toolTips = data.toolTips;
-                                });
-                                break;
-                            }
+                        case EventType.EVENT_ASSISTANT_CONTINUE:
                             const messageRunes = runes(data.message);
                             for (let i = 0; i < messageRunes.length; i += 2) {
                                 setMessages((prev: Message[]) => {
@@ -252,7 +240,7 @@ export default function Chat() {
                             setMessageDaemon(data.messageID, reloadFunc);
 
                             break;
-                        case EventType.EVENT_ASSISTANT_DONE || EventType.EVENT_TOOL_DONE:
+                        case EventType.EVENT_ASSISTANT_DONE:
                             setAiTyping(false);
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
@@ -267,7 +255,42 @@ export default function Chat() {
                             // todo load this message exts
                             removeMessageDaemon(data.messageID);
                             break;
-                        case EventType.EVENT_ASSISTANT_FAILED || EventType.EVENT_TOOL_FAILED:
+                        case EventType.EVENT_TOOL_CONTINUE:
+                            setMessages((prev: Message[]) => {
+                                const todo = prev.find(todo => todo.key === data.messageID);
+                                if (!todo) {
+                                    return;
+                                }
+                                todo.toolTips = data.toolTips;
+                            });
+                            break;
+                        case EventType.EVENT_TOOL_DONE:
+                            setMessages((prev: Message[]) => {
+                                const todo = prev.find(todo => todo.key === data.messageID);
+                                if (!todo || !todo.toolTips) {
+                                    return;
+                                }
+                                
+                                todo.toolTips.forEach(toolTip => {
+                                    toolTip.status = ToolStatus.TOOL_STATUS_SUCCESS;
+                                });
+                            });
+                            removeMessageDaemon(data.messageID);
+                            break;
+                        case EventType.EVENT_TOOL_FAILED:
+                            setMessages((prev: Message[]) => {
+                                const todo = prev.find(todo => todo.key === data.messageID);
+                                if (!todo || !todo.toolTips) {
+                                    return;
+                                }
+                                
+                                todo.toolTips.forEach(toolTip => {
+                                    toolTip.status = ToolStatus.TOOL_STATUS_FAILED;
+                                });
+                            });
+                            removeMessageDaemon(data.messageID);
+                            break;
+                        case EventType.EVENT_ASSISTANT_FAILED:
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
                                 if (!todo) {
@@ -280,6 +303,7 @@ export default function Chat() {
                             });
                             removeMessageDaemon(data.messageID);
                             break;
+                            
                         default:
                     }
 
@@ -306,9 +330,10 @@ export default function Chat() {
 
             switch (type) {
                 case EventType.EVENT_ASSISTANT_INIT:
+                case EventType.EVENT_TOOL_INIT:
                     queue.push({
                         messageID: streamData.message_id,
-                        type: EventType.EVENT_ASSISTANT_INIT,
+                        type: type,
                         startAt: 0,
                         sequence: data.sequence, // sequence不在StreamMessage中，保持使用data
                         spaceID: data.space_id, // space_id不在StreamMessage中，保持使用data
@@ -317,15 +342,17 @@ export default function Chat() {
                     });
                     break;
                 case EventType.EVENT_ASSISTANT_CONTINUE:
+                case EventType.EVENT_TOOL_CONTINUE:
                     if (streamData.msg_type === MessageType.MESSAGE_TYPE_TOOL_TIPS) {
                         const newToolTips: ToolTips[] = [];
                         if (streamData.tool_tips) {
+                            streamData.tool_tips.status = ToolStatus.TOOL_STATUS_RUNNING
                             newToolTips.push(streamData.tool_tips);
                         }
 
                         queue.push({
                             messageID: streamData.message_id,
-                            type: EventType.EVENT_ASSISTANT_CONTINUE,
+                            type: type,
                             startAt: streamData.start_at,
                             toolTips: newToolTips,
                             message: ''
@@ -334,7 +361,7 @@ export default function Chat() {
                     } else {
                         queue.push({
                             messageID: streamData.message_id,
-                            type: EventType.EVENT_ASSISTANT_CONTINUE,
+                            type: type,
                             startAt: streamData.start_at,
                             message: streamData.message || ''
                         });
@@ -343,16 +370,34 @@ export default function Chat() {
                 case EventType.EVENT_ASSISTANT_DONE:
                     queue.push({
                         messageID: streamData.message_id,
-                        type: EventType.EVENT_ASSISTANT_DONE,
+                        type: type,
                         startAt: streamData.start_at,
                         message: ''
                     });
                     // todo load this message exts
                     break;
-                case EventType.EVENT_ASSISTANT_FAILED:
+                case EventType.EVENT_TOOL_DONE:
+                    const newToolTips: ToolTips[] = [];
+                    if (streamData.tool_tips) {
+                        streamData.tool_tips.content = ''
+                        streamData.tool_tips.status = ToolStatus.TOOL_STATUS_SUCCESS
+                        newToolTips.push(streamData.tool_tips);
+                    }
+
                     queue.push({
                         messageID: streamData.message_id,
-                        type: EventType.EVENT_ASSISTANT_FAILED,
+                        type: type,
+                        startAt: streamData.start_at,
+                        toolTips: newToolTips,
+                        message: ''
+                    });
+                    // 可以在这里处理tool tips相关逻辑
+                    break;
+                case EventType.EVENT_ASSISTANT_FAILED:
+                case EventType.EVENT_TOOL_FAILED:
+                    queue.push({
+                        messageID: streamData.message_id,
+                        type: type,
                         startAt: 0,
                         message: ''
                     });
@@ -372,7 +417,7 @@ export default function Chat() {
                 return;
             }
             try {
-                const resp = await GetChatSessionHistory(currentSelectedSpace, sessionID, '', page, pageSize);
+                const resp = await GetChatSessionHistory(currentSelectedSpace, sessionID, 0, page, pageSize);
 
                 setPage(page);
                 if (page * pageSize >= resp.total) {
@@ -387,17 +432,17 @@ export default function Chat() {
                         let role = ''
                         switch (v.meta.role) {
                             case 1:
-                            role = 'user';
-                            break;
+                                role = 'user';
+                                break;
                             case 2:
                                 role = 'assistant'
                                 break;
                             case 4:
                                 role = 'tool'
                                 break;
-                                default:
-                                    role = 'assistant'
-                                    break;
+                            default:
+                                role = 'assistant'
+                                break;
                         }
                         return {
                             key: v.meta.message_id,
@@ -574,62 +619,79 @@ export default function Chat() {
             <div className="overflow-hidden w-full h-full flex flex-col relative px-3">
                 <main className="h-full w-full relative gap-4 py-3 flex flex-col justify-center items-center">
                     <ScrollShadow ref={ssDom} hideScrollBar className="w-full py-6 flex-grow items-center">
-                        <div className="w-full m-auto max-w-[760px] overflow-hidden relative flex flex-col gap-4">
-                            {messages.map(({ key, role, message, attach, status, ext, toolTips }) => (
+                        <div className="w-full m-auto max-w-[760px] overflow-hidden relative flex flex-col">
+                            {messages.map(({ key, role, message, attach, status, ext, toolTips }, index) => {
+                                const prevRole = index > 0 ? messages[index - 1].role : null;
+                                const shouldHaveNormalSpacing = role === 'user' || (role !== 'user' && prevRole === 'user');
+                                const marginClass = index === 0 ? '' : shouldHaveNormalSpacing ? 'mt-4' : 'mt-1';
+                                
+                                return (
+                                    <MessageCard
+                                        key={key}
+                                        className={marginClass}
+                                        avatar={role === 'assistant' ? <LogoIcon size={isMobile ? '30' : '38'} /> : <Avatar src={userAvatar} size={isMobile ? 'sm' : 'md'} />}
+                                        message={message}
+                                        attach={attach}
+                                        messageClassName={role === 'user' ? 'bg-content2 text-content2-foreground !py-3 w-full px-3' : 'px-1 w-full'}
+                                        // showFeedback={role === 'assistant'}
+                                        status={status}
+                                        ext={ext}
+                                        role={role}
+                                        toolTips={toolTips}
+                                        extContent={
+                                            role === 'assistant' &&
+                                            ext &&
+                                            ext.relDocs && (
+                                                <div className="mx-2 w-auto overflow-hidden">
+                                                    <Accordion isCompact variant="bordered">
+                                                        <AccordionItem
+                                                            key="1"
+                                                            aria-label="Relevance Detail"
+                                                            title={t('showRelevanceDocs')}
+                                                            classNames={{ title: 'dark:text-zinc-300 text-zinc-500 text-sm' }}
+                                                            className="overflow-hidden w-ful"
+                                                        >
+                                                            {ext.relDocs && (
+                                                                <Listbox
+                                                                    aria-label="rel docs"
+                                                                    title="docs id"
+                                                                    onAction={key => {
+                                                                        showKnowledge(key as string);
+                                                                    }}
+                                                                >
+                                                                    {ext.relDocs.map(v => {
+                                                                        return (
+                                                                            <ListboxItem
+                                                                                key={v.id}
+                                                                                aria-label={v.title}
+                                                                                className="overflow-hidden text-wrap break-words break-all flex flex-col items-start"
+                                                                            >
+                                                                                {v.title && <div>{v.title}</div>}
+                                                                                <div> {v.id}</div>
+                                                                            </ListboxItem>
+                                                                        );
+                                                                    })}
+                                                                </Listbox>
+                                                            )}
+                                                        </AccordionItem>
+                                                    </Accordion>
+                                                </div>
+                                            )
+                                        }
+                                    />
+                                );
+                            })}
+                            {aiTyping && (
                                 <MessageCard
-                                    key={key}
-                                    avatar={role === 'assistant' ? <LogoIcon size={isMobile ? '30' : '38'} /> : <Avatar src={userAvatar} size={isMobile ? 'sm' : 'md'} />}
-                                    message={message}
-                                    attach={attach}
-                                    messageClassName={role === 'user' ? 'bg-content2 text-content2-foreground !py-3 w-full px-3' : 'px-1 w-full'}
-                                    // showFeedback={role === 'assistant'}
-                                    status={status}
-                                    ext={ext}
-                                    role={role}
-                                    toolTips={toolTips}
-                                    extContent={
-                                        role === 'assistant' &&
-                                        ext &&
-                                        ext.relDocs && (
-                                            <div className="mx-2 w-auto overflow-hidden">
-                                                <Accordion isCompact variant="bordered">
-                                                    <AccordionItem
-                                                        key="1"
-                                                        aria-label="Relevance Detail"
-                                                        title={t('showRelevanceDocs')}
-                                                        classNames={{ title: 'dark:text-zinc-300 text-zinc-500 text-sm' }}
-                                                        className="overflow-hidden w-ful"
-                                                    >
-                                                        {ext.relDocs && (
-                                                            <Listbox
-                                                                aria-label="rel docs"
-                                                                title="docs id"
-                                                                onAction={key => {
-                                                                    showKnowledge(key as string);
-                                                                }}
-                                                            >
-                                                                {ext.relDocs.map(v => {
-                                                                    return (
-                                                                        <ListboxItem
-                                                                            key={v.id}
-                                                                            aria-label={v.title}
-                                                                            className="overflow-hidden text-wrap break-words break-all flex flex-col items-start"
-                                                                        >
-                                                                            {v.title && <div>{v.title}</div>}
-                                                                            <div> {v.id}</div>
-                                                                        </ListboxItem>
-                                                                    );
-                                                                })}
-                                                            </Listbox>
-                                                        )}
-                                                    </AccordionItem>
-                                                </Accordion>
-                                            </div>
-                                        )
-                                    }
+                                    key="aiTyping"
+                                    className={messages.length > 0 && messages[messages.length - 1].role === 'user' ? 'mt-4' : 'mt-1'}
+                                    messageClassName="w-full"
+                                    isLoading
+                                    attempts={1}
+                                    currentAttempt={1}
+                                    message={''}
                                 />
-                            ))}
-                            {aiTyping && <MessageCard key="aiTyping" messageClassName="w-full" isLoading attempts={1} currentAttempt={1} message={''} />}
+                            )}
                         </div>
                         <div className="pb-40" />
                     </ScrollShadow>

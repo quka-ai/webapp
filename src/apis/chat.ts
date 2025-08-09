@@ -83,12 +83,12 @@ export interface MessageDetail {
     };
 }
 
-export async function GetChatSessionHistory(spaceID: string, sessionID: string, afterMsgID: string = '', page: number, pageSize: number): Promise<ChatMessageList> {
+export async function GetChatSessionHistory(spaceID: string, sessionID: string, afterSequence: number = 0, page: number, pageSize: number): Promise<ChatMessageList> {
     const resp = await instance.get(`/${spaceID}/chat/${sessionID}/history/list`, {
         params: {
             page: page,
             pagesize: pageSize,
-            after_message_id: afterMsgID
+            after_sequence: afterSequence
         }
     });
 
