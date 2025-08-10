@@ -165,7 +165,7 @@ export default function Chat() {
 
                     switch (data.type) {
                         case EventType.EVENT_TOOL_INIT:
-                             setMessages((prev: Message[]) => {
+                            setMessages((prev: Message[]) => {
                                 prev.push({
                                     key: data.messageID,
                                     spaceID: data.spaceID || currentSelectedSpace,
@@ -185,7 +185,7 @@ export default function Chat() {
                             if (messages.find(v => v.key === data.messageID)) {
                                 break;
                             }
-                           
+
                             setMessages((prev: Message[]) => {
                                 prev.push({
                                     key: data.messageID,
@@ -270,7 +270,7 @@ export default function Chat() {
                                 if (!todo || !todo.toolTips) {
                                     return;
                                 }
-                                
+
                                 todo.toolTips.forEach(toolTip => {
                                     toolTip.status = ToolStatus.TOOL_STATUS_SUCCESS;
                                 });
@@ -281,9 +281,10 @@ export default function Chat() {
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
                                 if (!todo || !todo.toolTips) {
+                                    reloadFunc();
                                     return;
                                 }
-                                
+
                                 todo.toolTips.forEach(toolTip => {
                                     toolTip.status = ToolStatus.TOOL_STATUS_FAILED;
                                 });
@@ -303,7 +304,7 @@ export default function Chat() {
                             });
                             removeMessageDaemon(data.messageID);
                             break;
-                            
+
                         default:
                     }
 
@@ -346,7 +347,7 @@ export default function Chat() {
                     if (streamData.msg_type === MessageType.MESSAGE_TYPE_TOOL_TIPS) {
                         const newToolTips: ToolTips[] = [];
                         if (streamData.tool_tips) {
-                            streamData.tool_tips.status = ToolStatus.TOOL_STATUS_RUNNING
+                            streamData.tool_tips.status = ToolStatus.TOOL_STATUS_RUNNING;
                             newToolTips.push(streamData.tool_tips);
                         }
 
@@ -379,8 +380,8 @@ export default function Chat() {
                 case EventType.EVENT_TOOL_DONE:
                     const newToolTips: ToolTips[] = [];
                     if (streamData.tool_tips) {
-                        streamData.tool_tips.content = ''
-                        streamData.tool_tips.status = ToolStatus.TOOL_STATUS_SUCCESS
+                        streamData.tool_tips.content = '';
+                        streamData.tool_tips.status = ToolStatus.TOOL_STATUS_SUCCESS;
                         newToolTips.push(streamData.tool_tips);
                     }
 
@@ -429,19 +430,19 @@ export default function Chat() {
                 const newMsgs =
                     resp.list &&
                     resp.list.map((v: MessageDetail): Message => {
-                        let role = ''
+                        let role = '';
                         switch (v.meta.role) {
                             case 1:
                                 role = 'user';
                                 break;
                             case 2:
-                                role = 'assistant'
+                                role = 'assistant';
                                 break;
                             case 4:
-                                role = 'tool'
+                                role = 'tool';
                                 break;
                             default:
-                                role = 'assistant'
+                                role = 'assistant';
                                 break;
                         }
                         return {
@@ -624,7 +625,7 @@ export default function Chat() {
                                 const prevRole = index > 0 ? messages[index - 1].role : null;
                                 const shouldHaveNormalSpacing = role === 'user' || (role !== 'user' && prevRole === 'user');
                                 const marginClass = index === 0 ? '' : shouldHaveNormalSpacing ? 'mt-4' : 'mt-1';
-                                
+
                                 return (
                                     <MessageCard
                                         key={key}
