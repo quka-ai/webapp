@@ -24,6 +24,7 @@ export default function Models() {
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const [providerFilter, setProviderFilter] = useState<string>('all');
     const [typeFilter, setTypeFilter] = useState<string>('all');
+    const [thinkingFilter, setThinkingFilter] = useState<string>('all'); // v3新增：思考功能筛选
 
     // 移除分页状态，因为接口不需要分页
 
@@ -97,6 +98,19 @@ export default function Models() {
                     params.model_type = typeFilter;
                 }
 
+                // v3新增：添加思考功能过滤
+                if (thinkingFilter !== 'all') {
+                    if (thinkingFilter === 'required') {
+                        params.thinking_required = true;
+                    } else if (thinkingFilter === 'supported') {
+                        params.thinking_support = 1; // 可选支持
+                    } else if (thinkingFilter === 'forced') {
+                        params.thinking_support = 2; // 强制支持
+                    } else if (thinkingFilter === 'none') {
+                        params.thinking_support = 0; // 不支持
+                    }
+                }
+
                 const data = await modelConfigAPI.getModelConfigs(params);
                 setModels(data.list || []);
 
@@ -115,7 +129,7 @@ export default function Models() {
         };
 
         loadModels();
-    }, [debouncedSearchTerm, providerFilter, typeFilter, t, refreshTrigger]);
+    }, [debouncedSearchTerm, providerFilter, typeFilter, thinkingFilter, t, refreshTrigger]);
 
     // 处理搜索
     const handleSearch = (value: string) => {
@@ -138,6 +152,15 @@ export default function Models() {
     // 处理模型类型过滤
     const handleTypeFilter = (value: string) => {
         setTypeFilter(value);
+        // 立即设置skeleton状态以提供视觉反馈
+        if (!isInitialLoad) {
+            setShowSkeleton(true);
+        }
+    };
+
+    // v3新增：处理思考功能过滤
+    const handleThinkingFilter = (value: string) => {
+        setThinkingFilter(value);
         // 立即设置skeleton状态以提供视觉反馈
         if (!isInitialLoad) {
             setShowSkeleton(true);
@@ -281,7 +304,7 @@ export default function Models() {
             {/* 搜索和过滤 */}
             <Card>
                 <CardBody className="p-4">
-                    <div className="flex flex-col gap-4 md:flex-row md:items-center">
+                    <div className="flex flex-col gap-4 md:flex-row md:items-center md:flex-wrap">
                         <Input
                             placeholder={t('Search model configurations...')}
                             value={searchTerm}
@@ -315,6 +338,31 @@ export default function Models() {
                                 {modelTypes.map(type => (
                                     <SelectItem key={type.key}>{type.label}</SelectItem>
                                 ))}
+                            </>
+                        </Select>
+                        <Select
+                            placeholder={t('Filter by thinking')}
+                            aria-label={t('Filter by thinking support')}
+                            selectedKeys={thinkingFilter ? [thinkingFilter] : []}
+                            className="md:w-48"
+                            onSelectionChange={keys => handleThinkingFilter(Array.from(keys)[0] as string)}
+                        >
+                            <>
+                                <SelectItem key="all" startContent={<Icon icon="material-symbols:filter-list" />}>
+                                    {t('All Thinking')}
+                                </SelectItem>
+                                <SelectItem key="required" startContent={<Icon icon="material-symbols:psychology" />}>
+                                    {t('Thinking Required')}
+                                </SelectItem>
+                                <SelectItem key="supported" startContent={<Icon icon="material-symbols:toggle-off-outline" />}>
+                                    {t('Thinking Supported')}
+                                </SelectItem>
+                                <SelectItem key="forced" startContent={<Icon icon="material-symbols:toggle-on-outline" />}>
+                                    {t('Thinking Forced')}
+                                </SelectItem>
+                                <SelectItem key="none" startContent={<Icon icon="material-symbols:block" />}>
+                                    {t('No Thinking')}
+                                </SelectItem>
                             </>
                         </Select>
                     </div>
@@ -363,14 +411,14 @@ export default function Models() {
                             <div className="text-center">
                                 <Icon icon="material-symbols:settings" width={48} height={48} className="mx-auto text-default-400 mb-4" />
                                 <h3 className="text-lg font-medium mb-2">
-                                    {searchTerm || providerFilter !== 'all' || typeFilter !== 'all' ? t('No model configurations found') : t('No model configurations yet')}
+                                    {searchTerm || providerFilter !== 'all' || typeFilter !== 'all' || thinkingFilter !== 'all' ? t('No model configurations found') : t('No model configurations yet')}
                                 </h3>
                                 <p className="text-default-500 mb-4">
-                                    {searchTerm || providerFilter !== 'all' || typeFilter !== 'all'
+                                    {searchTerm || providerFilter !== 'all' || typeFilter !== 'all' || thinkingFilter !== 'all'
                                         ? t('Try adjusting your search or filter criteria')
                                         : t('Get started by adding your first model configuration')}
                                 </p>
-                                {!searchTerm && providerFilter === 'all' && typeFilter === 'all' && (
+                                {!searchTerm && providerFilter === 'all' && typeFilter === 'all' && thinkingFilter === 'all' && (
                                     <Button color="primary" startContent={<Icon icon="material-symbols:add" />} onPress={handleCreateModel}>
                                         {t('Add Model Configuration')}
                                     </Button>

@@ -1,13 +1,9 @@
 import { BreadcrumbItem, Breadcrumbs, Button, ButtonGroup, Kbd, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Skeleton, Spacer, useDisclosure } from '@heroui/react';
-import { Icon } from '@iconify/react';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 
 import { GetKnowledge, type Knowledge } from '@/apis/knowledge';
-import { type Resource } from '@/apis/resource';
-import { ListResources } from '@/apis/resource';
 import { CreateKnowledgeShareURL } from '@/apis/share';
 import KnowledgeDeletePopover from '@/components/knowledge-delete-popover';
 import KnowledgeEdit, { KnwoledgeEditorRefObject } from '@/components/knowledge-edit';
@@ -65,7 +61,7 @@ const ViewKnowledge = memo(
         async function loadKnowledge(id: string) {
             setIsLoading(true);
             try {
-                const resp = await GetKnowledge(currentSelectedSpace, id);
+                const resp = await GetKnowledge(currentSelectedSpace, id, false);
 
                 setKnowledge(resp);
             } catch (e: any) {
@@ -157,7 +153,6 @@ const ViewKnowledge = memo(
         }, [editor]);
 
         const { userIsPro } = usePlan();
-        const navigate = useNavigate();
 
         return (
             <>
@@ -189,7 +184,7 @@ const ViewKnowledge = memo(
                                     </ModalHeader>
                                     <ModalBody className="w-full flex flex-col items-center px-6 overflow-y-auto">
                                         {isEdit ? (
-                                            <KnowledgeEdit ref={editor} hideSubmit classNames={{ base: '', editor: '!mx-0' }} knowledge={knowledge} onChange={onChangeFunc} />
+                                            <KnowledgeEdit ref={editor} hideSubmit classNames={{ base: '', editor: '!mx-0' }} spaceID={knowledge.space_id} knowledge={knowledge} onChange={onChangeFunc} />
                                         ) : (
                                             <KnowledgeView knowledge={knowledge} />
                                         )}

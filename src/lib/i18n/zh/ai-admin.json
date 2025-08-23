@@ -151,5 +151,20 @@
     "Failed to update usage configuration": "更新使用配置失败",
     "Reader Support": "阅读支持",
     "Enable Reader Support": "启用阅读支持",
-    "Indicates this provider supports document reading functionality": "表示此提供商支持文档阅读功能"
+    "Indicates this provider supports document reading functionality": "表示此提供商支持文档阅读功能",
+    "Thinking Support": "思考支持",
+    "Select thinking support level": "选择思考支持级别",
+    "Configure whether this model supports thinking functionality": "配置此模型是否支持思考功能",
+    "Not Supported": "不支持",
+    "Optional": "可选",
+    "Chat Thinking": "思考聊天",
+    "AI model for chat functionality with thinking capability": "具备思考能力的聊天功能AI模型",
+    "Filter by thinking": "按思考功能筛选",
+    "Filter by thinking support": "按思考支持筛选",
+    "All Thinking": "所有思考",
+    "Thinking Required": "需要思考",
+    "Thinking Supported": "支持思考",
+    "Thinking Forced": "强制思考",
+    "No Thinking": "不支持思考",
+    "Thinking Optional": "可选思考"
 }

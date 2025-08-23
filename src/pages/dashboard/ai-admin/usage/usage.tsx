@@ -18,6 +18,7 @@ import { aiSystemAPI, modelConfigAPI } from '@/apis/ai-admin';
 
 interface UsageConfig {
     chat: string;
+    chat_thinking?: string; // v3新增：思考聊天模型
     embedding: string;
     vision: string;
     rerank: string;
@@ -47,6 +48,14 @@ export default function Usage() {
             color: 'primary',
             description: t('AI model for chat functionality'),
             required: true
+        },
+        {
+            key: 'chat_thinking' as keyof UsageConfig,
+            label: t('Chat Thinking'),
+            icon: 'material-symbols:psychology',
+            color: 'primary',
+            description: t('AI model for chat functionality with thinking capability'),
+            required: false
         },
         {
             key: 'embedding' as keyof UsageConfig,
@@ -163,6 +172,15 @@ export default function Usage() {
     
     // 根据模型类型过滤模型
     const getModelsForType = (type: string) => {
+        // 对于 chat_thinking，需要筛选 chat 类型且支持思考的模型
+        if (type === 'chat_thinking') {
+            return models.filter(model => 
+                model.model_type === 'chat' && 
+                model.status === 1 &&
+                (model.thinking_support === 1 || model.thinking_support === 2) // 可选或强制思考
+            );
+        }
+        
         return models.filter(model => model.model_type === type && model.status === 1);
     };
     

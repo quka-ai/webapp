@@ -512,6 +512,7 @@ export default function Chat() {
                     agent: agent,
                     enableThinking: args.enableThinking,
                     enableSearch: args.enableSearch,
+                    enableKnowledge: args.enableKnowledge,
                     files: files
                 });
 

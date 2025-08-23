@@ -36,6 +36,10 @@ import { useUploader } from '@/hooks/use-uploader';
 import resourceStore from '@/stores/resource';
 import spaceStore from '@/stores/space';
 
+export interface WorkBarRef {
+    showCreateModal: () => void;
+}
+
 export interface WorkBarProps {
     spaceid: string;
     onSubmit?: () => void;
@@ -43,7 +47,7 @@ export interface WorkBarProps {
     onShowChange?: (isShow: boolean) => void;
 }
 
-const WorkBar = memo(function WorkBar({ onSubmit, isShowCreate, onShowChange }: WorkBarProps) {
+const WorkBar = memo(forwardRef<WorkBarRef, WorkBarProps>(function WorkBar({ onSubmit, isShowCreate = true, onShowChange }, ref) {
     const { t } = useTranslation();
 
     const { currentSelectedSpace } = useSnapshot(spaceStore);
@@ -134,17 +138,12 @@ const WorkBar = memo(function WorkBar({ onSubmit, isShowCreate, onShowChange }: 
         }
     }, [knowledgeModal, currentSelectedSpace]);
 
-    useEffect(() => {
-        if (knowledgeModal && knowledgeModal.current && isShowCreate) {
-            knowledgeModal.current.show({
-                space_id: currentSelectedSpace
-            });
-            setKnowledgeIsShow(true);
-        }
-    }, [isShowCreate, knowledgeModal]);
+    useImperativeHandle(ref, () => ({
+        showCreateModal: showCreate
+    }), [showCreate]);
 
     useEffect(() => {
-        if (isMobile) {
+        if (isMobile || !isShowCreate) {
             return;
         }
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -162,7 +161,7 @@ const WorkBar = memo(function WorkBar({ onSubmit, isShowCreate, onShowChange }: 
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isMobile, currentSelectedSpace]);
+    }, [isMobile, isShowCreate, knowledgeIsShow, showCreate]);
 
     return (
         <div className="w-full flex flex-col gap-2 py-6 ">
@@ -202,23 +201,25 @@ const WorkBar = memo(function WorkBar({ onSubmit, isShowCreate, onShowChange }: 
                                     </div>
                                 ) : (
                                     <>
-                                        <div className="absolute top-2 right-2">
-                                            <Button
-                                                variant="faded"
-                                                size="sm"
-                                                isLoading={isLoading}
-                                                onPress={() => {
-                                                    if (isMobile) {
-                                                        navigate(`/dashboard/${currentSelectedSpace}/knowledge/create`);
-                                                    } else {
-                                                        showCreate();
-                                                    }
-                                                }}
-                                                endContent={<Kbd keys={['command']}>B</Kbd>}
-                                            >
-                                                🤔 {t('OpenRichText')}
-                                            </Button>
-                                        </div>
+                                        {isShowCreate && (
+                                            <div className="absolute top-2 right-2">
+                                                <Button
+                                                    variant="faded"
+                                                    size="sm"
+                                                    isLoading={isLoading}
+                                                    onPress={() => {
+                                                        if (isMobile) {
+                                                            navigate(`/dashboard/${currentSelectedSpace}/knowledge/create`);
+                                                        } else {
+                                                            showCreate();
+                                                        }
+                                                    }}
+                                                    endContent={<Kbd keys={['command']}>B</Kbd>}
+                                                >
+                                                    🤔 {t('OpenRichText')}
+                                                </Button>
+                                            </div>
+                                        )}
                                     </>
                                 )}
                             </>
@@ -251,7 +252,7 @@ const WorkBar = memo(function WorkBar({ onSubmit, isShowCreate, onShowChange }: 
             </div>
         </div>
     );
-});
+}));
 
 export default WorkBar;
 
@@ -475,7 +476,7 @@ const CreateKnowledgeModal = memo(
                                     </Breadcrumbs>
                                 </ModalHeader>
                                 <ModalBody className="w-full flex flex-col items-center">
-                                    <KnowledgeEdit ref={editor} hideSubmit classNames={{ editor: '!mx-0', base: '' }} knowledge={knowledge} onChange={onChangeFunc} onCancel={onCancelFunc} />
+                                    <KnowledgeEdit ref={editor} hideSubmit classNames={{ editor: '!mx-0', base: '' }} spaceID={currentSelectedSpace} knowledge={knowledge} onChange={onChangeFunc} onCancel={onCancelFunc} />
                                 </ModalBody>
                                 <ModalFooter className="flex justify-center">
                                     <ButtonGroup variant="flat" size="md" className="mb-4">

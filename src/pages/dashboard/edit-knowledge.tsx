@@ -31,7 +31,7 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
 
     async function loadKnowledge(id: string) {
         try {
-            const resp = await GetKnowledge(spaceID!, id);
+            const resp = await GetKnowledge(spaceID!, id, false);
 
             setKnowledge(resp);
         } catch (e: any) {
@@ -143,7 +143,7 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                         )}
                     </div>
                     <div className="w-full overflow-hidden p-4">
-                        {isEdit ? <KnowledgeEdit ref={editor} hideSubmit classNames={{ base: '', editor: '!mx-0' }} knowledge={knowledge} /> : <KnowledgeView knowledge={knowledge} />}
+                        {isEdit ? <KnowledgeEdit ref={editor} hideSubmit classNames={{ base: '', editor: '!mx-0' }} spaceID={knowledge.space_id} knowledge={knowledge} /> : <KnowledgeView knowledge={knowledge} />}
                     </div>
                     <div className="fixed w-full left-0 bottom-0 min-h-14 flex justify-center items-center bg-content1 z-50 box-border">
                         {isSpaceViewer ? (
@@ -159,7 +159,6 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                                         } else if (knowledge.stage == 2) {
                                             return t('Embedding');
                                         }
-
                                         if (isEdit) {
                                             return t('View');
                                         } else {

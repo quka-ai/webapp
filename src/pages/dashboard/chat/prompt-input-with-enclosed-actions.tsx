@@ -29,12 +29,12 @@ export default function Component(
     const { t } = useTranslation();
     const [prompt, setPrompt] = useState<string>('');
 
-    const [useRag, setUseRag] = useState(false);
     const [enableSearch, setEnableSearch] = useState(false);
     const [enableThinking, setEnableThinking] = useState(false);
+    const [enableKnowledge,setEnableKnowledge] = useState(false);
 
     function setSelectedUseMemory(value: boolean) {
-        setUseRag(value);
+        setEnableKnowledge(value);
         localStorage.setItem('selectedUseMemory', value.toString());
     }
 
@@ -57,7 +57,7 @@ export default function Component(
     }, [props.selectedEnableThinking]);
 
     useEffect(() => {
-        setUseRag(props.selectedUseMemory === undefined ? localStorage.getItem('selectedUseMemory') === 'true' : props.selectedUseMemory);
+        setEnableKnowledge(props.selectedUseMemory === undefined ? localStorage.getItem('selectedUseMemory') === 'true' : props.selectedUseMemory);
     }, [props.selectedUseMemory]);
 
     // @ts-ignore
@@ -223,13 +223,13 @@ export default function Component(
         }
 
         try {
-            await props.onSubmitFunc?.(prompt, useRag ? 'rag' : '', { enableSearch, enableThinking }, files);
+            await props.onSubmitFunc?.(prompt, '', { enableSearch, enableThinking, enableKnowledge }, files);
             setPrompt('');
             setAssets([]);
         } catch (e: any) {
             console.error(e);
         }
-    }, [prompt, useRag, assets, currentSelectedSpace, enableSearch, enableThinking]);
+    }, [prompt, assets, currentSelectedSpace, enableSearch, enableThinking,enableKnowledge]);
 
     return (
         <>
@@ -374,7 +374,7 @@ export default function Component(
                                 ),
                                 wrapper: 'p-0 h-4 w-10 overflow-visible'
                             }}
-                            isSelected={useRag}
+                            isSelected={enableKnowledge}
                             onValueChange={setSelectedUseMemory}
                         >
                             <div className="flex flex-col gap-1">

@@ -86,13 +86,23 @@ export const providerAPI = {
 // 模型配置相关接口
 export const modelConfigAPI = {
     // 获取模型配置列表
-    getModelConfigs: async (params?: { page?: number; limit?: number; provider_id?: string; model_type?: string; status?: number }) => {
+    getModelConfigs: async (params?: { 
+        page?: number; 
+        limit?: number; 
+        provider_id?: string; 
+        model_type?: string; 
+        status?: number;
+        thinking_support?: number; // v3新增：思考功能支持筛选
+        thinking_required?: boolean; // v3新增：思考功能需求筛选
+    }) => {
         const queryParams = new URLSearchParams();
         if (params?.page) queryParams.append('page', params.page.toString());
         if (params?.limit) queryParams.append('limit', params.limit.toString());
         if (params?.provider_id) queryParams.append('provider_id', params.provider_id);
         if (params?.model_type) queryParams.append('model_type', params.model_type);
         if (params?.status !== undefined) queryParams.append('status', params.status.toString());
+        if (params?.thinking_support !== undefined) queryParams.append('thinking_support', params.thinking_support.toString());
+        if (params?.thinking_required !== undefined) queryParams.append('thinking_required', params.thinking_required.toString());
 
         const url = `${API_BASE}/model/configs${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
         const response = await request.get<
@@ -165,6 +175,7 @@ export const aiSystemAPI = {
         const response = await request.get<
             ApiResponse<{
                 chat: string;
+                chat_thinking?: string; // v3新增：思考聊天模型
                 embedding: string;
                 vision: string;
                 rerank: string;
@@ -176,7 +187,15 @@ export const aiSystemAPI = {
     },
 
     // 更新使用配置
-    updateUsageConfig: async (data: { chat: string; embedding: string; vision?: string; rerank?: string; reader?: string; enhance?: string }) => {
+    updateUsageConfig: async (data: { 
+        chat: string; 
+        chat_thinking?: string; // v3新增：思考聊天模型
+        embedding: string; 
+        vision?: string; 
+        rerank?: string; 
+        reader?: string; 
+        enhance?: string 
+    }) => {
         const response = await request.put<
             ApiResponse<{
                 message: string;

@@ -1,6 +1,7 @@
 declare type ChatArgs = {
     enableThinking: boolean;
     enableSearch: boolean;
+    enableKnowledge: boolean;
 };
 
 declare type Resource = {

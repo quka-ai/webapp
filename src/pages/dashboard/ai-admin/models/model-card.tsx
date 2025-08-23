@@ -221,13 +221,40 @@ export default function ModelCard({
                         
                 {/* 详细信息 - 移动端优化 */}
                 <div className="space-y-3 mt-4">
-                    {/* 多模态标识 */}
-                    {model.is_multi_modal && (
-                        <div className="flex items-center gap-2 text-sm">
-                            <Icon icon="material-symbols:visibility" width={16} className="text-success flex-shrink-0" />
-                            <span className="text-success font-medium">{t('Multi-modal Support')}</span>
-                        </div>
-                    )}
+                    {/* 特性标识 */}
+                    <div className="flex flex-wrap gap-3">
+                        {/* 多模态标识 */}
+                        {model.is_multi_modal && (
+                            <div className="flex items-center gap-2 text-sm">
+                                <Icon icon="material-symbols:visibility" width={16} className="text-success flex-shrink-0" />
+                                <span className="text-success font-medium">{t('Multi-modal Support')}</span>
+                            </div>
+                        )}
+                        
+                        {/* 思考功能标识 - 仅chat类型显示 */}
+                        {model.model_type === 'chat' && model.thinking_support !== undefined && (
+                            <div className="flex items-center gap-2 text-sm">
+                                {model.thinking_support === 2 && (
+                                    <>
+                                        <Icon icon="material-symbols:psychology" width={16} className="text-primary flex-shrink-0" />
+                                        <span className="text-primary font-medium">{t('Thinking Required')}</span>
+                                    </>
+                                )}
+                                {model.thinking_support === 1 && (
+                                    <>
+                                        <Icon icon="material-symbols:toggle-off-outline" width={16} className="text-secondary flex-shrink-0" />
+                                        <span className="text-secondary font-medium">{t('Thinking Optional')}</span>
+                                    </>
+                                )}
+                                {model.thinking_support === 0 && (
+                                    <>
+                                        <Icon icon="material-symbols:block" width={16} className="text-default-400 flex-shrink-0" />
+                                        <span className="text-default-400 font-medium">{t('No Thinking')}</span>
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>
                     
                     {/* 配置参数 */}
                     {formatConfig(model.config).length > 0 && (

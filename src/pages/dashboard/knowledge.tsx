@@ -10,7 +10,7 @@ import GoTop from '@/components/go-top';
 import KnowledgeModal from '@/components/knowledge-modal';
 import MainQuery from '@/components/main-query';
 import Markdown from '@/components/markdown';
-import WorkBar from '@/components/work-bar';
+import WorkBar, { WorkBarRef } from '@/components/work-bar';
 import { useMedia } from '@/hooks/use-media';
 import { useRole } from '@/hooks/use-role';
 import { useUserAgent } from '@/hooks/use-user-agent';
@@ -21,7 +21,6 @@ import socketStore, { CONNECTION_OK } from '@/stores/socket';
 import spaceStore from '@/stores/space';
 
 export default memo(function Component() {
-    const { t } = useTranslation();
     const { isMobile } = useMedia();
     const { currentSelectedSpace } = useSnapshot(spaceStore);
     const { currentSelectedResource } = useSnapshot(resourceStore);
@@ -32,6 +31,8 @@ export default memo(function Component() {
     const [hasMore, setHasMore] = useState(true);
     const [isLoading, setIsLoading] = useState(true);
     const { onKnowledgeSearch } = useSnapshot(knowledgeStore);
+    const [onEvent, setEvent] = useState<FireTowerMsg | null>();
+    const { subscribe, connectionStatus } = useSnapshot(socketStore);
     const navigate = useNavigate();
 
     const { isSpaceViewer } = useRole();
@@ -156,6 +157,64 @@ export default memo(function Component() {
         return !isSpaceViewer;
     }, [isMobile, isSpaceViewer]);
 
+    useEffect(() => {
+        if (!onEvent || !onEvent.data || onEvent.data.subject !== 'stage_changed') {
+            return;
+        }
+
+        switch (onEvent.data.data.stage) {
+            case 'Embedding':
+                const nextList = [...dataList];
+                const item = nextList.find(a => a.id === onEvent.data.data.knowledge_id);
+
+                if (item) {
+                    item.stage = 2; // TODO const
+                    setDataList(nextList);
+                }
+                break;
+            case 'Done':
+                const doneLogic = async function () {
+                    try {
+                        const data = await GetKnowledge(currentSelectedSpace, onEvent.data.data.knowledge_id, true);
+                        data.content = data.content.replace(/\$hidden\[([^\]]*)\]/g, '[Secret]') // 隐藏敏感信息
+                        const newDataList = dataList.map(item => {
+                            if (item.id === onEvent.data.data.knowledge_id) {
+                                return data;
+                            }
+
+                            return item;
+                        });
+
+                        setDataList(newDataList);
+                    } catch (e: any) {
+                        console.error(e);
+                    }
+                };
+
+                doneLogic();
+                break;
+            default:
+                console.log('unknown event', onEvent);
+        }
+        setEvent(null);
+    }, [onEvent]);
+
+    useEffect(() => {
+        if (connectionStatus !== CONNECTION_OK || currentSelectedSpace === '' || !subscribe) {
+            return;
+        }
+        // data : {\"subject\":\"stage_changed\",\"version\":\"v1\",\"data\":{\"knowledge_id\":\"n9qU71qKbqhHak6weNrH7UpCzU4yNiBv\",\"stage\":\"Done\"}}"
+        const unSubscribe = subscribe(['/knowledge/list/' + currentSelectedSpace], (msg: FireTowerMsg) => {
+            if (msg.data.subject !== 'stage_changed') {
+                return;
+            }
+
+            setEvent(msg);
+        });
+
+        return unSubscribe;
+    }, [connectionStatus, currentSelectedSpace]);
+
     return (
         <>
             <div className="overflow-hidden w-full h-full flex flex-col relative">
@@ -202,9 +261,9 @@ const KnowledgeList = memo(
     forwardRef(function KnowledgeList({ knowledgeList, total, onSelect, isLoading = false, isShowCreate = true, onShowCreate, onChanges, onLoadMore }: KnowledgeListProps, ref: any) {
         const { t } = useTranslation();
         const [dataList, setDataList] = useState(knowledgeList);
-        const [onEvent, setEvent] = useState<FireTowerMsg | null>();
+        
         const { currentSelectedSpace } = useSnapshot(spaceStore);
-        const { subscribe, connectionStatus } = useSnapshot(socketStore);
+        
         const { currentSelectedResource } = useSnapshot(resourceStore);
         const { isMobile } = useMedia();
 
@@ -212,63 +271,15 @@ const KnowledgeList = memo(
             setDataList(knowledgeList);
         }, [knowledgeList]);
 
-        useEffect(() => {
-            if (connectionStatus !== CONNECTION_OK || currentSelectedSpace === '' || !subscribe) {
-                return;
+        const workBarRef = useRef<WorkBarRef>(null);
+
+        const showKnowledgeCreate = useCallback(() => {
+            if (workBarRef.current) {
+                workBarRef.current.showCreateModal();
             }
-            // data : {\"subject\":\"stage_changed\",\"version\":\"v1\",\"data\":{\"knowledge_id\":\"n9qU71qKbqhHak6weNrH7UpCzU4yNiBv\",\"stage\":\"Done\"}}"
-            const unSubscribe = subscribe(['/knowledge/list/' + currentSelectedSpace], (msg: FireTowerMsg) => {
-                if (msg.data.subject !== 'stage_changed') {
-                    return;
-                }
+        }, []);
 
-                setEvent(msg);
-            });
-
-            return unSubscribe;
-        }, [connectionStatus, currentSelectedSpace]);
-
-        useEffect(() => {
-            if (!onEvent || !onEvent.data || onEvent.data.subject !== 'stage_changed') {
-                return;
-            }
-
-            switch (onEvent.data.data.stage) {
-                case 'Embedding':
-                    const nextList = [...dataList];
-                    const item = nextList.find(a => a.id === onEvent.data.data.knowledge_id);
-
-                    if (item) {
-                        item.stage = 2; // TODO const
-                        setDataList(nextList);
-                    }
-                    break;
-                case 'Done':
-                    const doneLogic = async function () {
-                        try {
-                            const data = await GetKnowledge(currentSelectedSpace, onEvent.data.data.knowledge_id, true);
-                            const newDataList = dataList.map(item => {
-                                if (item.id === onEvent.data.data.knowledge_id) {
-                                    return data;
-                                }
-
-                                return item;
-                            });
-
-                            setDataList(newDataList);
-                        } catch (e: any) {
-                            console.error(e);
-                        }
-                    };
-
-                    doneLogic();
-                    break;
-                default:
-                    console.log('unknown event', onEvent);
-            }
-            setEvent(null);
-        }, [onEvent]);
-
+        
         const ssDom = useRef<HTMLElement>(null);
 
         function goToTop() {
@@ -300,11 +311,10 @@ const KnowledgeList = memo(
             }
         }
         const { isSafari } = useUserAgent();
-        const [isShowMemoryCreate, setIsShowMemoryCreate] = useState(false);
         return (
             <>
                 <ScrollShadow ref={ssDom} hideScrollBar className="w-full flex-grow box-border mb-6 pb-20" onScroll={scrollChanged}>
-                    <WorkBar spaceid={currentSelectedSpace} isShowCreate={isShowMemoryCreate} onShowChange={setIsShowMemoryCreate} onSubmit={onChanges} />
+                    <WorkBar ref={workBarRef} spaceid={currentSelectedSpace} isShowCreate={isShowCreate} onSubmit={onChanges} />
                     <div className="w-full  space-y-1 mb-6  py-1">
                         <div className="flex justify-between items-center gap-4 md:px-6 px-3">
                             <div className="flex flex-col gap-2">
@@ -333,13 +343,14 @@ const KnowledgeList = memo(
                         })}
                     </div>
                 </ScrollShadow>
-                <div className="absolute w-[260px] bottom-2 right-1/2 mr-[-130px]">
+                {isShowCreate && <div className="absolute w-[260px] bottom-2 right-1/2 mr-[-130px]">
                     <MainQuery
                         onClick={() => {
-                            setIsShowMemoryCreate(true);
+                            showKnowledgeCreate();
                         }}
                     />
-                </div>
+                </div>}
+                
                 {showGoTop && <GoTop className="fixed bottom-7 right-2 backdrop-blur backdrop-saturate-150 dark:border-white/20 dark:bg-white/10 dark:text-white text-gray-500" onPress={goToTop} />}
             </>
         );

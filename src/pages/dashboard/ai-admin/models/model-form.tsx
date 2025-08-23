@@ -40,6 +40,7 @@ export default function ModelForm({
         display_name: '',
         model_type: 'chat',
         is_multi_modal: false,
+        thinking_support: 0,
         status: 1,
         config: {
             max_tokens: 4096,
@@ -70,6 +71,7 @@ export default function ModelForm({
                 display_name: model.display_name || '',
                 model_type: model.model_type || 'chat',
                 is_multi_modal: model.is_multi_modal || false,
+                thinking_support: model.thinking_support ?? 0,
                 status: model.status || 1,
                 config: {
                     max_tokens: model.config?.max_tokens || 4096,
@@ -86,6 +88,7 @@ export default function ModelForm({
                 display_name: '',
                 model_type: 'chat',
                 is_multi_modal: false,
+                thinking_support: 0,
                 status: 1,
                 config: {
                     max_tokens: 4096,
@@ -255,6 +258,27 @@ export default function ModelForm({
                             <span>{t('Multi-modal Support')}</span>
                         </div>
                     </Switch>
+                    
+                    {/* 思考功能支持 - 仅chat类型显示 */}
+                    {formData.model_type === 'chat' && (
+                        <Select
+                            label={t('Thinking Support')}
+                            placeholder={t('Select thinking support level')}
+                            selectedKeys={[formData.thinking_support?.toString() || '0']}
+                            onSelectionChange={(keys) => handleInputChange('thinking_support', parseInt(Array.from(keys)[0] as string))}
+                            description={t('Configure whether this model supports thinking functionality')}
+                        >
+                            <SelectItem key="0" startContent={<Icon icon="material-symbols:block" />}>
+                                {t('Not Supported')}
+                            </SelectItem>
+                            <SelectItem key="1" startContent={<Icon icon="material-symbols:toggle-off-outline" />}>
+                                {t('Optional')}
+                            </SelectItem>
+                            <SelectItem key="2" startContent={<Icon icon="material-symbols:toggle-on-outline" />}>
+                                {t('Required')}
+                            </SelectItem>
+                        </Select>
+                    )}
                     
                     {/* 启用状态 */}
                     <Switch

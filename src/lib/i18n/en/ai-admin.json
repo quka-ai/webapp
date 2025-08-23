@@ -151,5 +151,20 @@
     "Failed to update usage configuration": "Failed to update usage configuration",
     "Reader Support": "Reader Support",
     "Enable Reader Support": "Enable Reader Support",
-    "Indicates this provider supports document reading functionality": "Indicates this provider supports document reading functionality"
+    "Indicates this provider supports document reading functionality": "Indicates this provider supports document reading functionality",
+    "Thinking Support": "Thinking Support",
+    "Select thinking support level": "Select thinking support level",
+    "Configure whether this model supports thinking functionality": "Configure whether this model supports thinking functionality",
+    "Not Supported": "Not Supported",
+    "Optional": "Optional",
+    "Chat Thinking": "Chat Thinking",
+    "AI model for chat functionality with thinking capability": "AI model for chat functionality with thinking capability",
+    "Filter by thinking": "Filter by thinking",
+    "Filter by thinking support": "Filter by thinking support",
+    "All Thinking": "All Thinking",
+    "Thinking Required": "Thinking Required",
+    "Thinking Supported": "Thinking Supported",
+    "Thinking Forced": "Thinking Forced",
+    "No Thinking": "No Thinking",
+    "Thinking Optional": "Thinking Optional"
 }

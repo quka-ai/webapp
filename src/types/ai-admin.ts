@@ -24,6 +24,7 @@ export interface ModelConfig {
     display_name: string;
     model_type: 'chat' | 'embedding' | 'vision' | 'rerank' | 'reader' | 'enhance';
     is_multi_modal: boolean;
+    thinking_support?: 0 | 1 | 2; // 0=不支持, 1=可选, 2=强制
     status: 0 | 1;
     config: {
         max_tokens?: number;
@@ -54,6 +55,7 @@ export interface SystemStatus {
 // 使用配置接口
 export interface UsageConfig {
     chat: string;
+    chat_thinking?: string; // v3新增：思考聊天模型
     embedding: string;
     vision: string;
     rerank: string;
@@ -106,6 +108,8 @@ export interface ModelStore {
         provider_id: string;
         model_type: string;
         status: number | null;
+        thinking_support?: number | null; // v3新增：思考功能支持筛选
+        thinking_required?: boolean | null; // v3新增：思考功能需求筛选
     };
 }
 
@@ -139,6 +143,7 @@ export interface ModelFormData {
     display_name: string;
     model_type: 'chat' | 'embedding' | 'vision' | 'rerank' | 'reader' | 'enhance';
     is_multi_modal: boolean;
+    thinking_support?: 0 | 1 | 2; // v3新增：思考功能支持
     status: 0 | 1;
     config: {
         max_tokens?: number;
