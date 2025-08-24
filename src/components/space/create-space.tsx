@@ -46,7 +46,7 @@ const CreateSpaceComponent = forwardRef((_, ref) => {
                         <>
                             <ModalHeader className="flex flex-col gap-1">{t('Create new space')}</ModalHeader>
                             <ModalBody>
-                                <Input label={t('createSpaceNameLabel')} size="lg" labelPlacement="outside" placeholder="Named your space" variant="bordered" onValueChange={setTitle} />
+                                <Input isRequired label={t('createSpaceNameLabel')} size="lg" labelPlacement="outside" placeholder="Named your space" variant="bordered" onValueChange={setTitle} />
                                 <Textarea
                                     size="lg"
                                     label={t('createSpaceDescriptionLabel')}

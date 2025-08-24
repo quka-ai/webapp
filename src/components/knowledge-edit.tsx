@@ -1,5 +1,5 @@
 import { OutputData } from '@editorjs/editorjs';
-import { Button, Input, ScrollShadow, Select, SelectItem, SelectSection, Skeleton, Spacer } from '@heroui/react';
+import { Button, Input, Select, SelectItem, SelectSection, Skeleton, Spacer } from '@heroui/react';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ import spaceStore from '@/stores/space';
 
 export interface KnowledgeEditProps {
     knowledge?: Knowledge;
+    spaceID: string;
     onChange?: () => void;
     onCancel?: () => void;
     hideSubmit?: boolean;
@@ -34,7 +35,7 @@ export interface KnwoledgeEditorRefObject {
 }
 
 export default memo(
-    forwardRef(function KnowledgeEdit({ knowledge, onChange, onCancel, hideSubmit, classNames, enableScrollShadow = true, temporaryStorage }: KnowledgeEditProps, ref: any) {
+    forwardRef(function KnowledgeEdit({ knowledge, onChange, onCancel, hideSubmit, classNames, spaceID, temporaryStorage }: KnowledgeEditProps, ref: any) {
         const { t } = useTranslation();
         const [title, setTitle] = useState(knowledge ? knowledge.title : '');
         const [content, setContent] = useState<string | OutputData>(knowledge ? (knowledge.blocks ? knowledge.blocks : knowledge.content) : '');
@@ -44,7 +45,7 @@ export default memo(
         const [errorMessage, setErrorMessage] = useState('');
         const [isLoading, setLoading] = useState(false);
         const [resource, setResource] = useState(knowledge ? knowledge.resource : '');
-        const { currentSpaceResources, currentSelectedResource } = useSnapshot(resourceStore);
+        const { currentSelectedResource } = useSnapshot(resourceStore);
         const { currentSelectedSpace } = useSnapshot(spaceStore);
 
         if (!knowledge?.blocks && !knowledge?.content && temporaryStorage) {
@@ -117,7 +118,7 @@ export default memo(
             setLoading(true);
             try {
                 if (knowledge.id) {
-                    await UpdateKnowledge(knowledge.space_id, knowledge.id, {
+                    await UpdateKnowledge(spaceID, knowledge.id, {
                         resource: resource || defaultResource,
                         title: title,
                         content: content,
@@ -125,7 +126,7 @@ export default memo(
                         tags: tags
                     });
                 } else {
-                    await CreateKnowledge(knowledge.space_id, resource || defaultResource, content, contentType);
+                    await CreateKnowledge(spaceID, resource || defaultResource, content, contentType);
                 }
 
                 toast.success(t('Success'));
@@ -139,7 +140,7 @@ export default memo(
             setLoading(false);
         }
 
-        const editor = useRef<EditorRefObject>();
+        const editor = useRef<EditorRefObject>(null);
 
         function reset() {
             if (editor.current) {
@@ -191,7 +192,7 @@ export default memo(
                             )}
 
                             <div className="w-full flex-wrap flex flex-col gap-3">
-                                <Skeleton isLoaded={defaultResource} className="min-h-10">
+                                <Skeleton isLoaded={defaultResource != ''} className="min-h-10">
                                     {defaultResource && (
                                         <Select
                                             isRequired

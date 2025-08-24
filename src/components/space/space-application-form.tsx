@@ -1,4 +1,4 @@
-import { Button, Form, Input, Textarea } from '@heroui/react';
+import { Button, Form, Textarea } from '@heroui/react';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -36,7 +36,7 @@ export default function SpaceApplicationForm({ spaceToken, onSubmit }: SpaceAppl
                 submit(data.applicationInfo);
             }}
         >
-            <Textarea isRequired variant='bordered' label={t('space.ApplicationInfo')} labelPlacement="outside" name="applicationInfo" type="text" />
+            <Textarea isRequired variant="bordered" label={t('space.ApplicationInfo')} labelPlacement="outside" name="applicationInfo" type="text" />
 
             <div className="flex gap-2">
                 <Button color="primary" type="submit" isLoading={isLoading}>

@@ -6,7 +6,7 @@ import { useSnapshot } from 'valtio';
 import { GetUserInfo } from '@/apis/user';
 import { App } from '@/App';
 import ToolUsing from '@/components/tool-using';
-import { autoLoginDirect } from '@/lib/utils';
+import { autoLoginDirect, processAvatarUrl } from '@/lib/utils';
 import Dashboard from '@/pages/dashboard';
 import ChatSession from '@/pages/dashboard/chat/chat-session.tsx';
 import Chat from '@/pages/dashboard/chat/chat.tsx';
@@ -16,12 +16,20 @@ import Journal from '@/pages/dashboard/journal/journal';
 import Knowledge from '@/pages/dashboard/knowledge';
 import Setting from '@/pages/dashboard/setting/setting';
 import SpaceSetting from '@/pages/dashboard/space-setting/setting';
+import AIAdmin from '@/pages/dashboard/ai-admin/ai-admin';
+import Providers from '@/pages/dashboard/ai-admin/providers/providers';
+import Models from '@/pages/dashboard/ai-admin/models/models';
+import System from '@/pages/dashboard/ai-admin/system/system';
+import Usage from '@/pages/dashboard/ai-admin/usage/usage';
+import UserAdmin from '@/pages/dashboard/user-admin/user-admin';
+import Users from '@/pages/dashboard/user-admin/users/users';
 import Forgot from '@/pages/forgot';
 import Login from '@/pages/login';
 import Reset from '@/pages/reset';
 import ShareKnowledge from '@/pages/share/knowledge';
 import ShareSessionPage from '@/pages/share/session';
 import SpaceLnadingPage from '@/pages/space-landing';
+import Test from '@/pages/test';
 import { setLoginRedirect } from '@/stores/event';
 import { buildTower } from '@/stores/socket';
 import spaceStore, { loadUserSpaces, setCurrentSelectedSpace } from '@/stores/space';
@@ -50,8 +58,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
                     const resp = await GetUserInfo();
                     setUserInfo({
                         userID: resp.user_id,
-                        // avatar: resp.avatar,
-                        avatar: resp.avatar || 'https://avatar.vercel.sh/' + resp.user_id,
+                        avatar: processAvatarUrl(resp.avatar, resp.user_id, true),
                         userName: resp.user_name,
                         email: resp.email,
                         planID: resp.plan_id,
@@ -73,7 +80,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
                     }
                 }
             }
-            Login(accessToken ? '' : 'authorization', accessToken || loginToken);
+            Login(accessToken ? '' : 'authorization', accessToken || loginToken || '');
         }
     }, [isLogin, currentSelectedSpace, spaces]);
 
@@ -85,7 +92,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
           })();
 }
 
-function PreLogin({ init, children }: { init: boolean; children: ReactNode }) {
+function PreLogin({ init, children }: { init?: boolean; children: ReactNode }) {
     const { accessToken, loginToken, userInfo } = useSnapshot(userStore);
     const isLogin = useMemo(() => {
         return accessToken || loginToken;
@@ -117,7 +124,7 @@ const routes = createBrowserRouter([
         children: [
             {
                 path: '/test',
-                element: <ToolUsing isShow title="tesst" desc="ttttdddddd" />
+                element: <Test />
             },
             {
                 index: true,
@@ -203,7 +210,7 @@ const routes = createBrowserRouter([
                     {
                         path: ':spaceID/chat/session/:sessionID',
                         element: <ChatSession />
-                    }
+                    },
                 ]
             },
             {
@@ -213,6 +220,46 @@ const routes = createBrowserRouter([
                         <SpaceSetting />
                     </ProtectedRoute>
                 )
+            },
+            {
+                path: '/dashboard/ai-admin',
+                element: (
+                    <ProtectedRoute>
+                        <AIAdmin />
+                    </ProtectedRoute>
+                ),
+                children: [
+                    {
+                        path: 'providers',
+                        element: <Providers />
+                    },
+                    {
+                        path: 'models',
+                        element: <Models />
+                    },
+                    {
+                        path: 'system',
+                        element: <System />
+                    },
+                    {
+                        path: 'usage',
+                        element: <Usage />
+                    }
+                ]
+            },
+            {
+                path: '/dashboard/user-admin',
+                element: (
+                    <ProtectedRoute>
+                        <UserAdmin />
+                    </ProtectedRoute>
+                ),
+                children: [
+                    {
+                        path: 'users',
+                        element: <Users />
+                    }
+                ]
             },
             {
                 path: '/user/*',

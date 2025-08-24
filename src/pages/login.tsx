@@ -1,5 +1,6 @@
 import { Button, Divider, Input, Link } from '@heroui/react';
 import { Icon } from '@iconify/react';
+import { AxiosError } from 'axios';
 import { memo, useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -8,7 +9,7 @@ import { useSnapshot } from 'valtio';
 import { Login, LoginWithAccessToken } from '@/apis/user';
 import { LogoIcon, Name } from '@/components/logo';
 import { toast } from '@/hooks/use-toast';
-import { md5 } from '@/lib/utils';
+import { md5, processAvatarUrl } from '@/lib/utils';
 import SignUp from '@/pages/signup';
 import eventStore from '@/stores/event';
 import { setCurrentSelectedSpace, setUserSpaces } from '@/stores/space';
@@ -54,7 +55,7 @@ export default function Component() {
     );
 }
 
-const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode: (v) => void }) {
+const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode: (v:any) => void }) {
     const { t } = useTranslation();
     const [isVisible, setIsVisible] = useState(false);
     const [useTokenLogin, setUseTokenLogin] = useState(false);
@@ -131,8 +132,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
             setUserAccessToken(accessToken);
             setUserInfo({
                 userID: resp.user_id,
-                // avatar: resp.avatar,
-                avatar: resp.avatar || 'https://avatar.vercel.sh/' + resp.user_id,
+                avatar: processAvatarUrl(resp.avatar, resp.user_id, false),
                 userName: resp.user_name,
                 email: resp.email,
                 planID: resp.plan_id,
@@ -161,7 +161,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
             setUserLoginToken(resp.token);
             setUserInfo({
                 userID: resp.meta.user_id,
-                avatar: resp.meta.avatar || 'https://avatar.vercel.sh/' + resp.meta.user_id,
+                avatar: resp.meta.avatar || '/image/default_avatar.png',
                 userName: resp.meta.user_name,
                 email: resp.meta.email,
                 planID: resp.meta.plan_id,
@@ -169,7 +169,8 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
             });
 
             navigate(loginRedirect || '/dashboard', { replace: true });
-        } catch (e: AxiosError) {
+        } catch (e: any) {
+            e = e as AxiosError;
             if (e.response?.status === 403) {
                 toast({
                     title: t('Notify'),

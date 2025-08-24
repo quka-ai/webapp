@@ -1,25 +1,45 @@
-import { Spinner } from '@heroui/react';
-import { ReactNode } from 'react';
+import AnimatedShinyText from './shiny-text';
+
+import { ToolStatus, ToolTips } from '@/types/chat';
 
 export interface ToolUsingProps {
     // Define any props you want to pass to the ToolUsing component
-    isShow: boolean;
-    title: string;
-    desc?: string;
-    icon?: ReactNode;
+    toolTips?: ToolTips[];
 }
-export default function ToolUsing({ isShow, title, desc, icon }: ToolUsingProps) {
-    if (!isShow) {
+export default function ToolUsing({ toolTips }: ToolUsingProps) {
+    if (!toolTips) {
         return null;
     }
 
+    // toolTips = [
+    //     {
+    //         id: '1',
+    //         status: ToolStatus.TOOL_STATUS_RUNNING,
+    //         content: 'toolTip1'
+    //     },
+    //     {
+    //         id: '1',
+    //         status: ToolStatus.TOOL_STATUS_SUCCESS,
+    //         content: 'toolTip1'
+    //     }
+    // ]
+
     return (
-        <div className="flex items-center gap-4 border-zinc-600 rounded-xl border-2 max-w-[200px] w-auto p-2 box-border">
-            <div className="flex">{icon ? icon : <Spinner classNames={{ label: 'text-foreground', base: 'mb-2' }} variant="wave" />}</div>
-            <div className="flex flex-col">
-                <div className="text-sm font-bold ">{title}</div>
-                {desc && <div className="text-sm">{desc}</div>}
-            </div>
-        </div>
+        toolTips?.map((toolTip: ToolTips) => {
+            return (
+                <AnimatedShinyText key={toolTip.id} animate={toolTip.status === ToolStatus.TOOL_STATUS_RUNNING} className="inline-flex items-center text-sm justify-center pb-4 transition ease-out">
+                    <span>
+                        {toolTip.status === ToolStatus.TOOL_STATUS_RUNNING
+                            ? '😶‍🌫️'
+                            : toolTip.status === ToolStatus.TOOL_STATUS_SUCCESS
+                              ? '👌🏼'
+                              : toolTip.status === ToolStatus.TOOL_STATUS_FAILED
+                                ? '❌'
+                                : '⏸️'}{' '}
+                        {toolTip.tool_name}
+                    </span>
+                </AnimatedShinyText>
+            );
+        }) || []
     );
 }

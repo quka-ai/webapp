@@ -5,13 +5,11 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 
 import { GetKnowledge, type Knowledge } from '@/apis/knowledge';
-import { type Resource } from '@/apis/resource';
 import { CreateKnowledgeShareURL } from '@/apis/share';
 import KnowledgeDeletePopover from '@/components/knowledge-delete-popover';
 import KnowledgeEdit, { KnwoledgeEditorRefObject } from '@/components/knowledge-edit';
 import KnowledgeView from '@/components/knowledge-view';
 import ShareButton from '@/components/share-button';
-import { useMedia } from '@/hooks/use-media';
 import { usePlan } from '@/hooks/use-plan';
 import { useRole } from '@/hooks/use-role';
 import resourceStore, { loadSpaceResource } from '@/stores/resource';
@@ -27,27 +25,24 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
     const { t } = useTranslation();
     const [knowledge, setKnowledge] = useState<Knowledge>();
     const [isEdit, setIsEdit] = useState(false);
-    const { isMobile } = useMedia();
-    const [canEsc, setCanEsc] = useState(true);
     const { isSpaceViewer } = useRole();
-    const { spaceID, knowledgeID } = useParams();
+    const { spaceID, knowledgeID } = useParams<{ spaceID: string; knowledgeID: string }>();
     const navigate = useNavigate();
-    const [isLoading, setIsLoading] = useState(false);
 
     async function loadKnowledge(id: string) {
-        setIsLoading(true);
         try {
-            const resp = await GetKnowledge(spaceID, id);
+            const resp = await GetKnowledge(spaceID!, id, false);
 
             setKnowledge(resp);
         } catch (e: any) {
             console.error(e);
         }
-        setIsLoading(false);
     }
 
     useEffect(() => {
-        loadKnowledge(knowledgeID);
+        if (knowledgeID) {
+            loadKnowledge(knowledgeID);
+        }
     }, [knowledgeID]);
 
     const { spaces, currentSelectedSpace } = useSnapshot(spaceStore);
@@ -60,24 +55,16 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
         const newState = !isEdit;
 
         setIsEdit(newState);
-        setCanEsc(!newState);
     }, [isEdit]);
 
     const { currentSpaceResources } = useSnapshot(resourceStore);
-    const reloadSpaceResource = useCallback(async (spaceID: string) => {
-        try {
-            await loadSpaceResource(spaceID);
-        } catch (e: any) {
-            console.error(e);
-        }
-    }, []);
 
     useEffect(() => {
         if (spaces.length > 0 && currentSelectedSpace !== spaceID) {
-            setCurrentSelectedSpace(spaceID);
+            setCurrentSelectedSpace(spaceID!);
         }
         if (!currentSpaceResources) {
-            loadSpaceResource(spaceID);
+            loadSpaceResource(spaceID!);
         }
     }, [spaceID, spaces, currentSpaceResources, currentSelectedSpace]);
 
@@ -86,22 +73,19 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
             return '';
         }
 
-        const resource = currentSpaceResources.find((v: Resource) => v.id === knowledge.resource);
+        const resource = currentSpaceResources.find((v: any) => v.id === knowledge.resource);
 
         return resource ? resource.title : knowledge.resource;
     }, [knowledge, currentSpaceResources]);
 
     const editor = useRef<KnwoledgeEditorRefObject>();
-    const [saveLoading, setSaveLoading] = useState(false);
     const submit = useCallback(async () => {
         if (editor.current) {
-            setSaveLoading(true);
             try {
                 await editor.current.submit();
             } catch (e: any) {
                 console.error(e);
             }
-            setSaveLoading(false);
         }
     }, [editor]);
 
@@ -152,13 +136,14 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                                         return res.url;
                                     } catch (e: any) {
                                         console.error(e);
+                                        return '';
                                     }
                                 }}
                             />
                         )}
                     </div>
                     <div className="w-full overflow-hidden p-4">
-                        {isEdit ? <KnowledgeEdit ref={editor} hideSubmit classNames={{ editor: '!mx-0' }} knowledge={knowledge} /> : <KnowledgeView knowledge={knowledge} />}
+                        {isEdit ? <KnowledgeEdit ref={editor} hideSubmit classNames={{ base: '', editor: '!mx-0' }} spaceID={knowledge.space_id} knowledge={knowledge} /> : <KnowledgeView knowledge={knowledge} />}
                     </div>
                     <div className="fixed w-full left-0 bottom-0 min-h-14 flex justify-center items-center bg-content1 z-50 box-border">
                         {isSpaceViewer ? (
@@ -174,7 +159,6 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                                         } else if (knowledge.stage == 2) {
                                             return t('Embedding');
                                         }
-
                                         if (isEdit) {
                                             return t('View');
                                         } else {

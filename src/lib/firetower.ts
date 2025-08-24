@@ -15,7 +15,12 @@ function errorMessage(message: string) {
 export interface FireTowerMsg {
     topic: string;
     type: number;
-    data: any;
+    data: {
+        subject: string;
+        version?: string;
+        type: number;
+        data: any; // 这里可以是StreamMessage或其他类型
+    };
 }
 
 export class FireTower {

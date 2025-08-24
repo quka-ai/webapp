@@ -1,4 +1,4 @@
-import { avatar, Button, Input, Skeleton, Spacer, User } from '@heroui/react';
+import { Button, Input, Skeleton, Spacer } from '@heroui/react';
 import { cn } from '@heroui/react';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -105,7 +105,7 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
         let avatar = userInfo.avatar;
         if (avatarChanged) {
             const uploadResult = await new Promise((resolve, reject) => {
-                toast.promise(avatarUploader.current.handleSubmit, {
+                toast.promise((avatarUploader.current as any)?.handleSubmit, {
                     loading: t(`ImageUploading`),
                     success: data => {
                         resolve(data);
@@ -117,10 +117,10 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
                     }
                 });
             });
-            if (uploadResult.success) {
-                avatar = uploadResult.file.url;
+            if ((uploadResult as any).success) {
+                avatar = (uploadResult as any).file.url;
             } else {
-                toast.error(uploadResult.error);
+                toast.error((uploadResult as any).error);
                 return;
             }
         }
@@ -132,7 +132,9 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
                 userID: userInfo.userID,
                 email: email,
                 avatar: avatar,
-                userName: userName
+                userName: userName,
+                planID: userInfo.planID,
+                serviceMode: userInfo.serviceMode
             });
             setAvatarChanged(false);
             toast.success(t('Success'));
@@ -203,17 +205,15 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
                 <div>
                     <p className="text-base font-medium text-default-700">{t('Email Address')}</p>
                     <p className="mt-1 text-sm font-normal text-default-400">The email address associated with your account.</p>
-                    {email && (
-                        <Input
-                            className="mt-2"
-                            placeholder="Type your email"
-                            type="email"
-                            isInvalid={errorEmail.invalid}
-                            errorMessage={errorEmail.errorMessage}
-                            defaultValue={email}
-                            onValueChange={setEmail}
-                        />
-                    )}
+                    {email && <Input
+                        className="mt-2"
+                        placeholder="Type your email"
+                        type="email"
+                        isInvalid={errorEmail.invalid}
+                        errorMessage={errorEmail.errorMessage}
+                        defaultValue={email}
+                        onValueChange={setEmail}
+                    />}
                 </div>
                 <Spacer y={2} />
                 <Button isDisabled={disabled} className="mt-4 bg-default-foreground text-background" isLoading={loading} onPress={updateUserProfile}>

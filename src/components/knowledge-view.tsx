@@ -1,9 +1,8 @@
-import { Chip, ScrollShadow } from "@heroui/react";
+import { Chip, ScrollShadow } from '@heroui/react';
 import { memo } from 'react';
 
 import { Knowledge } from '@/apis/knowledge';
 import { Editor } from '@/components/editor/index';
-import knowledge from '@/pages/share/knowledge';
 
 export default memo(function KnowledgeView({ knowledge }: { knowledge: Knowledge }) {
     return (
@@ -27,7 +26,7 @@ export default memo(function KnowledgeView({ knowledge }: { knowledge: Knowledge
 
                     <div className="w-full flex-wrap">
                         {/* <Markdown className="w-full text-wrap break-words whitespace-pre-wrap text-gray-600 dark:text-gray-300">{knowledge.content}</Markdown> */}
-                        {knowledge.content && <Editor readOnly className="!mx-0" data={knowledge.blocks || knowledge.content} dataType={knowledge.content_type} />}
+                        {knowledge.content || (knowledge.blocks && <Editor readOnly className="!mx-0" data={knowledge.blocks || knowledge.content} dataType={knowledge.content_type} />)}
                     </div>
                 </div>
             </ScrollShadow>

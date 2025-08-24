@@ -1,6 +1,6 @@
 #!/bin/bash
 IMAGE_PROJECT=$1
-IMAGE_NAME=brew-fe
+IMAGE_NAME=quka-web
 VERSION=$2
 
 # Make full image name

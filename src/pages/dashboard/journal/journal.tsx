@@ -273,10 +273,10 @@ export default function Component() {
             <div className="flex flex-col gap-6 overflow-y-auto pb-16">
                 <div className="mx-auto relative">
                     <Calendar
-                        aria-label="Date (Max Date Value)"
                         value={currentSelectedDate}
-                        minValue={today(getLocalTimeZone()).add({ days: -31 })}
-                        maxValue={today(getLocalTimeZone())}
+                        firstDayOfWeek="sun"
+                        minValue={today(getLocalTimeZone()).add({ days: -32 })}
+                        maxValue={today(getLocalTimeZone()).add({ days: 7 })}
                         onChange={v => {
                             redirectTo(v);
                         }}
@@ -435,7 +435,7 @@ export default function Component() {
                                 <Icon icon="solar:menu-dots-bold" width={24} />
                             </Button>
                         </PopoverTrigger>
-                        <PopoverContent className="fle-col flex max-h-[40vh] w-[300px] justify-start gap-3 overflow-scroll p-4">{controlsContent}</PopoverContent>
+                        <PopoverContent className="fle-col flex max-h-[40vh] w-[300px] justify-start gap-3 overflow-scroll p-4 border-1 border-default-200">{controlsContent}</PopoverContent>
                     </Popover>
                 </div>
                 <div className="flex items-center gap-2">

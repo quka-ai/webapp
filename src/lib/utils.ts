@@ -54,3 +54,26 @@ export function randomString(e) {
     for (let i = 0; i < e; i++) n += t.charAt(Math.floor(Math.random() * a));
     return n;
 }
+
+/**
+ * 处理用户头像URL
+ * 如果头像不存在或只有路径（没有host），则使用默认头像
+ * @param avatar - 原始头像URL
+ * @param userId - 用户ID，用于生成fallback头像
+ * @param useStaticFallback - 是否使用静态默认头像，false则使用动态生成的头像
+ * @returns 处理后的头像URL
+ */
+export function processAvatarUrl(avatar: string | null | undefined, userId: string, useStaticFallback: boolean = false): string {
+    // 如果头像不存在，使用fallback
+    if (!avatar || avatar.startsWith('/') || !avatar.includes('://')) {
+        return useStaticFallback ? '/image/default_avatar.png' : `https://avatar.vercel.sh/${userId}`;
+    }
+
+    // 如果头像是完整URL（包含协议），直接返回
+    if (avatar.startsWith('http://') || avatar.startsWith('https://')) {
+        return avatar;
+    }
+
+    // 其他情况直接返回
+    return avatar;
+}

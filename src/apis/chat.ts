@@ -2,6 +2,8 @@ import instance from './request';
 
 export interface ChatMessageExt {
     rel_docs: RelDoc[];
+    tool_name: string;
+    tool_args: string;
 }
 
 export interface RelDoc {
@@ -15,6 +17,10 @@ export async function GetMessageExt(spaceID: string, sessionID: string, messageI
     const resp = await instance.get(`/${spaceID}/chat/${sessionID}/message/${messageID}/ext`);
 
     return resp.data.data;
+}
+
+export async function StopChatStream(spaceID: string, sessionID: string): Promise<void> {
+    await instance.post(`/${spaceID}/chat/${sessionID}/stop`);
 }
 
 export async function CreateChatSession(spaceID: string): Promise<string> {
@@ -72,15 +78,17 @@ export interface MessageDetail {
         rel_docs: RelDoc[];
         evaluate: number;
         is_evaluate_enable: boolean;
+        tool_name: string;
+        tool_args: string;
     };
 }
 
-export async function GetChatSessionHistory(spaceID: string, sessionID: string, afterMsgID: string = '', page: number, pageSize: number): Promise<ChatMessageList> {
+export async function GetChatSessionHistory(spaceID: string, sessionID: string, afterSequence: number = 0, page: number, pageSize: number): Promise<ChatMessageList> {
     const resp = await instance.get(`/${spaceID}/chat/${sessionID}/history/list`, {
         params: {
             page: page,
             pagesize: pageSize,
-            after_message_id: afterMsgID
+            after_sequence: afterSequence
         }
     });
 
@@ -97,6 +105,9 @@ export interface SendMessageArgs {
     messageID: string;
     message: string;
     agent: string;
+    enableThinking: boolean;
+    enableSearch: boolean;
+    enableKnowledge: boolean;
     files?: Attach[];
 }
 
@@ -109,7 +120,10 @@ export async function SendMessage(spaceID: string, sessionID: string, args: Send
         message_id: args.messageID,
         message: args.message,
         agent: args.agent,
-        files: args.files
+        files: args.files,
+        enable_thinking: args.enableThinking,
+        enable_search: args.enableSearch,
+        enable_knowledge: args.enableKnowledge
     });
 
     return resp.data.data;

@@ -3,11 +3,8 @@ import {
     Breadcrumbs,
     Button,
     ButtonGroup,
-    Card,
-    CardHeader,
     Code,
     Divider,
-    Image,
     Input,
     Kbd,
     Link,
@@ -16,7 +13,6 @@ import {
     ModalContent,
     ModalFooter,
     ModalHeader,
-    Select,
     Textarea,
     useDisclosure
 } from '@heroui/react';
@@ -32,14 +28,17 @@ import { FilePreview, FileUploader } from './file-uploader';
 import KnowledgeEdit, { KnwoledgeEditorRefObject } from './knowledge-edit';
 
 import { CreateFileChunkTask } from '@/apis/chunk-task';
-import { CreateKnowledge } from '@/apis/knowledge';
+import { CreateKnowledge, Knowledge } from '@/apis/knowledge';
 import { Reader } from '@/apis/tools';
 import { useMedia } from '@/hooks/use-media';
 import { usePlan } from '@/hooks/use-plan';
 import { useUploader } from '@/hooks/use-uploader';
-import knowledge from '@/pages/share/knowledge';
 import resourceStore from '@/stores/resource';
 import spaceStore from '@/stores/space';
+
+export interface WorkBarRef {
+    showCreateModal: () => void;
+}
 
 export interface WorkBarProps {
     spaceid: string;
@@ -48,7 +47,7 @@ export interface WorkBarProps {
     onShowChange?: (isShow: boolean) => void;
 }
 
-const WorkBar = memo(function WorkBar({ spaceid, onSubmit, isShowCreate, onShowChange }: WorkBarProps) {
+const WorkBar = memo(forwardRef<WorkBarRef, WorkBarProps>(function WorkBar({ onSubmit, isShowCreate = true, onShowChange }, ref) {
     const { t } = useTranslation();
 
     const { currentSelectedSpace } = useSnapshot(spaceStore);
@@ -102,16 +101,22 @@ const WorkBar = memo(function WorkBar({ spaceid, onSubmit, isShowCreate, onShowC
     const [readEndpoint, setReadEndpoint] = useState('');
     const [readLoading, setReadLoading] = useState(false);
     const reader = useCallback(
-        async e => {
+        async (e: any) => {
             e.preventDefault(); // 阻止表单默认刷新行为
             setReadLoading(true);
             try {
                 const resp = await Reader(readEndpoint);
-                if (resp.warning && resp.warning.length > 0) {
-                    setKnowledgeContent(resp.warning);
-                } else {
-                    setKnowledgeContent([resp.url, resp.title, resp.description, resp.content].join('\n\n'));
+                switch (resp.type) {
+                    case "ai":
+                        const data = resp.ai_result
+                        if (data.warning && data.warning.length > 0) {
+                            setKnowledgeContent(data.warning);
+                        } else {
+                            setKnowledgeContent(["URL: " + data.url, data.title, data.description, data.content].join('\n\n'));
+                        }
+                    break;
                 }
+                
                 setReadEndpoint('');
             } catch (e: any) {
                 console.error(e);
@@ -121,7 +126,7 @@ const WorkBar = memo(function WorkBar({ spaceid, onSubmit, isShowCreate, onShowC
         [readEndpoint]
     );
 
-    const knowledgeModal = useRef<{ show: ({ space_id: string }) => void }>(null);
+    const knowledgeModal = useRef<{ show: (knowledge: { space_id: string }) => void }>(null);
     const [knowledgeIsShow, setKnowledgeIsShow] = useState(false);
     const showCreate = useCallback(() => {
         if (knowledgeModal && knowledgeModal.current) {
@@ -129,21 +134,16 @@ const WorkBar = memo(function WorkBar({ spaceid, onSubmit, isShowCreate, onShowC
                 space_id: currentSelectedSpace
             });
             setKnowledgeIsShow(true);
-            onShowChange(true);
+            onShowChange?.(true);
         }
     }, [knowledgeModal, currentSelectedSpace]);
 
-    useEffect(() => {
-        if (knowledgeModal && knowledgeModal.current && isShowCreate) {
-            knowledgeModal.current.show({
-                space_id: currentSelectedSpace
-            });
-            setKnowledgeIsShow(true);
-        }
-    }, [isShowCreate, knowledgeModal]);
+    useImperativeHandle(ref, () => ({
+        showCreateModal: showCreate
+    }), [showCreate]);
 
     useEffect(() => {
-        if (isMobile) {
+        if (isMobile || !isShowCreate) {
             return;
         }
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -161,7 +161,7 @@ const WorkBar = memo(function WorkBar({ spaceid, onSubmit, isShowCreate, onShowC
         return () => {
             document.removeEventListener('keydown', handleKeyDown);
         };
-    }, [isMobile, currentSelectedSpace]);
+    }, [isMobile, isShowCreate, knowledgeIsShow, showCreate]);
 
     return (
         <div className="w-full flex flex-col gap-2 py-6 ">
@@ -201,23 +201,25 @@ const WorkBar = memo(function WorkBar({ spaceid, onSubmit, isShowCreate, onShowC
                                     </div>
                                 ) : (
                                     <>
-                                        <div className="absolute top-2 right-2">
-                                            <Button
-                                                variant="faded"
-                                                size="sm"
-                                                isLoading={isLoading}
-                                                onPress={e => {
-                                                    if (isMobile) {
-                                                        navigate(`/dashboard/${currentSelectedSpace}/knowledge/create`);
-                                                    } else {
-                                                        showCreate();
-                                                    }
-                                                }}
-                                                endContent={<Kbd keys={['command']}>B</Kbd>}
-                                            >
-                                                🤔 {t('OpenRichText')}
-                                            </Button>
-                                        </div>
+                                        {isShowCreate && (
+                                            <div className="absolute top-2 right-2">
+                                                <Button
+                                                    variant="faded"
+                                                    size="sm"
+                                                    isLoading={isLoading}
+                                                    onPress={() => {
+                                                        if (isMobile) {
+                                                            navigate(`/dashboard/${currentSelectedSpace}/knowledge/create`);
+                                                        } else {
+                                                            showCreate();
+                                                        }
+                                                    }}
+                                                    endContent={<Kbd keys={['command']}>B</Kbd>}
+                                                >
+                                                    🤔 {t('OpenRichText')}
+                                                </Button>
+                                            </div>
+                                        )}
                                     </>
                                 )}
                             </>
@@ -237,10 +239,10 @@ const WorkBar = memo(function WorkBar({ spaceid, onSubmit, isShowCreate, onShowC
 
                     <CreateKnowledgeModal
                         ref={knowledgeModal}
-                        onChange={onSubmit}
+                        onChange={onSubmit || (() => {})}
                         onClose={() => {
                             setKnowledgeIsShow(false);
-                            onShowChange(false);
+                            onShowChange?.(false);
                         }}
                     />
                 </div>
@@ -250,21 +252,21 @@ const WorkBar = memo(function WorkBar({ spaceid, onSubmit, isShowCreate, onShowC
             </div>
         </div>
     );
-});
+}));
 
 export default WorkBar;
 
 const FileTask = memo(function FileTask() {
     const { t } = useTranslation();
     function init() {
-        setChunkFile({});
+        setChunkFile({} as { name: string; url: string; file: File });
         setFileMeta('');
     }
 
     const { currentSelectedSpace } = useSnapshot(spaceStore);
     const { currentSelectedResource } = useSnapshot(resourceStore);
 
-    const [chunkFile, setChunkFile] = useState<{ name: string; url: string; file: File }>({});
+    const [chunkFile, setChunkFile] = useState<{ name: string; url: string; file: File }>({} as { name: string; url: string; file: File });
     const [fileMeta, setFileMeta] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     async function createChunkTask() {
@@ -275,7 +277,7 @@ const FileTask = memo(function FileTask() {
         if (chunkFile.url !== '') {
             setIsLoading(true);
             try {
-                await CreateFileChunkTask(currentSelectedSpace, fileMeta, currentSelectedResource?.id, chunkFile.name, chunkFile.url);
+                await CreateFileChunkTask(currentSelectedSpace, fileMeta, currentSelectedResource?.id || '', chunkFile.name, chunkFile.url);
                 toast.success(t('fileMemoryTaskCreated'));
                 init();
             } catch (e: any) {
@@ -288,13 +290,8 @@ const FileTask = memo(function FileTask() {
 
     const { uploader } = useUploader();
 
-    const { isMobile } = useMedia();
     const [isShowTaskList, setIsShowTaskList] = useState(false);
-    const { userIsPro, isPlatform } = usePlan();
-
-    if (!isPlatform) {
-        return <></>;
-    }
+    const { userIsPro } = usePlan();
 
     return (
         <>
@@ -325,8 +322,8 @@ const FileTask = memo(function FileTask() {
                             const resp = await uploader(currentSelectedSpace, f[0], 'knowledge', 'chunk');
                             if (resp.success) {
                                 setChunkFile({
-                                    name: resp.file?.name,
-                                    url: resp.file?.url,
+                                    name: resp.file?.name || '',
+                                    url: resp.file?.url || '',
                                     file: f[0]
                                 });
                             }
@@ -351,9 +348,9 @@ const FileTask = memo(function FileTask() {
                 <>
                     <span className="text-white my-2">{t('AIAutoChunkDescription')}</span>
                     <FilePreview
-                        file={chunkFile.file}
+                        file={chunkFile.file as File & { preview: string }}
                         onRemove={() => {
-                            setChunkFile({});
+                            setChunkFile({} as { name: string; url: string; file: File });
                         }}
                     />
                     <Divider className="my-2" />
@@ -397,7 +394,7 @@ const CreateKnowledgeModal = memo(
     forwardRef((props: CreateKnowledgeModalProps, ref: any) => {
         const { t } = useTranslation();
         const { isOpen, onOpen, onClose } = useDisclosure();
-        const [knowledge, setKnowledge] = useState<Knowledge>();
+        const [knowledge, setKnowledge] = useState<Knowledge | undefined>();
         const [size, setSize] = useState<Size>('md');
         const isMobile = useMedia();
         const { currentSelectedSpace } = useSnapshot(spaceStore);
@@ -417,8 +414,8 @@ const CreateKnowledgeModal = memo(
             }
         }, [isMobile]);
 
-        function show(knowledge: Knowledge) {
-            setKnowledge(knowledge);
+        function show(knowledge: { space_id: string }) {
+            setKnowledge(knowledge as Knowledge);
             onOpen();
         }
 
@@ -456,7 +453,9 @@ const CreateKnowledgeModal = memo(
         const submit = useCallback(async () => {
             try {
                 setCreateLoading(true);
-                editor.current && await editor.current.submit();
+                if (editor.current) {
+                    editor.current.submit();
+                }
             } catch (e: any) {
                 console.error(e);
             }
@@ -477,7 +476,7 @@ const CreateKnowledgeModal = memo(
                                     </Breadcrumbs>
                                 </ModalHeader>
                                 <ModalBody className="w-full flex flex-col items-center">
-                                    <KnowledgeEdit ref={editor} hideSubmit classNames={{ editor: '!mx-0' }} knowledge={knowledge} onChange={onChangeFunc} onCancel={onCancelFunc} />
+                                    <KnowledgeEdit ref={editor} hideSubmit classNames={{ editor: '!mx-0', base: '' }} spaceID={currentSelectedSpace} knowledge={knowledge} onChange={onChangeFunc} onCancel={onCancelFunc} />
                                 </ModalBody>
                                 <ModalFooter className="flex justify-center">
                                     <ButtonGroup variant="flat" size="md" className="mb-4">

@@ -8,7 +8,6 @@ import { useSnapshot } from 'valtio';
 
 import { CreateSessionShareURL } from '@/apis/share';
 import KnowledgeDrawerButton, { KnowledgeDrawerContext } from '@/components/knowledge-drawer';
-import ManageSpaceComponent from '@/components/manage-space';
 import ResourceManage from '@/components/resource-modal';
 import ShareButton, { useShare } from '@/components/share-button';
 import { useChatPageCondition } from '@/hooks/use-chat-page';

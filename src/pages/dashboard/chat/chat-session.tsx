@@ -6,7 +6,7 @@ import runes from 'runes';
 import { useImmer } from 'use-immer';
 import { useSnapshot } from 'valtio';
 
-import { GenChatMessageID, GetChatSessionHistory, GetMessageExt, MessageDetail, NamedChatSession, SendMessage } from '@/apis/chat';
+import { GenChatMessageID, GetChatSessionHistory, GetMessageExt, MessageDetail, NamedChatSession, SendMessage, StopChatStream } from '@/apis/chat';
 import KnowledgeModal from '@/components/knowledge-modal';
 import { LogoIcon } from '@/components/logo';
 import { useMedia } from '@/hooks/use-media';
@@ -17,7 +17,7 @@ import PromptInputWithEnclosedActions from '@/pages/dashboard/chat/prompt-input-
 import { notifySessionNamedEvent, notifySessionReload } from '@/stores/session';
 import socketStore, { CONNECTION_OK } from '@/stores/socket';
 import spaceStore from '@/stores/space';
-import { EventType } from '@/types/chat';
+import { EventType, MessageType, StreamMessage, ToolStatus, ToolTips } from '@/types/chat';
 
 interface Message {
     key: string;
@@ -29,6 +29,7 @@ interface Message {
     attach?: Attach[];
     ext?: MessageExt;
     len?: number;
+    toolTips?: ToolTips[];
 }
 
 interface MessageEvent {
@@ -39,13 +40,14 @@ interface MessageEvent {
     sessionID?: string;
     startAt?: number;
     sequence?: number;
+    toolTips?: ToolTips[];
 }
 
 function delay(ms: number) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-const messageDaemon: Map<string, number> = new Map();
+const messageDaemon: Map<string, NodeJS.Timeout> = new Map();
 
 function setMessageDaemon(messageID: string, callback: () => void) {
     const existInterval = messageDaemon.get(messageID);
@@ -73,7 +75,7 @@ export default function Chat() {
     const { currentSelectedSpace } = useSnapshot(spaceStore);
     const userAvatar = useUserAvatar();
     const { sessionID } = useParams();
-    const pageSize: number = 20;
+    const pageSize: number = 100;
     const [page, setPage] = useState<number>(1);
     // const [onEvent, setEvent] = useState<FireTowerMsg | null>();
     const { subscribe, connectionStatus } = useSnapshot(socketStore);
@@ -103,7 +105,9 @@ export default function Chat() {
 
                     if (todo) {
                         todo.ext = {
-                            relDocs: resp.rel_docs
+                            relDocs: resp.rel_docs,
+                            toolName: resp.tool_name,
+                            toolArgs: resp.tool_args
                         };
                     }
                 });
@@ -155,17 +159,33 @@ export default function Chat() {
                     }
                     const data = queue.shift();
 
-                    if (!data || (data.type !== EventType.EVENT_ASSISTANT_INIT && messages.find(v => v.key === data.messageID))) {
-                        data && queue.unshift(data);
+                    if (!data) {
                         break;
                     }
 
                     switch (data.type) {
+                        case EventType.EVENT_TOOL_INIT:
+                            setMessages((prev: Message[]) => {
+                                prev.push({
+                                    key: data.messageID,
+                                    spaceID: data.spaceID || currentSelectedSpace,
+                                    message: '',
+                                    role: 'tool',
+                                    status: 'continue',
+                                    sequence: data.sequence || 0,
+                                    len: 0,
+                                    ext: {}
+                                });
+                            });
+
+                            setMessageDaemon(data.messageID, reloadFunc);
+                            break;
                         case EventType.EVENT_ASSISTANT_INIT:
                             setAiTyping(false);
                             if (messages.find(v => v.key === data.messageID)) {
                                 break;
                             }
+
                             setMessages((prev: Message[]) => {
                                 prev.push({
                                     key: data.messageID,
@@ -200,11 +220,11 @@ export default function Chat() {
 
                                     todo.message += char.join('');
                                     if (!todo.len) {
-                                        todo.len = 0
+                                        todo.len = 0;
                                     }
                                     todo.len += char.length;
                                     if (!data.startAt) {
-                                        data.startAt = 0
+                                        data.startAt = 0;
                                     }
                                     data.startAt += char.length;
                                 });
@@ -221,6 +241,7 @@ export default function Chat() {
 
                             break;
                         case EventType.EVENT_ASSISTANT_DONE:
+                            setAiTyping(false);
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
                                 if (!todo || todo.len !== data.startAt) {
@@ -232,6 +253,42 @@ export default function Chat() {
                                 }
                             });
                             // todo load this message exts
+                            removeMessageDaemon(data.messageID);
+                            break;
+                        case EventType.EVENT_TOOL_CONTINUE:
+                            setMessages((prev: Message[]) => {
+                                const todo = prev.find(todo => todo.key === data.messageID);
+                                if (!todo) {
+                                    return;
+                                }
+                                todo.toolTips = data.toolTips;
+                            });
+                            break;
+                        case EventType.EVENT_TOOL_DONE:
+                            setMessages((prev: Message[]) => {
+                                const todo = prev.find(todo => todo.key === data.messageID);
+                                if (!todo || !todo.toolTips) {
+                                    return;
+                                }
+
+                                todo.toolTips.forEach(toolTip => {
+                                    toolTip.status = ToolStatus.TOOL_STATUS_SUCCESS;
+                                });
+                            });
+                            removeMessageDaemon(data.messageID);
+                            break;
+                        case EventType.EVENT_TOOL_FAILED:
+                            setMessages((prev: Message[]) => {
+                                const todo = prev.find(todo => todo.key === data.messageID);
+                                if (!todo || !todo.toolTips) {
+                                    reloadFunc();
+                                    return;
+                                }
+
+                                todo.toolTips.forEach(toolTip => {
+                                    toolTip.status = ToolStatus.TOOL_STATUS_FAILED;
+                                });
+                            });
                             removeMessageDaemon(data.messageID);
                             break;
                         case EventType.EVENT_ASSISTANT_FAILED:
@@ -247,6 +304,7 @@ export default function Chat() {
                             });
                             removeMessageDaemon(data.messageID);
                             break;
+
                         default:
                     }
 
@@ -269,76 +327,81 @@ export default function Chat() {
             }
 
             const { type, data } = msg.data;
+            const streamData = data as StreamMessage;
 
             switch (type) {
                 case EventType.EVENT_ASSISTANT_INIT:
+                case EventType.EVENT_TOOL_INIT:
                     queue.push({
-                        messageID: data.message_id,
-                        type: EventType.EVENT_ASSISTANT_INIT,
+                        messageID: streamData.message_id,
+                        type: type,
                         startAt: 0,
-                        sequence: data.sequence,
-                        spaceID: data.space_id,
-                        sessionID: data.session_id,
+                        sequence: data.sequence, // sequence不在StreamMessage中，保持使用data
+                        spaceID: data.space_id, // space_id不在StreamMessage中，保持使用data
+                        sessionID: streamData.session_id,
                         message: ''
                     });
-                    // setMessages((prev: Message[]): Message[] => {
-                    //     prev.push({
-                    //         key: data.message_id,
-                    //         message: '',
-                    //         role: 'assistant',
-                    //         status: 'continue',
-                    //         sequence: data.sequence,
-                    //         loading: true
-                    //     });
-                    // });
                     break;
                 case EventType.EVENT_ASSISTANT_CONTINUE:
-                    queue.push({
-                        messageID: data.message_id,
-                        type: EventType.EVENT_ASSISTANT_CONTINUE,
-                        startAt: data.start_at,
-                        message: data.message
-                    });
-                    // setMessages((prev: Message[]) => {
-                    //     const todo = prev.find(todo => todo.key === data.message_id);
-                    //     if (!todo) {
-                    //     }
-                    //     if (todo?.message.length !== data.start_at) {
-                    //         console.warn('reload history');
-                    //     }
-                    //     todo.message += data.message;
-                    // });
+                case EventType.EVENT_TOOL_CONTINUE:
+                    if (streamData.msg_type === MessageType.MESSAGE_TYPE_TOOL_TIPS) {
+                        const newToolTips: ToolTips[] = [];
+                        if (streamData.tool_tips) {
+                            streamData.tool_tips.status = ToolStatus.TOOL_STATUS_RUNNING;
+                            newToolTips.push(streamData.tool_tips);
+                        }
+
+                        queue.push({
+                            messageID: streamData.message_id,
+                            type: type,
+                            startAt: streamData.start_at,
+                            toolTips: newToolTips,
+                            message: ''
+                        });
+                        // 可以在这里处理tool tips相关逻辑
+                    } else {
+                        queue.push({
+                            messageID: streamData.message_id,
+                            type: type,
+                            startAt: streamData.start_at,
+                            message: streamData.message || ''
+                        });
+                    }
                     break;
                 case EventType.EVENT_ASSISTANT_DONE:
                     queue.push({
-                        messageID: data.message_id,
-                        type: EventType.EVENT_ASSISTANT_DONE,
-                        startAt: data.start_at,
+                        messageID: streamData.message_id,
+                        type: type,
+                        startAt: streamData.start_at,
                         message: ''
                     });
-                    // setMessages((prev: Message[]) => {
-                    //     const todo = prev.find(todo => todo.key === data.message_id);
-
-                    //     if (todo?.message.length !== data.start_at) {
-                    //         console.warn('reload history');
-                    //     } else {
-                    //         todo.status = 'success';
-                    //     }
-                    // });
                     // todo load this message exts
                     break;
-                case EventType.EVENT_ASSISTANT_FAILED:
+                case EventType.EVENT_TOOL_DONE:
+                    const newToolTips: ToolTips[] = [];
+                    if (streamData.tool_tips) {
+                        streamData.tool_tips.content = '';
+                        streamData.tool_tips.status = ToolStatus.TOOL_STATUS_SUCCESS;
+                        newToolTips.push(streamData.tool_tips);
+                    }
+
                     queue.push({
-                        messageID: data.message_id,
-                        type: EventType.EVENT_ASSISTANT_FAILED,
+                        messageID: streamData.message_id,
+                        type: type,
+                        startAt: streamData.start_at,
+                        toolTips: newToolTips,
+                        message: ''
+                    });
+                    // 可以在这里处理tool tips相关逻辑
+                    break;
+                case EventType.EVENT_ASSISTANT_FAILED:
+                case EventType.EVENT_TOOL_FAILED:
+                    queue.push({
+                        messageID: streamData.message_id,
+                        type: type,
                         startAt: 0,
                         message: ''
                     });
-                    // setMessages((prev: Message[]) => {
-                    //     const todo = prev.find(todo => todo.key === data.message_id);
-
-                    //     todo.status = 'failed';
-                    // });
                     break;
             }
         });
@@ -355,7 +418,7 @@ export default function Chat() {
                 return;
             }
             try {
-                const resp = await GetChatSessionHistory(currentSelectedSpace, sessionID, '', page, pageSize);
+                const resp = await GetChatSessionHistory(currentSelectedSpace, sessionID, 0, page, pageSize);
 
                 setPage(page);
                 if (page * pageSize >= resp.total) {
@@ -367,16 +430,33 @@ export default function Chat() {
                 const newMsgs =
                     resp.list &&
                     resp.list.map((v: MessageDetail): Message => {
+                        let role = '';
+                        switch (v.meta.role) {
+                            case 1:
+                                role = 'user';
+                                break;
+                            case 2:
+                                role = 'assistant';
+                                break;
+                            case 4:
+                                role = 'tool';
+                                break;
+                            default:
+                                role = 'assistant';
+                                break;
+                        }
                         return {
                             key: v.meta.message_id,
                             message: v.meta.message.text,
-                            role: v.meta.role === 1 ? 'user' : 'assistant',
+                            role: role,
                             status: v.meta.complete !== 4 ? 'success' : 'failed',
                             sequence: v.meta.sequence,
                             spaceID: currentSelectedSpace,
                             attach: v.meta.attach,
                             ext: {
-                                relDocs: v.ext?.rel_docs
+                                relDocs: v.ext?.rel_docs,
+                                toolName: v.ext?.tool_name,
+                                toolArgs: v.ext?.tool_args
                             }
                         };
                     });
@@ -413,11 +493,11 @@ export default function Chat() {
         if (messages.length < 2 || messages[messages.length - 1].status === 'continue') {
             return true;
         }
-        return false
+        return false;
     }, [aiTyping, messages]);
 
     const query = useCallback(
-        async (message: string, agent: string, files?: Attach[]) => {
+        async (message: string, agent: string, args: ChatArgs, files?: Attach[]) => {
             if (!currentSelectedSpace || !sessionID) {
                 return;
             }
@@ -430,6 +510,9 @@ export default function Chat() {
                     messageID: msgID,
                     message: message,
                     agent: agent,
+                    enableThinking: args.enableThinking,
+                    enableSearch: args.enableSearch,
+                    enableKnowledge: args.enableKnowledge,
                     files: files
                 });
 
@@ -481,6 +564,9 @@ export default function Chat() {
     const navigate = useNavigate();
 
     const [selectedUseMemory, setSelectedUseMemory] = useState(localStorage.getItem('selectedUseMemory') === 'true');
+    const [selectedEnableThinking, setSelectedEnableThinking] = useState(localStorage.getItem('selectedEnableThinking') === 'true');
+    const [selectedEnableSearch, setSelectedEnableSearch] = useState(localStorage.getItem('selectedEnableSearch') === 'true');
+
     useEffect(() => {
         async function load() {
             setMessages([]);
@@ -490,9 +576,11 @@ export default function Chat() {
                 if (location.state && location.state.messages && location.state.messages.length === 1) {
                     NamedSession(location.state.messages[0].message);
                     setSelectedUseMemory(location.state.agent === 'rag');
-                    await query(location.state.messages[0].message, location.state.agent, location.state.files);
+                    setSelectedEnableThinking(location.state.args.enableThinking);
+                    setSelectedEnableSearch(location.state.args.enableSearch);
+                    await query(location.state.messages[0].message, location.state.agent, location.state.args, location.state.files);
                     location.state.messages = undefined;
-                    return
+                    return;
                 }
             }
             setAiTyping(false);
@@ -521,66 +609,91 @@ export default function Chat() {
 
     const { isMobile } = useMedia();
 
+    const stopChatStream = useCallback(async () => {
+        if (!currentSelectedSpace || !sessionID) {
+            return;
+        }
+        await StopChatStream(currentSelectedSpace, sessionID);
+    }, [currentSelectedSpace, sessionID]);
+
     return (
         <>
             <div className="overflow-hidden w-full h-full flex flex-col relative px-3">
                 <main className="h-full w-full relative gap-4 py-3 flex flex-col justify-center items-center">
                     <ScrollShadow ref={ssDom} hideScrollBar className="w-full py-6 flex-grow items-center">
-                        <div className="w-full m-auto max-w-[760px] overflow-hidden relative flex flex-col gap-4">
-                            {messages.map(({ key, role, message, attach, status, ext }) => (
+                        <div className="w-full m-auto max-w-[760px] overflow-hidden relative flex flex-col">
+                            {messages.map(({ key, role, message, attach, status, ext, toolTips }, index) => {
+                                const prevRole = index > 0 ? messages[index - 1].role : null;
+                                const shouldHaveNormalSpacing = role === 'user' || (role !== 'user' && prevRole === 'user');
+                                const marginClass = index === 0 ? '' : shouldHaveNormalSpacing ? 'mt-4' : 'mt-1';
+
+                                return (
+                                    <MessageCard
+                                        key={key}
+                                        className={marginClass}
+                                        avatar={role === 'assistant' ? <LogoIcon size={isMobile ? '30' : '38'} /> : <Avatar src={userAvatar} size={isMobile ? 'sm' : 'md'} />}
+                                        message={message}
+                                        attach={attach}
+                                        messageClassName={role === 'user' ? 'bg-content2 text-content2-foreground !py-3 w-full px-3' : 'px-1 w-full'}
+                                        // showFeedback={role === 'assistant'}
+                                        status={status}
+                                        ext={ext}
+                                        role={role}
+                                        toolTips={toolTips}
+                                        extContent={
+                                            role === 'assistant' &&
+                                            ext &&
+                                            ext.relDocs && (
+                                                <div className="mx-2 w-auto overflow-hidden">
+                                                    <Accordion isCompact variant="bordered">
+                                                        <AccordionItem
+                                                            key="1"
+                                                            aria-label="Relevance Detail"
+                                                            title={t('showRelevanceDocs')}
+                                                            classNames={{ title: 'dark:text-zinc-300 text-zinc-500 text-sm' }}
+                                                            className="overflow-hidden w-ful"
+                                                        >
+                                                            {ext.relDocs && (
+                                                                <Listbox
+                                                                    aria-label="rel docs"
+                                                                    title="docs id"
+                                                                    onAction={key => {
+                                                                        showKnowledge(key as string);
+                                                                    }}
+                                                                >
+                                                                    {ext.relDocs.map(v => {
+                                                                        return (
+                                                                            <ListboxItem
+                                                                                key={v.id}
+                                                                                aria-label={v.title}
+                                                                                className="overflow-hidden text-wrap break-words break-all flex flex-col items-start"
+                                                                            >
+                                                                                {v.title && <div>{v.title}</div>}
+                                                                                <div> {v.id}</div>
+                                                                            </ListboxItem>
+                                                                        );
+                                                                    })}
+                                                                </Listbox>
+                                                            )}
+                                                        </AccordionItem>
+                                                    </Accordion>
+                                                </div>
+                                            )
+                                        }
+                                    />
+                                );
+                            })}
+                            {aiTyping && (
                                 <MessageCard
-                                    key={key}
-                                    avatar={role === 'assistant' ? <LogoIcon size={isMobile ? '30' : '38'} /> : <Avatar src={userAvatar} size={isMobile ? 'sm' : 'md'} />}
-                                    message={message}
-                                    attach={attach}
-                                    messageClassName={role === 'user' ? 'bg-content2 text-content2-foreground !py-3 w-full px-3' : 'px-1 w-full'}
-                                    // showFeedback={role === 'assistant'}
-                                    status={status}
-                                    ext={ext}
-                                    role={role}
-                                    extContent={
-                                        role === 'assistant' &&
-                                        ext &&
-                                        ext.relDocs && (
-                                            <div className="mx-2 w-auto overflow-hidden">
-                                                <Accordion isCompact variant="bordered">
-                                                    <AccordionItem
-                                                        key="1"
-                                                        aria-label="Relevance Detail"
-                                                        title={t('showRelevanceDocs')}
-                                                        classNames={{ title: 'dark:text-zinc-300 text-zinc-500 text-sm' }}
-                                                        className="overflow-hidden w-ful"
-                                                    >
-                                                        {ext.relDocs && (
-                                                            <Listbox
-                                                                aria-label="rel docs"
-                                                                title="docs id"
-                                                                onAction={key => {
-                                                                    showKnowledge(key as string);
-                                                                }}
-                                                            >
-                                                                {ext.relDocs.map(v => {
-                                                                    return (
-                                                                        <ListboxItem
-                                                                            key={v.id}
-                                                                            aria-label={v.title}
-                                                                            className="overflow-hidden text-wrap break-words break-all flex flex-col items-start"
-                                                                        >
-                                                                            {v.title && <div>{v.title}</div>}
-                                                                            <div> {v.id}</div>
-                                                                        </ListboxItem>
-                                                                    );
-                                                                })}
-                                                            </Listbox>
-                                                        )}
-                                                    </AccordionItem>
-                                                </Accordion>
-                                            </div>
-                                        )
-                                    }
+                                    key="aiTyping"
+                                    className={messages.length > 0 && messages[messages.length - 1].role === 'user' ? 'mt-4' : 'mt-1'}
+                                    messageClassName="w-full"
+                                    isLoading
+                                    attempts={1}
+                                    currentAttempt={1}
+                                    message={''}
                                 />
-                            ))}
-                            {aiTyping && <MessageCard key="aiTyping" messageClassName="w-full" isLoading attempts={1} currentAttempt={1} message={''} />}
+                            )}
                         </div>
                         <div className="pb-40" />
                     </ScrollShadow>
@@ -596,9 +709,12 @@ export default function Chat() {
                             }}
                             placeholder={t('chatToAgent')}
                             selectedUseMemory={selectedUseMemory}
+                            selectedEnableSearch={selectedEnableSearch}
+                            selectedEnableThinking={selectedEnableThinking}
                             onSubmitFunc={query}
+                            onStopFunc={stopChatStream}
                         />
-                        <p className="p-2 text-center text-small font-medium leading-5 text-default-500">{t('chatNotice')}</p>
+                        <p className="text-center text-small font-medium leading-5 text-default-500">{t('chatNotice')}</p>
                     </div>
                 </main>
             </div>

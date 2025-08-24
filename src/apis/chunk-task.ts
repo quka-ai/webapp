@@ -24,7 +24,7 @@ export interface GetTaskListResponse {
 }
 
 export async function GetTaskList(spaceID: string, page: number, pagesize: number): Promise<GetTaskListResponse> {
-    const resp = await instance.get(`/${spaceID}/task/list`, {
+    const resp = await instance.get(`/space/${spaceID}/task/list`, {
         params: {
             page: page,
             pagesize: pagesize
@@ -34,13 +34,13 @@ export async function GetTaskList(spaceID: string, page: number, pagesize: numbe
 }
 
 export async function DeleteTask(spaceID: string, taskID: string): Promise<void> {
-    await instance.delete(`/${spaceID}/task/file-chunk`, {
+    await instance.delete(`/space/${spaceID}/task/file-chunk`, {
         data: { task_id: taskID }
     });
 }
 
 export async function CreateFileChunkTask(spaceID: string, meta: string, resource: string, fileName: string, fileURL: string): Promise<void> {
-    await instance.post(`/${spaceID}/task/file-chunk`, {
+    await instance.post(`/space/${spaceID}/task/file-chunk`, {
         meta_info: meta,
         resource: resource,
         file_name: fileName,
@@ -56,7 +56,7 @@ export interface TaskStatus {
 }
 
 export async function LoadTasksStatus(spaceID: string, taskIDs: string[]): Promise<TaskStatus[]> {
-    const resp = await instance.get(`/${spaceID}/task/status`, {
+    const resp = await instance.get(`/space/${spaceID}/task/status`, {
         params: {
             task_ids: taskIDs
         }

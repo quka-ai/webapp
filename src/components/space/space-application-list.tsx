@@ -1,4 +1,4 @@
-import { Button, Input, Popover, PopoverContent, PopoverTrigger, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, toastRegion, User } from '@heroui/react';
+import { Button, Input, Popover, PopoverContent, PopoverTrigger, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, User } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +25,7 @@ export function SpaceApplicationList({ spaceID }: SpaceUserProps) {
     const [isLoading, setIsLoading] = useState(true);
 
     const { t } = useTranslation();
+    const { t: tSpaceSetting } = useTranslation('space-setting');
 
     const [spaceUsers, setSpaceUsers] = useImmer<SpaceApplicationItem[]>([]);
     const [page, setPage] = useImmer(1);
@@ -145,7 +146,7 @@ export function SpaceApplicationList({ spaceID }: SpaceUserProps) {
                             <Popover showArrow offset={10}>
                                 <PopoverTrigger>
                                     <Button isDisabled={handling} size="sm" color="primary">
-                                        {t('space-setting.AllowApplication')}
+                                        {tSpaceSetting('AllowApplication')}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent>
@@ -168,7 +169,7 @@ export function SpaceApplicationList({ spaceID }: SpaceUserProps) {
                             <Popover showArrow offset={10}>
                                 <PopoverTrigger>
                                     <Button isDisabled={handling} size="sm" variant="ghost">
-                                        {t('space-setting.RejectApplication')}
+                                        {tSpaceSetting('RejectApplication')}
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent>
@@ -230,10 +231,10 @@ export function SpaceApplicationList({ spaceID }: SpaceUserProps) {
                     <div className="flex justify-between items-center w-full gap-4">
                         <div className="flex gap-2">
                             <Button isDisabled={handling} color="primary" size="sm">
-                                {t('space-setting.AllowAllApplications')}
+                                {tSpaceSetting('AllowAllApplications')}
                             </Button>
                             <Button isDisabled={handling} color="warning" size="sm">
-                                {t('space-setting.RejectAllApplications')}
+                                {tSpaceSetting('RejectAllApplications')}
                             </Button>
                         </div>
                         <Input
@@ -245,7 +246,7 @@ export function SpaceApplicationList({ spaceID }: SpaceUserProps) {
                                 input: 'text-small',
                                 inputWrapper: 'h-full rounded-xl font-normal text-default-500'
                             }}
-                            placeholder={t('space-setting.ApplicationSearchPlaceholder')}
+                            placeholder={tSpaceSetting('ApplicationSearchPlaceholder')}
                             size="sm"
                             startContent={<Icon className="text-default-500" icon="solar:magnifer-linear" width={18} />}
                             type="search"

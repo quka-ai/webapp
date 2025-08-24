@@ -1,5 +1,3 @@
-import { TokensIcon } from '@radix-ui/react-icons';
-
 import instance from './request';
 
 export interface LoginResponse {

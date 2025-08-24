@@ -201,5 +201,9 @@
     "MemoryUploadSize": "ファイルサイズは{{size}}以下である必要があります",
     "DropZoneDescription": "ここにファイルをドロップするか、クリックしてアップロード",
     "DropHere": "ここにドロップ",
-    "SystemError": "システムエラー"
+    "SystemError": "システムエラー",
+    "UseSearch": "検索を使用",
+    "UseMemory": "記憶を使用",
+    "AI Model Management": "AIモデル管理",
+    "User Management": "ユーザー管理"
 }

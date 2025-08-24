@@ -12,10 +12,10 @@ import spaceStore from '@/stores/space';
 export default function Chat() {
     const navigate = useNavigate();
     const { currentSelectedSpace } = useSnapshot(spaceStore);
-    const [ isLoading, setIsLoading ] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
 
-    const onSubmit = useCallback<(msg: string, agent: string, files?: Attach[]) => Promise<void>>(
-        async (message: string, agent: string, files?: Attach[]) => {
+    const onSubmit = useCallback<(msg: string, agent: string, args: ChatArgs, files?: Attach[]) => Promise<void>>(
+        async (message: string, agent: string, args: ChatArgs, files?: Attach[]) => {
             if (!currentSelectedSpace) {
                 throw new Error('uninited');
             }
@@ -25,7 +25,6 @@ export default function Chat() {
             // create new session
             try {
                 const sessionID = await CreateChatSession(currentSelectedSpace);
-
                 navigate(`/dashboard/${currentSelectedSpace}/chat/session/${sessionID}?isNew=true`, {
                     state: {
                         messages: [
@@ -36,6 +35,7 @@ export default function Chat() {
                             }
                         ],
                         agent: agent,
+                        args: args,
                         files: files
                     }
                 });
@@ -58,7 +58,7 @@ export default function Chat() {
                         <LogoIcon size={60} />
                     </div>
                     <div className="flex flex-col w-full">
-                        <PromptInputWithEnclosedActions 
+                        <PromptInputWithEnclosedActions
                             autoFocus={true}
                             allowAttach={true}
                             isLoading={isLoading}
@@ -70,7 +70,7 @@ export default function Chat() {
                             placeholder={t('chatToAgent')}
                             onSubmitFunc={onSubmit}
                         />
-                        <p className="p-2 text-center text-small font-medium leading-5 text-default-500">{t('chatNotice')}</p>
+                        <p className="py-2 text-center text-small font-medium leading-5 text-default-500">{t('chatNotice')}</p>
                     </div>
                 </div>
                 <div className="mt-auto flex max-w-full flex-col gap-2" />
