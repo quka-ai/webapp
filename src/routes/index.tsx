@@ -62,7 +62,8 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
                         userName: resp.user_name,
                         email: resp.email,
                         planID: resp.plan_id,
-                        serviceMode: resp.service_mode
+                        serviceMode: resp.service_mode,
+                        appid: resp.appid
                     });
 
                     await loadUserSpaces();
@@ -70,7 +71,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
                     if (type == 'authorization') {
                         accessToken = `${accessToken}&token-type=authorization`;
                     }
-                    buildTower(resp.user_id, accessToken, () => {
+                    buildTower(resp.user_id, resp.appid, accessToken, () => {
                         console.log('socket connected');
                     });
                 } catch (e: any) {

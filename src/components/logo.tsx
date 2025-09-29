@@ -16,4 +16,4 @@ export const LogoIcon: React.FC<IconSvgProps> = ({ size = 32, width, height, ...
     );
 };
 
-export const Name = import.meta.env.VITE_APP_NAME || 'Brew';
+export const Name = import.meta.env.VITE_APP_NAME || 'Quka';

@@ -76,8 +76,8 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
         const failedMessage = (
             <p className="px-4">
                 {/* Something went wrong, if the issue persists please contact us through our help center at&nbsp;
-                <Link href="mailto:support@brew.re" size="sm">
-                    support@brew.re
+                <Link href="mailto:support@quka.ai" size="sm">
+                    support@quka.ai
                 </Link> */}
                 {t('SystemError')}
             </p>

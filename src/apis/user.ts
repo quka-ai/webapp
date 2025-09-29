@@ -7,6 +7,7 @@ export interface LoginResponse {
     avatar: string;
     service_mode: string;
     plan_id: string;
+    appid: string;
 }
 
 export async function LoginWithAccessToken(accessToken: string): Promise<LoginResponse> {
@@ -77,7 +78,7 @@ export async function RequestResetPassword(endpoint: string, email: string): Pro
         email: email
     });
 
-    resp.data.data;
+    return resp.data.data;
 }
 
 export interface UserPlanDescription {

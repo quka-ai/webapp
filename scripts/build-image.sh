@@ -1,11 +1,18 @@
 #!/bin/bash
+# Legacy build script - now calls the multi-arch script for x86_64
+# For multi-architecture builds, use build-multiarch.sh instead
+
 IMAGE_PROJECT=$1
-IMAGE_NAME=quka-web
 VERSION=$2
+ARCHITECTURE=${3:-amd64}
 
-# Make full image name
-IMAGE=${IMAGE_PROJECT}/${IMAGE_NAME}:${VERSION}
+if [ -z "$IMAGE_PROJECT" ] || [ -z "$VERSION" ]; then
+    echo "Usage: $0 <image_project> <version> [architecture]"
+    echo "For advanced multi-arch builds, use: build-multiarch.sh"
+    exit 1
+fi
 
-docker build -t ${IMAGE} --platform linux/amd64 . --network=host --build-arg HTTP_PROXY=$HTTP_PROXY --build-arg HTTPS_PROXY=$HTTPS_PROXY
+echo "Using legacy build script - calling build-multiarch.sh for better multi-platform support"
 
-docker push ${IMAGE_PROJECT}/${IMAGE_NAME}:${VERSION}
+# Call the new multi-arch script with push option
+exec "$(dirname "$0")/build-multiarch.sh" "$IMAGE_PROJECT" "$VERSION" "$ARCHITECTURE" --push

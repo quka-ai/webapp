@@ -32,14 +32,14 @@ export function isJsonString(input: string): boolean {
     return false;
 }
 
-const BREW_LOGIN_AUTO_DIRECT_KEY = 'brew-auto-login-direct';
+const QUKA_LOGIN_AUTO_DIRECT_KEY = 'quka-auto-login-direct';
 
 export function autoLoginDirect(): boolean {
-    return !sessionStorage.getItem(BREW_LOGIN_AUTO_DIRECT_KEY);
+    return !sessionStorage.getItem(QUKA_LOGIN_AUTO_DIRECT_KEY);
 }
 
 export function setNotAutoLoginDirect() {
-    sessionStorage.setItem(BREW_LOGIN_AUTO_DIRECT_KEY, 'true');
+    sessionStorage.setItem(QUKA_LOGIN_AUTO_DIRECT_KEY, 'true');
 }
 
 export function md5(inputString: string): string {

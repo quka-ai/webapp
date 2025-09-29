@@ -14,7 +14,7 @@ import WorkBar, { WorkBarRef } from '@/components/work-bar';
 import { useMedia } from '@/hooks/use-media';
 import { useRole } from '@/hooks/use-role';
 import { useUserAgent } from '@/hooks/use-user-agent';
-import { FireTowerMsg } from '@/lib/firetower';
+import { FireTowerMsg } from '@/stores/socket';
 import knowledgeStore from '@/stores/knowledge';
 import resourceStore from '@/stores/resource';
 import socketStore, { CONNECTION_OK } from '@/stores/socket';

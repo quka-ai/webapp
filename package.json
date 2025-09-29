@@ -36,6 +36,7 @@
     "@splinetool/react-spline": "^4.0.0",
     "@splinetool/runtime": "^1.9.30",
     "axios": "^1.7.7",
+    "centrifuge": "^5.4.0",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "crypto-js": "^4.2.0",

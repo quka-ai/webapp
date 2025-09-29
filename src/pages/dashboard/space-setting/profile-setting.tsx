@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useSnapshot } from 'valtio';
 
 import { DeleteUserSpace, UpdateUserSpace } from '@/apis/space';
-import spaceStore, { loadUserSpaces } from '@/stores/space';
+import spaceStore, { loadUserSpaces, setCurrentSelectedSpace } from '@/stores/space';
 
 interface ProfileSettingCardProps {
     className?: string;
@@ -45,10 +45,14 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
 
     const deleteSpace = useCallback(
         async function () {
+            if (!space) {
+                return 
+            }
             setDeleteLoading(true);
             setIsDisabled(true);
             try {
                 await DeleteUserSpace(space.space_id);
+                setCurrentSelectedSpace('')
                 await loadUserSpaces();
 
                 navigate('/dashboard');
@@ -64,6 +68,9 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
 
     const updateSpace = useCallback(
         async function () {
+            if (!space) {
+                return
+            }
             setLoading(true);
             setIsDisabled(true);
             try {

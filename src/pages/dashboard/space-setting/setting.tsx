@@ -51,6 +51,7 @@ const Setting = React.forwardRef<HTMLDivElement, SpaceSettingCardProps>(({ onClo
                             return res.url;
                         } catch (e: any) {
                             console.error(e);
+                            throw e;
                         }
                     }}
                 />
