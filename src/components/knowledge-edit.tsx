@@ -159,6 +159,7 @@ export default memo(
             <>
                 {knowledge && (
                     <>
+
                         {/* <ScrollShadow hideScrollBar isEnabled={enableScrollShadow} className="w-full flex-grow box-border  flex justify-center"> */}
                         <KnowledgeAITaskList />
                         <div className="w-full h-full md:max-w-[650px]">

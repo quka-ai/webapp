@@ -142,17 +142,17 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                             />
                         )}
                     </div>
-                    <div className="w-full overflow-hidden p-4">
+                    <div className="w-full overflow-hidden p-4 z-1">
                         {isEdit ? <KnowledgeEdit ref={editor} hideSubmit classNames={{ base: '', editor: '!mx-0' }} spaceID={knowledge.space_id} knowledge={knowledge} /> : <KnowledgeView knowledge={knowledge} />}
                     </div>
-                    <div className="fixed w-full left-0 bottom-0 min-h-14 flex justify-center items-center bg-content1 z-50 box-border">
+                    <div className="fixed w-full left-0 bottom-0 min-h-14 flex justify-center items-center z-50 box-border">
                         {isSpaceViewer ? (
                             <ButtonGroup size="md">
                                 <Button onPress={onClose}>{t('Close')}</Button>
                             </ButtonGroup>
                         ) : (
-                            <ButtonGroup variant="flat" size="md" className=" mt-2 mb-4">
-                                <Button isDisabled={knowledge.stage !== 3} onPress={changeEditable}>
+                            <ButtonGroup variant="flat" size="md" className="mt-2 mb-4">
+                                <Button isDisabled={knowledge.stage !== 3} onPress={changeEditable} className="bg-default">
                                     {(() => {
                                         if (knowledge.stage == 1) {
                                             return t('Summarizing');
@@ -167,16 +167,16 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                                     })()}
                                 </Button>
                                 {isEdit ? (
-                                    <Button color="primary" onPress={submit}>
+                                    <Button color="primary" onPress={submit} className="bg-default">
                                         {t('Save')}
                                     </Button>
                                 ) : (
                                     <KnowledgeDeletePopover backdrop="transparent" knowledge={knowledge} onDelete={onClose}>
-                                        <Button color="danger">{t('Delete')}</Button>
+                                        <Button color="danger" className="bg-default">{t('Delete')}</Button>
                                     </KnowledgeDeletePopover>
                                 )}
 
-                                <Button onPress={onClose}>{t('Close')}</Button>
+                                <Button onPress={onClose} className="bg-default">{t('Close')}</Button>
                             </ButtonGroup>
                         )}
                     </div>
