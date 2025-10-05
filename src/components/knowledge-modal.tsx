@@ -184,7 +184,7 @@ const ViewKnowledge = memo(
                                     </ModalHeader>
                                     <ModalBody className="w-full flex flex-col items-center px-6 overflow-y-auto">
                                         {isEdit ? (
-                                            <KnowledgeEdit ref={editor} hideSubmit classNames={{ base: '', editor: '!mx-0' }} spaceID={knowledge.space_id} knowledge={knowledge} onChange={onChangeFunc} />
+                                            <KnowledgeEdit ref={editor} hideSubmit classNames={{ base: '', editor: '!mx-0' }} knowledge={knowledge} onChange={onChangeFunc} />
                                         ) : (
                                             <KnowledgeView knowledge={knowledge} />
                                         )}

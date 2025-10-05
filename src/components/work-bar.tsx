@@ -476,7 +476,12 @@ const CreateKnowledgeModal = memo(
                                     </Breadcrumbs>
                                 </ModalHeader>
                                 <ModalBody className="w-full flex flex-col items-center">
-                                    <KnowledgeEdit ref={editor} hideSubmit classNames={{ editor: '!mx-0', base: '' }} spaceID={currentSelectedSpace} knowledge={knowledge} onChange={onChangeFunc} onCancel={onCancelFunc} />
+                                    <KnowledgeEdit ref={editor} hideSubmit classNames={{ editor: '!mx-0', base: '' }} 
+                                    // @ts-ignore
+                                    knowledge={{
+                                        ...knowledge,
+                                        space_id: currentSelectedSpace
+                                    }} onChange={onChangeFunc} onCancel={onCancelFunc} />
                                 </ModalBody>
                                 <ModalFooter className="flex justify-center">
                                     <ButtonGroup variant="flat" size="md" className="mb-4">

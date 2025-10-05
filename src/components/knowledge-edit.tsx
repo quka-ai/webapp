@@ -15,7 +15,6 @@ import spaceStore from '@/stores/space';
 
 export interface KnowledgeEditProps {
     knowledge?: Knowledge;
-    spaceID: string;
     onChange?: () => void;
     onCancel?: () => void;
     hideSubmit?: boolean;
@@ -35,7 +34,7 @@ export interface KnwoledgeEditorRefObject {
 }
 
 export default memo(
-    forwardRef(function KnowledgeEdit({ knowledge, onChange, onCancel, hideSubmit, classNames, spaceID, temporaryStorage }: KnowledgeEditProps, ref: any) {
+    forwardRef(function KnowledgeEdit({ knowledge, onChange, onCancel, hideSubmit, classNames, temporaryStorage }: KnowledgeEditProps, ref: any) {
         const { t } = useTranslation();
         const [title, setTitle] = useState(knowledge ? knowledge.title : '');
         const [content, setContent] = useState<string | OutputData>(knowledge ? (knowledge.blocks ? knowledge.blocks : knowledge.content) : '');
@@ -118,7 +117,7 @@ export default memo(
             setLoading(true);
             try {
                 if (knowledge.id) {
-                    await UpdateKnowledge(spaceID, knowledge.id, {
+                    await UpdateKnowledge(knowledge.space_id, knowledge.id, {
                         resource: resource || defaultResource,
                         title: title,
                         content: content,
@@ -126,7 +125,7 @@ export default memo(
                         tags: tags
                     });
                 } else {
-                    await CreateKnowledge(spaceID, resource || defaultResource, content, contentType);
+                    await CreateKnowledge(knowledge.space_id, resource || defaultResource, content, contentType);
                 }
 
                 toast.success(t('Success'));

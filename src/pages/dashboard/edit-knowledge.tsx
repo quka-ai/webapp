@@ -143,7 +143,7 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                         )}
                     </div>
                     <div className="w-full overflow-hidden p-4 z-1">
-                        {isEdit ? <KnowledgeEdit ref={editor} hideSubmit classNames={{ base: '', editor: '!mx-0' }} spaceID={knowledge.space_id} knowledge={knowledge} /> : <KnowledgeView knowledge={knowledge} />}
+                        {isEdit ? <KnowledgeEdit ref={editor} hideSubmit classNames={{ base: '', editor: '!mx-0' }} knowledge={knowledge} /> : <KnowledgeView knowledge={knowledge} />}
                     </div>
                     <div className="fixed w-full left-0 bottom-0 min-h-14 flex justify-center items-center z-50 box-border">
                         {isSpaceViewer ? (
