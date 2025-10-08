@@ -31,7 +31,7 @@ export function closeSocket() {
     isBuilding = false;
 }
 
-export function buildTower(userId: string, appid: string, token: string, onConnected: () => void) {
+export function buildTower(userId: string, appid: string, token: string, tokenType: string, onConnected: () => void) {
     // 防止重复调用
     if (isBuilding) {
         console.log('buildTower already in progress, skipping');
@@ -56,7 +56,7 @@ export function buildTower(userId: string, appid: string, token: string, onConne
     centrifugeManager.setLogging(process.env.NODE_ENV === 'development');
 
     // 连接 Centrifuge
-    centrifugeManager.connect(endpoint, appid, token)
+    centrifugeManager.connect(endpoint, appid, token, tokenType)
         .then(() => {
             // 订阅用户频道
             centrifugeManager.subscribe(['/user/' + userId], (msg) => {

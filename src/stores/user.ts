@@ -11,7 +11,8 @@ const userStore = proxy<UserStore>({
         avatar: '',
         email: '',
         planID: '',
-        serviceMode: ''
+        serviceMode: '',
+        appid: ''
     },
     host: localStorage.getItem('self-host') || import.meta.env.VITE_BASE_URL
 });
@@ -25,6 +26,7 @@ export const setHost = (host: string) => {
 export const logout = () => {
     userStore.accessToken = '';
     userStore.loginToken = '';
+    //@ts-ignore
     userStore.userInfo = {};
     localStorage.removeItem('access_token');
     localStorage.removeItem('login_token');
@@ -48,7 +50,8 @@ export const setUserInfo = (userInfo?: UserInfo) => {
             userName: '',
             avatar: '',
             planID: '',
-            serviceMode: ''
+            serviceMode: '',
+            appid: ''
         };
 
         return;
@@ -59,7 +62,8 @@ export const setUserInfo = (userInfo?: UserInfo) => {
         avatar: userInfo.avatar || userStore.userInfo.avatar,
         email: userInfo.email || userStore.userInfo.email,
         planID: userInfo.planID || userStore.userInfo.planID,
-        serviceMode: userInfo.serviceMode || userStore.userInfo.serviceMode
+        serviceMode: userInfo.serviceMode || userStore.userInfo.serviceMode,
+        appid: userInfo.appid || userStore.userInfo.appid
     };
 };
 

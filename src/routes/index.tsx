@@ -8,6 +8,11 @@ import { App } from '@/App';
 import ToolUsing from '@/components/tool-using';
 import { autoLoginDirect, processAvatarUrl } from '@/lib/utils';
 import Dashboard from '@/pages/dashboard';
+import AIAdmin from '@/pages/dashboard/ai-admin/ai-admin';
+import Models from '@/pages/dashboard/ai-admin/models/models';
+import Providers from '@/pages/dashboard/ai-admin/providers/providers';
+import System from '@/pages/dashboard/ai-admin/system/system';
+import Usage from '@/pages/dashboard/ai-admin/usage/usage';
 import ChatSession from '@/pages/dashboard/chat/chat-session.tsx';
 import Chat from '@/pages/dashboard/chat/chat.tsx';
 import CreateKnowledge from '@/pages/dashboard/create-knowledge';
@@ -16,11 +21,6 @@ import Journal from '@/pages/dashboard/journal/journal';
 import Knowledge from '@/pages/dashboard/knowledge';
 import Setting from '@/pages/dashboard/setting/setting';
 import SpaceSetting from '@/pages/dashboard/space-setting/setting';
-import AIAdmin from '@/pages/dashboard/ai-admin/ai-admin';
-import Providers from '@/pages/dashboard/ai-admin/providers/providers';
-import Models from '@/pages/dashboard/ai-admin/models/models';
-import System from '@/pages/dashboard/ai-admin/system/system';
-import Usage from '@/pages/dashboard/ai-admin/usage/usage';
 import UserAdmin from '@/pages/dashboard/user-admin/user-admin';
 import Users from '@/pages/dashboard/user-admin/users/users';
 import Forgot from '@/pages/forgot';
@@ -68,10 +68,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
 
                     await loadUserSpaces();
 
-                    if (type == 'authorization') {
-                        accessToken = `${accessToken}&token-type=authorization`;
-                    }
-                    buildTower(resp.user_id, resp.appid, accessToken, () => {
+                    buildTower(resp.user_id, resp.appid, accessToken, type, () => {
                         console.log('socket connected');
                     });
                 } catch (e: any) {
@@ -121,7 +118,7 @@ const routes = createBrowserRouter([
     },
     {
         path: '/',
-        element: <App />,
+        element: <App>{<Outlet />}</App>,
         children: [
             {
                 path: '/test',
@@ -211,7 +208,7 @@ const routes = createBrowserRouter([
                     {
                         path: ':spaceID/chat/session/:sessionID',
                         element: <ChatSession />
-                    },
+                    }
                 ]
             },
             {

@@ -76,6 +76,7 @@ declare type UserInfo = {
     avatar: string;
     planID: string;
     serviceMode: string;
+    appid: string;
 };
 
 declare type UserStore = {

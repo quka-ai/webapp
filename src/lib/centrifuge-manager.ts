@@ -14,6 +14,7 @@ export class CentrifugeManager {
     private logging: boolean = false;
     private endpoint: string = '';
     private appid: string = '';
+    private tokenType: string = '';
     private token: string = '';
     private reconnectAttempts: number = 0;
     private maxReconnectAttempts: number = 5;
@@ -30,7 +31,7 @@ export class CentrifugeManager {
         }
     }
 
-    connect(endpoint: string, appid: string, token: string): Promise<void> {
+    connect(endpoint: string, appid: string, token: string, tokenType: string): Promise<void> {
         // 防止重复连接
         if (this.isConnecting || this.isConnected()) {
             this.logInfo('Already connecting or connected, skipping connect attempt');
@@ -40,10 +41,11 @@ export class CentrifugeManager {
         // 保存连接参数用于重连
         this.endpoint = endpoint;
         this.appid = appid;
+        this.tokenType = tokenType;
         this.token = token;
         this.isConnecting = true;
         this.shouldReconnect = true; // 重置重连标志
-        
+
         return new Promise((resolve, reject) => {
             try {
                 // 创建 Centrifuge 连接
@@ -55,17 +57,18 @@ export class CentrifugeManager {
                     maxReconnectDelay: this.maxReconnectDelay,
                     headers: {
                         'x-appid': appid,
+                        'x-auth-type': tokenType
                     }
                 });
 
-                this.centrifuge.on('connected', (ctx) => {
+                this.centrifuge.on('connected', ctx => {
                     this.logInfo('Centrifuge connected');
                     this.reconnectAttempts = 0; // 重置重连计数
                     this.isConnecting = false;
                     resolve();
                 });
 
-                this.centrifuge.on('disconnected', (ctx) => {
+                this.centrifuge.on('disconnected', ctx => {
                     this.logInfo('Centrifuge disconnected');
                     this.isConnecting = false;
                     // 只有在非主动断开的情况下才触发重连
@@ -77,7 +80,7 @@ export class CentrifugeManager {
                     }
                 });
 
-                this.centrifuge.on('error', (error) => {
+                this.centrifuge.on('error', error => {
                     this.logInfo('Centrifuge error:' + error);
                     this.isConnecting = false;
                     // 不直接 reject，而是尝试重连
@@ -109,7 +112,7 @@ export class CentrifugeManager {
             this.logInfo('Connection was manually closed, not reconnecting');
             return;
         }
-        
+
         // 如果达到最大重连次数，停止重连
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
             this.logInfo(`Max reconnect attempts reached (${this.maxReconnectAttempts}), giving up`);
@@ -118,15 +121,12 @@ export class CentrifugeManager {
 
         // 增加重连计数
         this.reconnectAttempts++;
-        
+
         // 计算重连延迟（指数退避）
-        const delay = Math.min(
-            this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1),
-            this.maxReconnectDelay
-        );
-        
+        const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1), this.maxReconnectDelay);
+
         this.logInfo(`Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
-        
+
         // 延迟重连
         setTimeout(() => {
             this.logInfo('Reconnecting to Centrifuge...');
@@ -161,7 +161,7 @@ export class CentrifugeManager {
                 // 重新订阅所有频道
                 this.resubscribeAll();
             })
-            .catch((error) => {
+            .catch(error => {
                 this.logInfo(`Reconnection failed: ${error}`);
                 // 继续尝试重连
                 this.handleDisconnection();
@@ -171,11 +171,11 @@ export class CentrifugeManager {
     private resubscribeAll() {
         // 保存所有回调函数
         const savedCallbacks = new Map(this.callbacks);
-        
+
         // 清理订阅状态
         this.subscriptions.clear();
         this.callbacks.clear();
-        
+
         // 重新订阅每个频道和所有回调
         savedCallbacks.forEach((channelCallbacks, channel) => {
             if (channelCallbacks && channelCallbacks.length > 0) {
@@ -200,37 +200,37 @@ export class CentrifugeManager {
 
         for (const channel of channels) {
             let subscription = this.subscriptions.get(channel);
-            
+
             // 如果订阅不存在，创建新的订阅
             if (!subscription) {
                 try {
                     subscription = this.centrifuge.newSubscription(channel);
-                    
+
                     subscription.on('publication', (ctx: PublicationContext) => {
                         this.handleMessage(channel, ctx);
                     });
-                    
+
                     subscription.on('subscribed', () => {
                         this.logInfo(`Subscribed to channel: ${channel}`);
                     });
-                    
+
                     subscription.on('unsubscribed', () => {
                         this.logInfo(`Unsubscribed from channel: ${channel}`);
                         // 清理回调函数
                         this.callbacks.delete(channel);
                     });
-                    
-                    subscription.on('error', (error) => {
+
+                    subscription.on('error', error => {
                         this.logInfo(`Subscription error for channel ${channel}: ${error}`);
                     });
-                    
+
                     subscription.subscribe();
                     this.subscriptions.set(channel, subscription);
                 } catch (error: any) {
                     // 如果订阅已存在，尝试从 Centrifuge 获取已存在的订阅
                     if (error?.message && error.message.includes('already exists')) {
                         this.logInfo(`Subscription for channel ${channel} already exists, attempting to reuse existing subscription`);
-                        
+
                         // 尝试从 centrifuge 的内部订阅列表中获取已存在的订阅
                         const existingSubscriptions = (this.centrifuge as any)._subs;
                         if (existingSubscriptions && existingSubscriptions[channel]) {
@@ -253,7 +253,7 @@ export class CentrifugeManager {
                 channelCallbacks = [];
                 this.callbacks.set(channel, channelCallbacks);
             }
-            
+
             channelCallbacks.push(callback);
             unsubscribeFuncs.push(() => {
                 const index = channelCallbacks!.indexOf(callback);
@@ -281,7 +281,7 @@ export class CentrifugeManager {
         try {
             const message: CentrifugeMessage = ctx.data as CentrifugeMessage;
             this.logInfo(`Received message on channel ${channel}: ${message}`);
-            
+
             const callbacks = this.callbacks.get(channel);
             if (callbacks) {
                 callbacks.forEach(callback => {
@@ -302,7 +302,7 @@ export class CentrifugeManager {
         if (!this.centrifuge) {
             return 'disconnected';
         }
-        
+
         // Centrifuge 状态映射
         const state = this.centrifuge.state;
         if (state === 'disconnected') return 'disconnected';
