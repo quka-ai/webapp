@@ -37,8 +37,15 @@ declare type ResourceStore = {
     resourceTags: string[];
 };
 
-type callbackFunc = (msg: FireTowerMsg) => void;
-type subscribeFunc = (topics: string[], callback: callbackFunc) => () => void;
+// WebSocket 消息类型 (复制自 socket store 以避免导入)
+declare type FireTowerMsg = {
+    topic: string;
+    data: any;
+};
+
+// 保持与 FireTowerMsg 兼容的回调函数类型
+declare type callbackFunc = (msg: FireTowerMsg) => void;
+declare type subscribeFunc = (topics: string[], callback: callbackFunc) => () => void;
 
 declare type SocketStore = {
     connectionStatus: string;
@@ -69,6 +76,7 @@ declare type UserInfo = {
     avatar: string;
     planID: string;
     serviceMode: string;
+    appid: string;
 };
 
 declare type UserStore = {

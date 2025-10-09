@@ -15,7 +15,7 @@ export const setUserSpaces = (spaces: UserSpace[]) => {
     }
 };
 
-export const latestPickedSpace = (): string | undefined => {
+export const latestPickedSpace = (): string | null => {
     return localStorage.getItem('quka-selected-space');
 };
 
@@ -26,6 +26,8 @@ export const setCurrentSelectedSpace = (space: string) => {
         const spaceInfo = spaceStore.spaces.find(v => v.space_id == space);
 
         spaceInfo && setSpaceRole(spaceInfo?.role);
+    } else {
+        localStorage.removeItem('quka-selected-space');
     }
 };
 

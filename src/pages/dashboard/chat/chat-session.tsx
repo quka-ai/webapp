@@ -11,7 +11,7 @@ import KnowledgeModal from '@/components/knowledge-modal';
 import { LogoIcon } from '@/components/logo';
 import { useMedia } from '@/hooks/use-media';
 import useUserAvatar from '@/hooks/use-user-avatar';
-import { FireTowerMsg } from '@/lib/firetower';
+import { FireTowerMsg } from '@/stores/socket';
 import MessageCard, { type MessageExt } from '@/pages/dashboard/chat/message-card';
 import PromptInputWithEnclosedActions from '@/pages/dashboard/chat/prompt-input-with-enclosed-actions';
 import { notifySessionNamedEvent, notifySessionReload } from '@/stores/session';
@@ -33,7 +33,7 @@ interface Message {
 }
 
 interface MessageEvent {
-    type: number;
+    type: number | string; // 支持 Centrifuge 的字符串类型
     message: string;
     messageID: string;
     spaceID?: string;
@@ -54,7 +54,7 @@ function setMessageDaemon(messageID: string, callback: () => void) {
     if (existInterval) {
         clearTimeout(existInterval);
     }
-    const id = setTimeout(callback, 100000);
+    const id = setTimeout(callback, 20000);
     messageDaemon.set(messageID, id);
 }
 
@@ -119,6 +119,9 @@ export default function Chat() {
     );
 
     useEffect(() => {
+        if (!currentSelectedSpace || !sessionID) {
+            return
+        }
         let queue: MessageEvent[] = [];
         let isExist = false;
         let waitReloadTimes = 0;
@@ -321,20 +324,23 @@ export default function Chat() {
         });
 
         // data : {\"subject\":\"stage_changed\",\"version\":\"v1\",\"data\":{\"knowledge_id\":\"n9qU71qKbqhHak6weNrH7UpCzU4yNiBv\",\"stage\":\"Done\"}}"
-        const unSubscribe = subscribe(['/chat_session/' + sessionID], (msg: FireTowerMsg) => {
+        const unSubscribe = subscribe(['/chat_session/' + currentSelectedSpace + '/' + sessionID], (msg: FireTowerMsg) => {
             if (msg.data.subject !== 'on_message' && msg.data.subject !== 'on_message_init') {
                 return;
             }
+            
 
             const { type, data } = msg.data;
             const streamData = data as StreamMessage;
-
-            switch (type) {
+            
+            // 处理 Centrifuge 字符串类型的 EventType
+            const eventType = typeof type === 'string' ? parseInt(type) : type;
+            switch (eventType) {
                 case EventType.EVENT_ASSISTANT_INIT:
                 case EventType.EVENT_TOOL_INIT:
                     queue.push({
                         messageID: streamData.message_id,
-                        type: type,
+                        type: eventType,
                         startAt: 0,
                         sequence: data.sequence, // sequence不在StreamMessage中，保持使用data
                         spaceID: data.space_id, // space_id不在StreamMessage中，保持使用data
@@ -350,10 +356,9 @@ export default function Chat() {
                             streamData.tool_tips.status = ToolStatus.TOOL_STATUS_RUNNING;
                             newToolTips.push(streamData.tool_tips);
                         }
-
                         queue.push({
                             messageID: streamData.message_id,
-                            type: type,
+                            type: eventType,
                             startAt: streamData.start_at,
                             toolTips: newToolTips,
                             message: ''
@@ -362,7 +367,7 @@ export default function Chat() {
                     } else {
                         queue.push({
                             messageID: streamData.message_id,
-                            type: type,
+                            type: eventType,
                             startAt: streamData.start_at,
                             message: streamData.message || ''
                         });
@@ -371,7 +376,7 @@ export default function Chat() {
                 case EventType.EVENT_ASSISTANT_DONE:
                     queue.push({
                         messageID: streamData.message_id,
-                        type: type,
+                        type: eventType,
                         startAt: streamData.start_at,
                         message: ''
                     });
@@ -387,7 +392,7 @@ export default function Chat() {
 
                     queue.push({
                         messageID: streamData.message_id,
-                        type: type,
+                        type: eventType,
                         startAt: streamData.start_at,
                         toolTips: newToolTips,
                         message: ''
@@ -398,7 +403,7 @@ export default function Chat() {
                 case EventType.EVENT_TOOL_FAILED:
                     queue.push({
                         messageID: streamData.message_id,
-                        type: type,
+                        type: eventType,
                         startAt: 0,
                         message: ''
                     });
@@ -410,7 +415,7 @@ export default function Chat() {
             isExist = true;
             unSubscribe();
         };
-    }, [connectionStatus, sessionID]);
+    }, [connectionStatus, currentSelectedSpace, sessionID]);
 
     const loadData = useCallback(
         async (page: number): Promise<number | void> => {
@@ -532,6 +537,14 @@ export default function Chat() {
                 // waiting ws response
                 setAiTyping(true);
 
+                // 在消息守护进程中清除这个超时
+                setMessageDaemon(resp.answer_id, () => {
+                    console.warn('未收到 MESSAGE INIT 事件，触发重载');
+                    setAiTyping(false);
+                    // 重新加载数据以获取最新状态
+                    loadData(1);
+                });
+
                 sessionID && notifySessionReload(sessionID);
 
                 setTimeout(() => {
@@ -575,7 +588,7 @@ export default function Chat() {
             if (isNew && total === 0) {
                 if (location.state && location.state.messages && location.state.messages.length === 1) {
                     NamedSession(location.state.messages[0].message);
-                    setSelectedUseMemory(location.state.agent === 'rag');
+                    setSelectedUseMemory(location.state.enableKnowledge);
                     setSelectedEnableThinking(location.state.args.enableThinking);
                     setSelectedEnableSearch(location.state.args.enableSearch);
                     await query(location.state.messages[0].message, location.state.agent, location.state.args, location.state.files);

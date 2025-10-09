@@ -1,7 +1,12 @@
-# Quka Web Frontend - Claude Reference
+# Quka Web Frontend - Claude 参考文档
 
-## Project Overview
-Quka is a RAG (Retrieval-Augmented Generation) web application frontend built with React and TypeScript. It provides knowledge management, AI chat functionality, and collaborative workspace features.
+## 项目概述
+Quka 是一个基于 React 和 TypeScript 构建的 RAG (检索增强生成) Web 应用前端。它提供知识管理、AI 聊天功能和协作工作空间特性。
+
+## 重要说明
+**这是一个中文项目。除非用户明确使用其他语言与你交流，否则所有与 AI 的交互都应该默认使用中文。**
+
+项目的主要用户群体为中文用户，文档、注释、提示信息等都应优先考虑中文支持。
 
 ## Tech Stack
 
@@ -157,6 +162,7 @@ npm run preview
 - WebSocket connection management in `src/stores/socket.ts`
 - Event-driven architecture for real-time updates
 - Connection state management
+- **Migration to Centrifuge**: The project is migrating from FireTower to Centrifuge for WebSocket communication. Refer to `docs/centrifuge-integration-guide.md` for integration details and `docs/centrifuge-migration-plan.md` for the migration plan.
 
 ## Environment Setup
 - Node.js environment

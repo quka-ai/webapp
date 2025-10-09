@@ -444,7 +444,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                         </div>
                                     </div>
                                 </DropdownItem>
-                                {isManager && (
+                                {isManager ? (
                                     <DropdownItem key="ai-admin" textValue="ai-admin">
                                         <div className="flex items-center gap-x-3">
                                             <div className="flex flex-col">
@@ -452,8 +452,8 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             </div>
                                         </div>
                                     </DropdownItem>
-                                )}
-                                {isManager && (
+                                ): <></>}
+                                {isManager ? (
                                     <DropdownItem key="user-admin" textValue="user-admin">
                                         <div className="flex items-center gap-x-3">
                                             <div className="flex flex-col">
@@ -461,7 +461,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             </div>
                                         </div>
                                     </DropdownItem>
-                                )}
+                                ): <></>}
                             </DropdownSection>
                             <DropdownSection>
                                 <DropdownItem key="logout" color="danger" textValue="logout">

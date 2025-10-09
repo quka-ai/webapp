@@ -53,7 +53,7 @@ export default function Component(
     }, [props.selectedEnableSearch]);
 
     useEffect(() => {
-        setEnableThinking(props.selectedEnableThinking === undefined ? localStorage.getItem('selectedEnableThinking') === 'true' : props.selectedEnableThinking);
+        setSelectedEnableThinking(props.selectedEnableThinking === undefined ? localStorage.getItem('selectedEnableThinking') === 'true' : props.selectedEnableThinking);
     }, [props.selectedEnableThinking]);
 
     useEffect(() => {
@@ -342,7 +342,6 @@ export default function Component(
                         {/* <Button size="sm" startContent={<Icon className="text-default-500" icon="solar:notes-linear" width={18} />} variant="flat">
                         Templates
                     </Button> */}
-
                         <IconSwitch
                             size="lg"
                             className="text-default-500"

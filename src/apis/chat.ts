@@ -113,6 +113,7 @@ export interface SendMessageArgs {
 
 export interface SendMessageResponse {
     sequence: number;
+    answer_id: string;
 }
 
 export async function SendMessage(spaceID: string, sessionID: string, args: SendMessageArgs): Promise<SendMessageResponse> {
