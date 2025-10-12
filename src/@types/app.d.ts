@@ -40,8 +40,14 @@ declare type ResourceStore = {
 // WebSocket 消息类型 (复制自 socket store 以避免导入)
 declare type FireTowerMsg = {
     topic: string;
-    data: any;
-};
+    type: number;
+    data: {
+        subject: string;
+        version?: string;
+        type: number | string; // 兼容数字和字符串形式
+        data: any;
+    };
+}
 
 // 保持与 FireTowerMsg 兼容的回调函数类型
 declare type callbackFunc = (msg: FireTowerMsg) => void;

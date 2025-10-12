@@ -11,18 +11,6 @@ const socketStore = proxy<SocketStore>({
     subscribe: undefined
 });
 
-// 保持与 FireTowerMsg 兼容的接口
-export interface FireTowerMsg {
-    topic: string;
-    type: number;
-    data: {
-        subject: string;
-        version?: string;
-        type: number | string; // 兼容数字和字符串形式
-        data: any;
-    };
-}
-
 var centrifugeManager: CentrifugeManager;
 var isBuilding = false; // 防止重复调用
 
