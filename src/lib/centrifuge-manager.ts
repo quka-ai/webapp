@@ -155,7 +155,7 @@ export class CentrifugeManager {
         }
 
         // 重新创建连接
-        this.connect(this.endpoint, this.appid, this.token)
+        this.connect(this.endpoint, this.appid, this.token, this.tokenType)
             .then(() => {
                 this.logInfo('Reconnected successfully');
                 // 重新订阅所有频道
@@ -235,8 +235,12 @@ export class CentrifugeManager {
                         const existingSubscriptions = (this.centrifuge as any)._subs;
                         if (existingSubscriptions && existingSubscriptions[channel]) {
                             subscription = existingSubscriptions[channel];
-                            this.subscriptions.set(channel, subscription);
-                            this.logInfo(`Reused existing subscription for channel: ${channel}`);
+                            // 检查订阅状态，如果不是活跃状态则重新订阅
+                            if (subscription && typeof subscription.subscribe === 'function') {
+                                subscription.subscribe();
+                                this.subscriptions.set(channel, subscription);
+                                this.logInfo(`Reused existing subscription for channel: ${channel}`);
+                            }
                         } else {
                             this.logInfo(`Could not find existing subscription for channel: ${channel}, skipping`);
                             continue;
@@ -265,6 +269,11 @@ export class CentrifugeManager {
                     const sub = this.subscriptions.get(channel);
                     if (sub) {
                         sub.unsubscribe();
+                        sub.removeAllListeners(); // 清理所有事件监听器
+                        // 从Centrifuge客户端中移除订阅
+                        if (this.centrifuge && typeof this.centrifuge.removeSubscription === 'function') {
+                            this.centrifuge.removeSubscription(sub);
+                        }
                         this.subscriptions.delete(channel);
                     }
                 }

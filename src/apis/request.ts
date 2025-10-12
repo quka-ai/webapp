@@ -57,7 +57,9 @@ instance.interceptors.response.use(
 function handleAxiosError(error: AxiosError) {
     if (error.status && error.status === 401) {
         logout();
-        return
+        if (userStore.userInfo?.userID) {
+            return;
+        }
     }
 
     toast.error(i18n.t('RequestError'), {
