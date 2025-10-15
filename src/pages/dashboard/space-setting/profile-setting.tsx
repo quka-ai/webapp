@@ -1,4 +1,5 @@
-import { Button, cn, Input, Popover, PopoverContent, PopoverTrigger, Spacer, Textarea } from '@heroui/react';
+import { Button, cn, Input, Popover, PopoverContent, PopoverTrigger, Spacer, Textarea, Tooltip } from '@heroui/react';
+import { Icon } from '@iconify/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -14,6 +15,19 @@ interface ProfileSettingCardProps {
     radius?: string;
     onClose?: () => void;
 }
+
+const LabelWithTooltip = ({ label, tooltip }: { label: string; tooltip: string }) => {
+    return (
+        <div className="flex items-center gap-1">
+            <span className="text-sm text-foreground">{label}</span>
+            <Tooltip content={tooltip} placement="right" showArrow delay={200} className="max-w-xs">
+                <div className="cursor-help">
+                    <Icon icon="solar:question-circle-linear" className="text-default-400 text-lg" />
+                </div>
+            </Tooltip>
+        </div>
+    );
+};
 
 const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>(({ className, onClose, ...props }, ref) => {
     const { t } = useTranslation();
@@ -89,7 +103,6 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
     const promptVar = useMemo(() => {
         const vars: string[] = [];
         vars.push('${time_range} ' + t('VarTimeRangeDescription'));
-        vars.push('${relevant_passage} ' + t('VarRelevantPassageDescription'));
         vars.push('${symbol} ' + t('VarSymbolDescription'));
         return (
             <>
@@ -150,7 +163,7 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
                         />
                         <Textarea
                             size="lg"
-                            label={t('createSpaceBasePromptLabel')}
+                            label={<LabelWithTooltip label={t('createSpaceBasePromptLabel')} tooltip={t('createSpaceBasePromptTooltip')} />}
                             variant="bordered"
                             labelPlacement="outside"
                             placeholder="Your space base prompt"
@@ -162,7 +175,7 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
                         />
                         <Textarea
                             size="lg"
-                            label={t('createSpaceChatPromptLabel')}
+                            label={<LabelWithTooltip label={t('createSpaceChatPromptLabel')} tooltip={t('createSpaceChatPromptTooltip')} />}
                             variant="bordered"
                             labelPlacement="outside"
                             placeholder="Your space chat prompt"

@@ -85,7 +85,7 @@ export default function Models() {
 
                 // 添加搜索条件（搜索模型名称和显示名称）
                 if (debouncedSearchTerm) {
-                    params.name = debouncedSearchTerm;
+                    params.model_name = debouncedSearchTerm;
                 }
 
                 // 添加提供商过滤

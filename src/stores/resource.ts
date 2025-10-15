@@ -9,8 +9,8 @@ const resourceStore = proxy<ResourceStore>({
     resourceTags: ['projects', 'areas', 'resources', 'archives']
 });
 
-export const setCurrentSelectedResource = (data: Resource) => {
-    resourceStore.currentSelectedResource = data;
+export const setCurrentSelectedResource = (data: Partial<Resource> & { id: string; title: string }) => {
+    resourceStore.currentSelectedResource = data as Resource;
 };
 
 export const setSpaceResource = (list: Resource[]) => {
@@ -21,13 +21,14 @@ export const onResourceUpdate = () => {
     resourceStore.onResourceUpdate = !resourceStore.onResourceUpdate;
 };
 
-export const loadSpaceResource = async (spaceID: string): Promis<Resource[]> => {
+export const loadSpaceResource = async (spaceID: string): Promise<Resource[]> => {
     try {
         let list = await ListResources(spaceID);
         setSpaceResource(list);
         return list;
     } catch (e: any) {
         console.error(e);
+        return [];
     }
 };
 

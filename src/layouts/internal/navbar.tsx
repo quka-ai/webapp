@@ -29,7 +29,7 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
         return spaces.find(v => v.space_id === currentSelectedSpace);
     }, [spaces, currentSelectedSpace]);
     const { isChat, isSession } = useChatPageCondition();
-    const resourceManage = useRef<HTMLElement>();
+    const resourceManage = useRef<{ show: (resource: any) => void }>(null);
     const { searchKeywords } = useSnapshot(knowledgeStore);
 
     const { sessionID } = useParams();
@@ -56,10 +56,10 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
     }, [pathname, currentSelectedSpace]);
 
     const showResourceSetting = useCallback(() => {
-        currentSelectedResource && resourceManage.current.show(currentSelectedResource);
+        currentSelectedResource && resourceManage.current?.show(currentSelectedResource);
     }, [currentSelectedResource]);
 
-    const handleKeyDown = async (event: KeyboardEvent) => {
+    const handleKeyDown = async (event: React.KeyboardEvent<HTMLInputElement>) => {
         // 阻止默认的提交行为
         if (event.key === 'Enter') {
             event.preventDefault();
@@ -85,15 +85,22 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
     } = useShare({
         genUrlFunc: async () => {
             try {
-                const res = await CreateSessionShareURL(currentSelectedSpace, window.location.origin + '/s/s/{token}', sessionID);
+                const res = await CreateSessionShareURL(currentSelectedSpace, window.location.origin + '/s/s/{token}', sessionID || '');
                 return res.url;
             } catch (e: any) {
                 console.error(e);
+                return '';
             }
         }
     });
 
-    const { onOpen: openKnowledgeDrawer } = useContext(KnowledgeDrawerContext);
+    const knowledgeDrawerContext = useContext(KnowledgeDrawerContext);
+
+    if (!knowledgeDrawerContext) {
+        throw new Error('Navbar must be used within KnowledgeProvider');
+    }
+
+    const { onOpen: openKnowledgeDrawer } = knowledgeDrawerContext;
 
     return (
         <Navbar
@@ -170,10 +177,11 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
                                 <ShareButton
                                     genUrlFunc={async () => {
                                         try {
-                                            const res = await CreateSessionShareURL(currentSelectedSpace, window.location.origin + '/s/s/{token}', sessionID);
+                                            const res = await CreateSessionShareURL(currentSelectedSpace, window.location.origin + '/s/s/{token}', sessionID || '');
                                             return res.url;
                                         } catch (e: any) {
                                             console.error(e);
+                                            return '';
                                         }
                                     }}
                                 />
