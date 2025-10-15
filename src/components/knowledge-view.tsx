@@ -3,6 +3,7 @@ import { memo } from 'react';
 
 import { Knowledge } from '@/apis/knowledge';
 import { Editor } from '@/components/editor/index';
+import Markdown from './markdown';
 
 export default memo(function KnowledgeView({ knowledge }: { knowledge: Knowledge }) {
     return (
@@ -25,8 +26,7 @@ export default memo(function KnowledgeView({ knowledge }: { knowledge: Knowledge
                     </div>
 
                     <div className="w-full flex-wrap">
-                        {/* <Markdown className="w-full text-wrap break-words whitespace-pre-wrap text-gray-600 dark:text-gray-300">{knowledge.content}</Markdown> */}
-                        {knowledge.content || (knowledge.blocks && <Editor readOnly className="!mx-0" data={knowledge.blocks || knowledge.content} dataType={knowledge.content_type} />)}
+                        {knowledge.content ? <Markdown className="w-full text-wrap break-words whitespace-pre-wrap">{knowledge.content}</Markdown> : <Editor readOnly className="!mx-0" data={knowledge.blocks || knowledge.content} dataType={knowledge.content_type} />}
                     </div>
                 </div>
             </ScrollShadow>

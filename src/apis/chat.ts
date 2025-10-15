@@ -39,7 +39,7 @@ export interface ChatSession {
     title: string;
     user_id: string;
     space_id: string;
-    latest_access_time: string;
+    latest_access_time: number;
 }
 
 export async function GetChatSessionList(spaceID: string, page: number, pageSize: number): Promise<ChatSessionList> {

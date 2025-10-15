@@ -27,7 +27,7 @@ import { useSnapshot } from 'valtio';
 import { subscribeKey } from 'valtio/utils';
 
 import NavBar from './navbar';
-import Sidebar from './sidebar';
+import Sidebar, { SidebarItem as SidebarItemType } from './sidebar';
 import SidebarDrawer from './sidebar-drawer';
 import WorkSpaceSelection from './space-selection';
 
@@ -67,7 +67,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
 
     const { groupedResources, resourceList, resourceLoading, listResource } = useResourceMode();
 
-    const resourceManage = useRef<HTMLElement>();
+    const resourceManage = useRef<{ show: (resource?: any) => void }>(null);
     const showCreateResource = useCallback(() => {
         if (resourceManage.current) {
             resourceManage.current.show();
@@ -85,7 +85,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
             return;
         }
         if (isChat) {
-            !sessionList.find((v: ChatSessionGroup) => {
+            !sessionList.find((v: InternalChatSessionGroup) => {
                 return v.items?.find((v: ChatSession) => {
                     return v.id === sessionID && v.space_id === currentSelectedSpace;
                 });
@@ -216,12 +216,12 @@ export default function Component({ children }: { children: React.ReactNode }) {
                         <div className="flex flex-col gap-y-2">
                             <div className=" pb-2 px-2 text-zinc-500 text-sm">{isChat ? t('Chat Sessions') : t('Resource List')}</div>
                             {isChat ? (
-                                <Button className="mx-1" variant="ghost" startContent={<Icon icon="bx:chat" width={24} />} onPress={createNewSession}>
+                                <Button className="mx-1" color="primary" variant="solid" startContent={<Icon icon="bx:chat" width={24} />} onPress={createNewSession}>
                                     {t('New Session')}
                                 </Button>
                             ) : (
                                 <>
-                                    <Button className="mx-1" variant="ghost" startContent={<Icon icon="ic:outline-create-new-folder" width={24} />} onPress={showCreateResource}>
+                                    <Button className="mx-1" color="primary" variant="solid" startContent={<Icon icon="ic:outline-create-new-folder" width={24} />} onPress={showCreateResource}>
                                         {t('New Resource')}
                                     </Button>
                                     <ResourceManage ref={resourceManage} onModify={onResourceModify} />
@@ -258,14 +258,14 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             defaultSelectedKey={currentSelectedSession?.key}
                                             iconClassName="group-data-[selected=true]:text-primary-foreground"
                                             itemClasses={{
-                                                base: 'data-[selected=true]:bg-primary-400 data-[selected=true]:focus:bg-primary-400 dark:data-[selected=true]:bg-primary-300 data-[hover=true]:bg-default-300/20 dark:data-[hover=true]:bg-default-200/40',
+                                                base: 'data-[selected=true]:bg-primary-200 data-[selected=true]:focus:bg-primary-200 dark:data-[selected=true]:bg-primary-300/60 data-[hover=true]:bg-default-300 dark:data-[hover=true]:bg-default-200/40',
                                                 title: 'group-data-[selected=true]:text-primary-foreground'
                                             }}
                                             sectionClasses={{
                                                 heading: 'text-zinc-500 font-bold'
                                             }}
                                             items={(() => {
-                                                const items: ChatSessionGroup[] = [];
+                                                const items: SidebarItemType[] = [];
 
                                                 for (const item of sessionList) {
                                                     items.push({
@@ -283,16 +283,17 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                                 return items;
                                             })()}
                                             onSelect={key => {
+                                                const keyStr = String(key);
                                                 for (const item of sessionList) {
-                                                    const result = item.items.find(v => v.id == key);
+                                                    const result = item.items.find(v => v.id == keyStr);
 
                                                     if (result) {
                                                         setCurrentSelectedSession({
-                                                            key: key,
+                                                            key: keyStr,
                                                             title: result.title,
                                                             space_id: result.space_id
                                                         });
-                                                        redirectSession(key);
+                                                        redirectSession(keyStr);
                                                         break;
                                                     }
                                                 }
@@ -308,14 +309,14 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             defaultSelectedKey={currentSelectedResource?.id}
                                             iconClassName="group-data-[selected=true]:text-primary-foreground"
                                             itemClasses={{
-                                                base: 'data-[selected=true]:bg-primary-400 data-[selected=true]:focus:bg-primary-400 dark:data-[selected=true]:bg-primary-300 data-[hover=true]:bg-default-300/20 dark:data-[hover=true]:bg-default-200/40',
+                                                base: 'data-[selected=true]:bg-primary-200 data-[selected=true]:focus:bg-primary-200 dark:data-[selected=true]:bg-primary-300/60 data-[hover=true]:bg-default-300 dark:data-[hover=true]:bg-default-200/40',
                                                 title: 'group-data-[selected=true]:text-primary-foreground'
                                             }}
                                             sectionClasses={{
                                                 heading: 'text-zinc-500 font-bold'
                                             }}
                                             items={(() => {
-                                                const items: ChatSessionGroup[] = [];
+                                                const items: SidebarItemType[] = [];
 
                                                 for (const item of groupedResources) {
                                                     items.push({
@@ -569,10 +570,23 @@ function useResourceMode() {
     };
 }
 
-export interface ChatSessionGroup {
+// Internal type for storing chat sessions with their metadata
+interface InternalChatSessionGroup {
     key: string;
     title: string;
     items: ChatSession[];
+}
+
+// Type for UI display, compatible with Sidebar component
+export interface ChatSessionGroup extends SidebarItemType {
+    key: string;
+    title: string;
+    items?: SidebarItemType[];
+}
+
+interface SessionNamedEvent {
+    sessionID: string;
+    name: string;
 }
 
 function categorizeTimestamp(timestamp: number): string {
@@ -613,39 +627,39 @@ function isYesterday(date: Date): boolean {
     return date.toDateString() === yesterday.toDateString();
 }
 
-function useGroupSessions(): () => ChatSessionGroup[] {
+function useGroupSessions(): (list: ChatSession[]) => InternalChatSessionGroup[] {
     const { t } = useTranslation();
 
-    return (list: ChatSession[]): ChatSessionGroup[] => {
+    return (list: ChatSession[]): InternalChatSessionGroup[] => {
         if (!list || list.length === 0) {
             return [];
         }
 
-        const todayGroup: ChatSessionGroup = {
+        const todayGroup: InternalChatSessionGroup = {
             key: 'today',
             title: t('Today'),
             items: []
         };
 
-        const yesterdayGroup: ChatSessionGroup = {
+        const yesterdayGroup: InternalChatSessionGroup = {
             key: 'yesterday',
             title: t('Yesterday'),
             items: []
         };
 
-        const previous7Days: ChatSessionGroup = {
+        const previous7Days: InternalChatSessionGroup = {
             key: 'previous7days',
             title: t('PreviousDays', { day: '7' }),
             items: []
         };
 
-        const earlier: ChatSessionGroup = {
+        const earlier: InternalChatSessionGroup = {
             key: 'earlier',
             title: t('Earlier'),
             items: []
         };
 
-        const result: ChatSessionGroup[] = [];
+        const result: InternalChatSessionGroup[] = [];
 
         list.forEach(v => {
             switch (categorizeTimestamp(v.latest_access_time)) {
@@ -681,7 +695,7 @@ function useGroupSessions(): () => ChatSessionGroup[] {
 }
 
 function useChatMode() {
-    const [sessionList, setSessionList] = useImmer<ChatSessionGroup[]>([]);
+    const [sessionList, setSessionList] = useImmer<InternalChatSessionGroup[]>([]);
     const [sessionLoading, setSessionLoading] = useState<boolean>(false);
     const pageSize = 20;
     const [page, setPage] = useState<number>(0);
@@ -694,7 +708,7 @@ function useChatMode() {
             if (!data) {
                 return;
             }
-            setSessionList((prev: ChatSessionGroup[]) => {
+            setSessionList((prev: InternalChatSessionGroup[]) => {
                 const todo = prev[0]?.items?.find(v => v.id === data.sessionID);
 
                 if (todo) {
@@ -736,7 +750,7 @@ function useChatMode() {
                 if (page === 1) {
                     setSessionList(groupSessions(resp.list) || []);
                 } else if (resp.list) {
-                    setSessionList((prev: ChatSessionGroup[]) => {
+                    setSessionList((prev: InternalChatSessionGroup[]) => {
                         const groups = groupSessions(resp.list);
 
                         groups.forEach((v, k) => {
@@ -745,7 +759,7 @@ function useChatMode() {
 
                                 return;
                             }
-                            prev[k].concat(v);
+                            prev[k].items = prev[k].items.concat(v.items);
                         });
 
                         return prev;

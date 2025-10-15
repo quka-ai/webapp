@@ -294,6 +294,7 @@
 - `limit` (int): 每页条数，默认 20
 - `provider_id` (string): 按提供商ID过滤
 - `model_type` (string): 按模型类型过滤（支持reader类型）
+- `model_name` (string): 按模型名称过滤（支持reader类型）
 - `status` (int): 按状态过滤
 - `thinking_support` (int): 按思考功能支持类型过滤 (0=不支持, 1=可选, 2=强制)
 - `thinking_required` (bool): 按思考功能需求过滤 (true=需要支持思考, false=不需要思考)

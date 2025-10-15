@@ -14,6 +14,7 @@ import SignUp from '@/pages/signup';
 import eventStore from '@/stores/event';
 import { setCurrentSelectedSpace, setUserSpaces } from '@/stores/space';
 import userStore, { setHost, setUserAccessToken, setUserInfo, setUserLoginToken } from '@/stores/user';
+import { buildTower } from '@/stores/socket';
 
 export default function Component() {
     const [mode, setMode] = useState('login');
@@ -107,6 +108,16 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
     const navigate = useNavigate();
     const { loginRedirect } = useSnapshot(eventStore);
 
+    // Clear all form states when switching login mode
+    const toggleLoginMode = useCallback(() => {
+        setUseTokenLogin(prev => !prev);
+        setAccessToken('');
+        setHostURL(host);
+        setEmail('');
+        setPassword('');
+        setUseSelfHost(false);
+    }, [host]);
+
     async function accessTokenLogin() {
         if (!accessToken) {
             setInvalidAccessToken({
@@ -135,7 +146,12 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
                 userName: resp.user_name,
                 email: resp.email,
                 planID: resp.plan_id,
-                serviceMode: resp.service_mode
+                serviceMode: resp.service_mode,
+                appid: resp.appid
+            });
+
+            buildTower(resp.user_id, resp.appid, accessToken, '', () => {
+                console.log('socket connected');
             });
 
             navigate(loginRedirect || '/dashboard', { replace: true });
@@ -164,7 +180,12 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
                 userName: resp.meta.user_name,
                 email: resp.meta.email,
                 planID: resp.meta.plan_id,
-                serviceMode: resp.meta.service_mode
+                serviceMode: resp.meta.service_mode,
+                appid: resp.meta.appid
+            });
+
+            buildTower(resp.meta.user_id, resp.meta.appid, resp.token, 'authorization', () => {
+                console.log('socket connected');
             });
 
             navigate(loginRedirect || '/dashboard', { replace: true });
@@ -192,7 +213,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
                         login();
                     }}
                 >
-                    <Input label={t('Email Address')} name="email" placeholder="Enter your email" type="email" variant="bordered" onValueChange={setEmail} />
+                    <Input label={t('Email Address')} name="email" placeholder="Enter your email" type="email" variant="bordered" value={email} onValueChange={setEmail} />
                     <Input
                         endContent={
                             <button type="button" onClick={toggleVisibility}>
@@ -208,6 +229,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
                         placeholder="Enter your password"
                         type={isVisible ? 'text' : 'password'}
                         variant="bordered"
+                        value={password}
                         onValueChange={setPassword}
                     />
                     <div className="flex items-center justify-end px-1 py-2">
@@ -232,22 +254,27 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
                 >
                     <Input
                         label="Access Token"
+                        name="accessToken"
                         placeholder="Enter your access-token"
                         isInvalid={accessTokenInvalid.isInvalid}
                         errorMessage={accessTokenInvalid.message}
                         variant="bordered"
+                        value={accessToken}
                         onValueChange={setAccessTokenFunc}
+                        autoComplete="off"
                     />
                     {useSelfHost ? (
                         <Input
                             isClearable
                             label="Host"
+                            name="host"
                             placeholder="Enter your service host"
                             isInvalid={hostURLInvalid.isInvalid}
                             errorMessage={hostURLInvalid.message}
                             variant="bordered"
-                            defaultValue={host}
+                            value={hostURL}
                             onValueChange={setHostURLFunc}
+                            autoComplete="off"
                         />
                     ) : (
                         <Button
@@ -272,7 +299,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
                 <Divider className="flex-1" />
             </div>
             <div className="flex flex-col gap-2">
-                <Button startContent={<Icon icon="bitcoin-icons:relay-filled" width={24} />} variant="bordered" onPress={() => setUseTokenLogin(prev => !prev)}>
+                <Button startContent={<Icon icon="bitcoin-icons:relay-filled" width={24} />} variant="bordered" onPress={toggleLoginMode}>
                     Continue with {useTokenLogin ? 'Email' : 'Access Token'}
                 </Button>
                 {/* <Button startContent={<Icon icon="flat-color-icons:google" width={24} />} variant="bordered">

@@ -6,7 +6,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 import { subscribeKey } from 'valtio/utils';
 
-import { UserSpace } from '@/apis/space';
 import CreateSpace from '@/components/space/create-space';
 import { useChatPageCondition } from '@/hooks/use-chat-page';
 import spaceStore, { latestPickedSpace, loadUserSpaces, setCurrentSelectedSpace } from '@/stores/space';
@@ -53,7 +52,7 @@ export default function Component() {
         setCurrentSelectedSpace(key); // 设置valtio，通知上层组件开始加载spaceid下的resource
     }
 
-    function spacesToSelector(datas: UserSpace[]) {
+    function spacesToSelector(datas: readonly UserSpace[]) {
         let selected = '';
 
         const spacesSelector = [
@@ -80,7 +79,7 @@ export default function Component() {
         if (!selected && spacesSelector[0].items) {
             const latestPicked = latestPickedSpace();
 
-            if (spacesSelector[0].items.find(v => v.value === latestPicked)) {
+            if (latestPicked && spacesSelector[0].items.find(v => v.value === latestPicked)) {
                 onSelected(latestPicked, true);
             } else {
                 onSelected(spacesSelector[0].items[0].value, true);
@@ -110,7 +109,7 @@ export default function Component() {
 
     useEffect(() => {
         if (spaces && spaces.length > 0) {
-            spacesToSelector(spaces);
+            spacesToSelector(spaces as UserSpace[]);
             setLoaded(true);
 
             return;

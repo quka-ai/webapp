@@ -1,6 +1,7 @@
 import { proxy } from 'valtio';
 
 import { ChangeBaseURL } from '@/apis/request';
+import { closeSocket } from '@/stores/socket';
 
 const userStore = proxy<UserStore>({
     accessToken: localStorage.getItem('access_token'),
@@ -24,6 +25,7 @@ export const setHost = (host: string) => {
 };
 
 export const logout = () => {
+    closeSocket();
     userStore.accessToken = '';
     userStore.loginToken = '';
     //@ts-ignore

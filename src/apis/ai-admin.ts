@@ -86,11 +86,12 @@ export const providerAPI = {
 // 模型配置相关接口
 export const modelConfigAPI = {
     // 获取模型配置列表
-    getModelConfigs: async (params?: { 
-        page?: number; 
-        limit?: number; 
-        provider_id?: string; 
-        model_type?: string; 
+    getModelConfigs: async (params?: {
+        page?: number;
+        limit?: number;
+        model_name?: string; // 搜索模型名称关键字
+        provider_id?: string;
+        model_type?: string;
         status?: number;
         thinking_support?: number; // v3新增：思考功能支持筛选
         thinking_required?: boolean; // v3新增：思考功能需求筛选
@@ -98,6 +99,7 @@ export const modelConfigAPI = {
         const queryParams = new URLSearchParams();
         if (params?.page) queryParams.append('page', params.page.toString());
         if (params?.limit) queryParams.append('limit', params.limit.toString());
+        if (params?.model_name) queryParams.append('model_name', params.model_name);
         if (params?.provider_id) queryParams.append('provider_id', params.provider_id);
         if (params?.model_type) queryParams.append('model_type', params.model_type);
         if (params?.status !== undefined) queryParams.append('status', params.status.toString());

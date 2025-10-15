@@ -8,9 +8,17 @@ import { useSnapshot } from 'valtio';
 import KnowledgeEdit, { KnwoledgeEditorRefObject } from '@/components/knowledge-edit';
 import spaceStore from '@/stores/space';
 
-export const KnowledgeDrawerContext = createContext(null);
+interface KnowledgeDrawerContextType {
+    temporaryStorage: string;
+    setTemporaryStorage: React.Dispatch<React.SetStateAction<string>>;
+    isOpen: boolean;
+    onOpen: () => void;
+    onOpenChange: () => void;
+}
 
-export function KnowledgeProvider({ children }) {
+export const KnowledgeDrawerContext = createContext<KnowledgeDrawerContextType | null>(null);
+
+export function KnowledgeProvider({ children }: { children: React.ReactNode }) {
     const [temporaryStorage, setTemporaryStorage] = useState('');
     const { isOpen, onOpen, onOpenChange } = useDisclosure();
     return (
@@ -31,14 +39,20 @@ export function KnowledgeProvider({ children }) {
 
 export interface KnowledgeDrawerButtonProps {
     temporaryStorage?: string;
-    size?: string;
+    size?: 'sm' | 'md' | 'lg';
     className?: string;
     onPress?: () => void;
 }
 
 export default function KnowledgeDrawerButton({ size = 'sm', className, temporaryStorage, onPress }: KnowledgeDrawerButtonProps) {
     const { t } = useTranslation();
-    const { onOpen, setTemporaryStorage } = useContext(KnowledgeDrawerContext);
+    const context = useContext(KnowledgeDrawerContext);
+
+    if (!context) {
+        throw new Error('KnowledgeDrawerButton must be used within KnowledgeProvider');
+    }
+
+    const { onOpen, setTemporaryStorage } = context;
 
     function click() {
         onPress && onPress();
@@ -46,11 +60,11 @@ export default function KnowledgeDrawerButton({ size = 'sm', className, temporar
     }
 
     useEffect(() => {
-        setTemporaryStorage(temporaryStorage);
+        setTemporaryStorage(temporaryStorage || '');
         return () => {
             setTemporaryStorage('');
         };
-    }, [temporaryStorage]);
+    }, [temporaryStorage, setTemporaryStorage]);
 
     className = 'bg-gradient-to-br from-pink-400 to-indigo-400 dark:from-indigo-500 dark:to-pink-500 ' + className;
     return (

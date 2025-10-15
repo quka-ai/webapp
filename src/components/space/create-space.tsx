@@ -1,10 +1,24 @@
-import { Button, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Textarea, useDisclosure } from '@heroui/react';
+import { Button, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Textarea, Tooltip, useDisclosure } from '@heroui/react';
+import { Icon } from '@iconify/react';
 import { forwardRef, useImperativeHandle, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 
 import { CreateUserSpace } from '@/apis/space';
 import { loadUserSpaces } from '@/stores/space';
+
+const LabelWithTooltip = ({ label, tooltip }: { label: string; tooltip: string }) => {
+    return (
+        <div className="flex items-center gap-1">
+            <span className="text-sm text-foreground">{label}</span>
+            <Tooltip content={tooltip} placement="right" showArrow delay={200} className="max-w-xs">
+                <div className="cursor-help">
+                    <Icon icon="solar:question-circle-linear" className="text-default-400 text-lg" />
+                </div>
+            </Tooltip>
+        </div>
+    );
+};
 
 const CreateSpaceComponent = forwardRef((_, ref) => {
     const { t } = useTranslation();
@@ -58,7 +72,7 @@ const CreateSpaceComponent = forwardRef((_, ref) => {
                                 />
                                 <Textarea
                                     size="lg"
-                                    label={t('createSpaceBasePromptLabel')}
+                                    label={<LabelWithTooltip label={t('createSpaceBasePromptLabel')} tooltip={t('createSpaceBasePromptTooltip')} />}
                                     variant="bordered"
                                     labelPlacement="outside"
                                     placeholder="Your space base prompt"
@@ -67,7 +81,7 @@ const CreateSpaceComponent = forwardRef((_, ref) => {
                                 />
                                 <Textarea
                                     size="lg"
-                                    label={t('createSpaceChatPromptLabel')}
+                                    label={<LabelWithTooltip label={t('createSpaceChatPromptLabel')} tooltip={t('createSpaceChatPromptTooltip')} />}
                                     variant="bordered"
                                     labelPlacement="outside"
                                     placeholder="Your space chat prompt"

@@ -15,8 +15,8 @@ export const setUserSpaces = (spaces: UserSpace[]) => {
     }
 };
 
-export const latestPickedSpace = (): string | null => {
-    return localStorage.getItem('quka-selected-space');
+export const latestPickedSpace = (): string => {
+    return localStorage.getItem('quka-selected-space') || '';
 };
 
 export const setCurrentSelectedSpace = (space: string) => {
