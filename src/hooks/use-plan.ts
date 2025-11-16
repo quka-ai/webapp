@@ -11,7 +11,7 @@ export function usePlan(): { userIsPro: boolean; isPlatform: boolean; userPlan: 
     }, [userInfo]);
 
     const userPlan = useMemo(() => {
-        if (userInfo.planID == '') return '';
+        if (!userInfo.planID || userInfo.planID == '') return '';
         if (userInfo.planID.startsWith('pro')) {
             return 'Pro';
         }
