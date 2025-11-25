@@ -31,5 +31,5 @@ build_assets
 Dockerfile-local
 build-local.sh
 
-quka-desktop/build
+quka-desktop/build/bin
 quka-desktop/frontend
