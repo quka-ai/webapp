@@ -15,7 +15,12 @@ import {
     Skeleton,
     Spacer,
     useDisclosure,
-    User
+    User,
+    Modal,
+    ModalContent,
+    ModalHeader,
+    ModalBody,
+    ModalFooter
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { getLocalTimeZone, today } from '@internationalized/date';
@@ -31,7 +36,7 @@ import Sidebar, { SidebarItem as SidebarItemType } from './sidebar';
 import SidebarDrawer from './sidebar-drawer';
 import WorkSpaceSelection from './space-selection';
 
-import { ChatSession, GetChatSessionList } from '@/apis/chat';
+import { ChatSession, GetChatSessionList, DeleteChatSession } from '@/apis/chat';
 import { GithubIcon } from '@/components/icons';
 import { LogoIcon, Name } from '@/components/logo';
 import ResourceManage from '@/components/resource-modal';
@@ -46,15 +51,13 @@ import { closeSocket } from '@/stores/socket';
 import spaceStore from '@/stores/space';
 import userStore, { logout } from '@/stores/user';
 
-interface SidebarItem {
-    id: string;
-    title: string;
-}
-
 export default function Component({ children }: { children: React.ReactNode }) {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const { isOpen, onOpenChange } = useDisclosure();
+    const { isOpen: isDeleteModalOpen, onOpen: onDeleteModalOpen, onClose: onDeleteModalClose } = useDisclosure();
+    const [sessionToDelete, setSessionToDelete] = useState<{ id: string; title: string } | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [isCollapsed, _] = React.useState(false);
     const { isMobile } = useMedia();
     const { currentSelectedSpace } = useSnapshot(spaceStore);
@@ -164,6 +167,37 @@ export default function Component({ children }: { children: React.ReactNode }) {
         [currentSelectedSpace]
     );
 
+    const handleDeleteSession = useCallback(
+        (sessionId: string, sessionTitle: string) => {
+            setSessionToDelete({ id: sessionId, title: sessionTitle });
+            onDeleteModalOpen();
+        },
+        [onDeleteModalOpen]
+    );
+
+    const confirmDeleteSession = useCallback(async () => {
+        if (!sessionToDelete || !currentSelectedSpace || isDeleting) {
+            return;
+        }
+
+        setIsDeleting(true);
+        try {
+            await DeleteChatSession(currentSelectedSpace, sessionToDelete.id);
+            // 刷新 session 列表
+            reload(currentSelectedSpace);
+            // 如果删除的是当前打开的 session，跳转到聊天首页
+            if (sessionID === sessionToDelete.id) {
+                navigate(`/dashboard/${currentSelectedSpace}/chat`);
+            }
+            onDeleteModalClose();
+            setSessionToDelete(null);
+        } catch (error) {
+            console.error('Failed to delete session:', error);
+        } finally {
+            setIsDeleting(false);
+        }
+    }, [sessionToDelete, currentSelectedSpace, isDeleting, reload, sessionID, navigate, onDeleteModalClose]);
+
     function goJournal() {
         const t = today(getLocalTimeZone()).toString();
         navigate(`/dashboard/${currentSelectedSpace}/journal/${t}`);
@@ -258,7 +292,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             defaultSelectedKey={currentSelectedSession?.key}
                                             iconClassName="group-data-[selected=true]:text-primary-foreground"
                                             itemClasses={{
-                                                base: 'data-[selected=true]:bg-primary-200 data-[selected=true]:focus:bg-primary-200 dark:data-[selected=true]:bg-primary-300/60 data-[hover=true]:bg-default-300 dark:data-[hover=true]:bg-default-200/40',
+                                                base: 'data-[selected=true]:bg-default-200 data-[selected=true]:focus:bg-default-200 dark:data-[selected=true]:bg-default-300/60 data-[hover=true]:bg-default-400 dark:data-[hover=true]:bg-default-200/40',
                                                 title: 'group-data-[selected=true]:text-primary-foreground'
                                             }}
                                             sectionClasses={{
@@ -274,7 +308,10 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                                         items: item.items?.map(v => {
                                                             return {
                                                                 key: v.id,
-                                                                title: v.title || v.id
+                                                                title: v.title || v.id,
+                                                                onDelete: (sessionId: string) => {
+                                                                    handleDeleteSession(sessionId, v.title || v.id);
+                                                                }
                                                             };
                                                         })
                                                     });
@@ -309,7 +346,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             defaultSelectedKey={currentSelectedResource?.id}
                                             iconClassName="group-data-[selected=true]:text-primary-foreground"
                                             itemClasses={{
-                                                base: 'data-[selected=true]:bg-primary-200 data-[selected=true]:focus:bg-primary-200 dark:data-[selected=true]:bg-primary-300/60 data-[hover=true]:bg-default-300 dark:data-[hover=true]:bg-default-200/40',
+                                                base: 'data-[selected=true]:bg-default-200 data-[selected=true]:focus:bg-default-200 dark:data-[selected=true]:bg-default-300/60 data-[hover=true]:bg-default-400 dark:data-[hover=true]:bg-default-200/40',
                                                 title: 'group-data-[selected=true]:text-primary-foreground'
                                             }}
                                             sectionClasses={{
@@ -453,7 +490,9 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             </div>
                                         </div>
                                     </DropdownItem>
-                                ): <></>}
+                                ) : (
+                                    <></>
+                                )}
                                 {isManager ? (
                                     <DropdownItem key="user-admin" textValue="user-admin">
                                         <div className="flex items-center gap-x-3">
@@ -462,7 +501,9 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             </div>
                                         </div>
                                     </DropdownItem>
-                                ): <></>}
+                                ) : (
+                                    <></>
+                                )}
                             </DropdownSection>
                             <DropdownSection>
                                 <DropdownItem key="logout" color="danger" textValue="logout">
@@ -483,6 +524,27 @@ export default function Component({ children }: { children: React.ReactNode }) {
                 {children}
             </div>
             {!isMobile ? <div>{/* for gap, dont delete */}</div> : <></>}
+
+            {/* 删除确认对话框 */}
+            <Modal isOpen={isDeleteModalOpen} onClose={onDeleteModalClose} backdrop="blur" isDismissable={!isDeleting}>
+                <ModalContent>
+                    <ModalHeader className="flex flex-col gap-1">{t('Delete Session')}</ModalHeader>
+                    <ModalBody>
+                        <p>
+                            {t('Are you sure you want to delete this session?')} <strong>{sessionToDelete?.title}</strong>
+                        </p>
+                        <p className="text-small text-danger">{t('This action cannot be undone.')}</p>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button variant="light" onPress={onDeleteModalClose} isDisabled={isDeleting}>
+                            {t('Cancel')}
+                        </Button>
+                        <Button color="danger" onPress={confirmDeleteSession} isLoading={isDeleting} isDisabled={isDeleting}>
+                            {t('Delete')}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
         </div>
     );
 }

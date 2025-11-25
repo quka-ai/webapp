@@ -279,5 +279,8 @@
     "role-member": "客户",
     "role-chief": "拥有者",
     "Search": "搜索",
-    "Reset": "重置"
+    "Reset": "重置",
+    "Delete Session": "删除会话",
+    "Are you sure you want to delete this session?": "确定要删除这个会话吗？",
+    "This action cannot be undone.": "此操作无法撤销。"
 }

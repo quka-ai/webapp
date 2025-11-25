@@ -277,5 +277,8 @@
     "role-member": "Member",
     "role-chief": "Chief",
     "Search": "Search",
-    "Reset": "Reset"
+    "Reset": "Reset",
+    "Delete Session": "Delete Session",
+    "Are you sure you want to delete this session?": "Are you sure you want to delete this session?",
+    "This action cannot be undone.": "This action cannot be undone."
 }

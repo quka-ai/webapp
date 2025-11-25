@@ -293,7 +293,7 @@ export default memo(
                                 </div>
                             )}
 
-                            <div className="pb-20" />
+                            <div className="pb-6" />
                         </div>
                         {/* </ScrollShadow> */}
                     </>

@@ -1,4 +1,4 @@
-import { Button, Card, CardBody, CardFooter, CardHeader, Chip, Progress, ScrollShadow } from '@heroui/react';
+import { Card, Chip, Progress, ScrollShadow } from '@heroui/react';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -13,7 +13,6 @@ import Markdown from '@/components/markdown';
 import WorkBar, { WorkBarRef } from '@/components/work-bar';
 import { useMedia } from '@/hooks/use-media';
 import { useRole } from '@/hooks/use-role';
-import { useUserAgent } from '@/hooks/use-user-agent';
 import knowledgeStore from '@/stores/knowledge';
 import resourceStore from '@/stores/resource';
 import socketStore, { CONNECTION_OK } from '@/stores/socket';
@@ -175,7 +174,7 @@ export default memo(function Component() {
                 const doneLogic = async function () {
                     try {
                         const data = await GetKnowledge(currentSelectedSpace, onEvent.data.data.knowledge_id, true);
-                        data.content = data.content.replace(/\$hidden\[([^\]]*)\]/g, '[Secret]') // 隐藏敏感信息
+                        data.content = data.content.replace(/\$hidden\[([^\]]*)\]/g, '[Secret]'); // 隐藏敏感信息
                         const newDataList = dataList.map(item => {
                             if (item.id === onEvent.data.data.knowledge_id) {
                                 return data;
@@ -260,9 +259,9 @@ const KnowledgeList = memo(
     forwardRef(function KnowledgeList({ knowledgeList, total, onSelect, isLoading = false, isShowCreate = true, onShowCreate, onChanges, onLoadMore }: KnowledgeListProps, ref: any) {
         const { t } = useTranslation();
         const [dataList, setDataList] = useState(knowledgeList);
-        
+
         const { currentSelectedSpace } = useSnapshot(spaceStore);
-        
+
         const { currentSelectedResource } = useSnapshot(resourceStore);
         const { isMobile } = useMedia();
 
@@ -278,7 +277,6 @@ const KnowledgeList = memo(
             }
         }, []);
 
-        
         const ssDom = useRef<HTMLElement>(null);
 
         function goToTop() {
@@ -309,7 +307,7 @@ const KnowledgeList = memo(
                 onLoadMore();
             }
         }
-        const { isSafari } = useUserAgent();
+
         return (
             <>
                 <ScrollShadow ref={ssDom} hideScrollBar className="w-full flex-grow box-border mb-6 pb-20" onScroll={scrollChanged}>
@@ -327,7 +325,7 @@ const KnowledgeList = memo(
                             <p className="text-small text-default-400">{t('memories count', { total: total, title: currentSelectedResource?.title })}</p>
                         </Skeleton> */}
                     </div>
-                    <div className={[isSafari ? 'm-auto w-full max-w-[900px]' : 'columns-1 sm:columns-2 lg:columns-3 xl:columns-4 2xl:columns-5 3xl:columns-5', 'gap-[24px] md:px-6 px-3'].join(' ')}>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-5 gap-4 md:px-6 px-3">
                         {/* {isShowCreate && (
                             <div className="mb-[24px]">
                                 <CreateKnowledge shadow={isMobile ? 'none' : 'sm'} onChanges={onChanges} openCreateKnowledge={onShowCreate} />
@@ -335,21 +333,23 @@ const KnowledgeList = memo(
                         )} */}
                         {dataList.map(item => {
                             return (
-                                <div key={item.id} role="button" tabIndex={0} className="mb-[24px] relative" onClick={() => onSelect(item)} onKeyDown={() => {}}>
+                                <div key={item.id} role="button" tabIndex={0} className="relative" onClick={() => onSelect(item)} onKeyDown={() => {}}>
                                     <NormalCard shadow={isMobile ? 'none' : 'sm'} content={item.content} tags={item.tags} title={item.title} stage={item.stage} />
                                 </div>
                             );
                         })}
                     </div>
                 </ScrollShadow>
-                {isShowCreate && <div className="absolute w-[260px] bottom-2 right-1/2 mr-[-130px]">
-                    <MainQuery
-                        onClick={() => {
-                            showKnowledgeCreate();
-                        }}
-                    />
-                </div>}
-                
+                {isShowCreate && (
+                    <div className="absolute w-[260px] bottom-2 right-1/2 mr-[-130px]">
+                        <MainQuery
+                            onClick={() => {
+                                showKnowledgeCreate();
+                            }}
+                        />
+                    </div>
+                )}
+
                 {showGoTop && <GoTop className="fixed bottom-7 right-2 backdrop-blur backdrop-saturate-150 dark:border-white/20 dark:bg-white/10 dark:text-white text-gray-500" onPress={goToTop} />}
             </>
         );
@@ -373,49 +373,47 @@ const NormalCard = memo(function NormalCard({
         <>
             <Card
                 shadow={shadow}
-                className="w-full flex flex-col relative border-small border-foreground/10 bg-right-bottom bg-no-repeat
-                hover:border-indigo-500/50 hover:outset-1 hover:outset-x-1 hover:outset-y-1 hover:blur-2.5 hover:spread-1 cursor-pointer"
+                className="w-full h-[320px] relative border-small dark:border-default-100 overflow-hidden bg-gradient-to-br from-default-400/30 to-default-400 dark:from-default-400 dark:to-default-400/30
+                hover:border-indigo-500/50 hover:shadow-md transition-all duration-200 cursor-pointer"
             >
-                {title !== '' ? (
-                    <CardHeader>
-                        <div className="flex items-center">
-                            <p className="text-large font-medium dark:text-zinc-300 text-gray-800">{title}</p>
+                {/* 前景内容层 */}
+                <div className="relative z-10 flex flex-col h-full p-5 bg-gradient-to-b from-background/70 to-background/90 text-sm">
+                    {/* 标题 */}
+                    {title && title.trim() !== '' && <h3 className="text-lg font-semibold text-foreground mb-2.5 line-clamp-2 leading-snug min-h-[2.5rem] flex-shrink-0">{title}</h3>}
+
+                    {/* 标签 */}
+                    {tags && tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1.5 mb-3 flex-shrink-0">
+                            {tags.slice(0, 3).map(item => (
+                                <Chip key={item} size="sm" variant="flat" className="bg-default-200/80 dark:bg-default-100/80 text-foreground-600 dark:text-foreground-500 text-xs h-5">
+                                    {item}
+                                </Chip>
+                            ))}
+                            {tags.length > 3 && (
+                                <Chip size="sm" variant="flat" className="bg-default-200/60 dark:bg-default-100/10 text-foreground-500 text-xs h-5">
+                                    +{tags.length - 3}
+                                </Chip>
+                            )}
                         </div>
-                    </CardHeader>
-                ) : (
-                    <></>
-                )}
-                <CardBody className="px-3 relative max-h-[460px]">
-                    <div className="flex flex-col gap-2 px-1 w-full overflow-hidden">
-                        {tags && (
-                            <div className="flex flex-wrap gap-1">
-                                {tags.map(item => {
-                                    return (
-                                        <Chip key={item} className="text-gray-600 dark:text-gray-300" size="sm" variant="bordered">
-                                            {item}
-                                        </Chip>
-                                    );
-                                })}
-                            </div>
-                        )}
-                        <div className="text-base dark:text-white/60 text-gray-500 h-full overflow-ellipsis overflow-hidden line-clamp-6 text-wrap break-words">
+                    )}
+
+                    {/* 内容预览区域 - 占据剩余空间 */}
+                    <div className="flex-1 mb-3 relative min-h-[300px] w-full m-auto mt-2 p-2">
+                        <div className="text-[0.7rem] leading-relaxed text-foreground-500 dark:text-foreground-400 line-clamp-[9] opacity-70">
                             <Markdown isLight>{content}</Markdown>
                         </div>
                     </div>
-                </CardBody>
-                {(() => {
-                    if (stage === 3) {
-                        return <></>;
-                    }
 
-                    return (
-                        <CardFooter className="justify-end gap-2">
-                            <Button fullWidth className="border-small backdrop-blur backdrop-saturate-150 border-white/20 bg-white/10 dark:text-white" isLoading={true}>
-                                <p className="text-tiny dark:text-white/80">{stage === 1 ? 'Summarizing.' : 'Embedding.'}</p>
-                            </Button>
-                        </CardFooter>
-                    );
-                })()}
+                    {/* 底部状态 */}
+                    <div className="flex items-center gap-2 pt-2 border-foreground/5">
+                        {stage !== 3 && (
+                            <div className="flex items-center gap-1.5">
+                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                                <span className="text-xs text-foreground-400">{stage === 1 ? 'Summarizing' : 'Embedding'}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
             </Card>
         </>
     );

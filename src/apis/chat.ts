@@ -142,3 +142,7 @@ export async function NamedChatSession(spaceID: string, sessionID: string, first
 
     return resp.data.data;
 }
+
+export async function DeleteChatSession(spaceID: string, sessionID: string): Promise<void> {
+    await instance.delete(`/${spaceID}/chat/${sessionID}`);
+}
