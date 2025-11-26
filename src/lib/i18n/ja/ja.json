@@ -205,5 +205,17 @@
     "UseSearch": "検索を使用",
     "UseMemory": "記憶を使用",
     "AI Model Management": "AIモデル管理",
-    "User Management": "ユーザー管理"
+    "User Management": "ユーザー管理",
+    "pending": "保留中",
+    "All completed": "すべて完了",
+    "No todos for today": "今日のタスクはありません",
+    "Add Task": "タスクを追加",
+    "Task": "タスク",
+    "Enter your task": "タスクを入力してください",
+    "Add": "追加",
+    "Select group": "グループを選択",
+    "New group": "新しいグループ",
+    "Group title (optional)": "グループタイトル（任意）",
+    "Enter group title": "グループタイトルを入力",
+    "Untitled": "無題"
 }

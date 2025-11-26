@@ -6,6 +6,7 @@ import { useSnapshot } from 'valtio';
 import { subscribeKey } from 'valtio/utils';
 
 import { GetKnowledge, type Knowledge, ListKnowledge } from '@/apis/knowledge';
+import DailyJournalTodo from '@/components/daily-journal-todo';
 import GoTop from '@/components/go-top';
 import KnowledgeModal from '@/components/knowledge-modal';
 import MainQuery from '@/components/main-query';
@@ -312,6 +313,9 @@ const KnowledgeList = memo(
             <>
                 <ScrollShadow ref={ssDom} hideScrollBar className="w-full flex-grow box-border mb-6 pb-20" onScroll={scrollChanged}>
                     <WorkBar ref={workBarRef} spaceid={currentSelectedSpace} isShowCreate={isShowCreate} onSubmit={onChanges} />
+
+                    <DailyJournalTodo />
+
                     <div className="w-full  space-y-1 mb-6  py-1">
                         <div className="flex justify-between items-center gap-4 md:px-6 px-3">
                             <div className="flex flex-col gap-2">

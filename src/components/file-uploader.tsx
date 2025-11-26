@@ -1,6 +1,5 @@
-import { Button, Chip, Image, Progress, ScrollShadow } from '@heroui/react';
+import { Button, Chip, Image, Progress } from '@heroui/react';
 import { Icon } from '@iconify/react';
-import { FileText, Upload, X } from 'lucide-react';
 import * as React from 'react';
 import Dropzone, { type DropzoneProps, type FileRejection } from 'react-dropzone';
 import { useTranslation } from 'react-i18next';
@@ -249,7 +248,7 @@ function FileCard({ file, progress, onRemove }: FileCardProps) {
                 </div>
             </div>
             <div className="flex items-center gap-2">
-                <Button isIconOnly type="button" variant="faded" size="icon" className="size-7" onPress={onRemove}>
+                <Button isIconOnly type="button" variant="faded" className="size-7" onPress={onRemove}>
                     <Icon icon="mingcute:close-fill" className="size-7" aria-hidden="true" />
                 </Button>
             </div>

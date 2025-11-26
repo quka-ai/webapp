@@ -280,5 +280,17 @@
     "Reset": "Reset",
     "Delete Session": "Delete Session",
     "Are you sure you want to delete this session?": "Are you sure you want to delete this session?",
-    "This action cannot be undone.": "This action cannot be undone."
+    "This action cannot be undone.": "This action cannot be undone.",
+    "pending": "pending",
+    "All completed": "All completed",
+    "No todos for today": "No todos for today",
+    "Add Task": "Add Task",
+    "Task": "Task",
+    "Enter your task": "Enter your task",
+    "Add": "Add",
+    "Select group": "Select group",
+    "New group": "New group",
+    "Group title (optional)": "Group title (optional)",
+    "Enter group title": "Enter group title",
+    "Untitled": "Untitled"
 }
