@@ -20,5 +20,8 @@
   "garbleargs": "",
   "appstoreconnect": {
     "bundleIdentifier": "com.llmapis.QukaAI"
-  }
+  },
+  "darwin:icon": "icon.icns",
+  "windows:icon": "appicon.png",
+  "linux:icon": "appicon.png"
 }

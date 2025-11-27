@@ -1,0 +1,270 @@
+name: Desktop App Build
+
+on:
+    push:
+        tags: ['v*']
+    workflow_dispatch:
+        inputs:
+            version:
+                description: 'Version to build (e.g., v0.2.7)'
+                required: false
+                default: 'dev'
+
+env:
+    APP_NAME: QukaAI
+
+jobs:
+    build:
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - name: QukaAI-macOS-universal
+                      os: macos-latest
+                      platform: darwin/universal
+                      goos: darwin
+                      goarch: amd64
+                    - name: QukaAI-Windows-x64
+                      os: windows-latest
+                      platform: windows/amd64
+                      goos: windows
+                      goarch: amd64
+                    - name: QukaAI-Linux-x64
+                      os: ubuntu-latest
+                      platform: linux/amd64
+                      goos: linux
+                      goarch: amd64
+
+        runs-on: ${{ matrix.os }}
+
+        permissions:
+            contents: write
+            packages: write
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: '20'
+                  cache: 'npm'
+
+            - name: Setup Go
+              uses: actions/setup-go@v5
+              with:
+                  go-version: '1.25'
+                  cache: true
+                  cache-dependency-path: quka-desktop/go.sum
+
+            - name: Install Wails
+              run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+              shell: bash
+
+            - name: Install Linux dependencies
+              if: matrix.os == 'ubuntu-latest'
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+            - name: Install frontend dependencies
+              run: npm ci
+
+            - name: Build frontend
+              run: npm run build-beta
+
+            - name: Copy frontend assets
+              working-directory: quka-desktop
+              run: |
+                  chmod +x copy-assets.sh
+                  ./copy-assets.sh
+              shell: bash
+
+            - name: Build Wails application
+              working-directory: quka-desktop
+              run: wails build -clean -platform ${{ matrix.platform }}
+              env:
+                  CGO_ENABLED: 1
+
+            - name: Update macOS icon
+              if: matrix.os == 'macos-latest'
+              working-directory: quka-desktop
+              run: |
+                  if [ -f "icon.icns" ]; then
+                    cp icon.icns build/bin/QukaAI.app/Contents/Resources/iconfile.icns
+                    echo "Icon updated successfully"
+                  fi
+              shell: bash
+
+            - name: Package macOS app as DMG
+              if: matrix.os == 'macos-latest'
+              working-directory: quka-desktop
+              run: |
+                  # Create staging directory for DMG contents
+                  STAGING_DIR="build/bin/dmg_staging"
+                  rm -rf "$STAGING_DIR"
+                  mkdir -p "$STAGING_DIR"
+
+                  # Copy app to staging directory
+                  echo "Preparing DMG contents..."
+                  cp -R "build/bin/QukaAI.app" "$STAGING_DIR/"
+
+                  # Create Applications symlink
+                  echo "Creating Applications shortcut..."
+                  ln -s /Applications "$STAGING_DIR/Applications"
+
+                  # Create temporary DMG
+                  echo "Creating temporary DMG..."
+                  hdiutil create \
+                    -volname "QukaAI Installer" \
+                    -srcfolder "$STAGING_DIR" \
+                    -ov \
+                    -format UDRW \
+                    "build/bin/temp.dmg"
+
+                  # Mount and customize DMG
+                  MOUNT_DIR=$(hdiutil attach -readwrite -noverify -noautoopen "build/bin/temp.dmg" | grep Volumes | sed 's/.*\/Volumes/\/Volumes/')
+
+                  if [ -n "$MOUNT_DIR" ]; then
+                    echo "Customizing DMG..."
+
+                    # Set volume icon
+                    if [ -f "icon.icns" ]; then
+                      cp icon.icns "$MOUNT_DIR/.VolumeIcon.icns"
+                      SetFile -c icnC "$MOUNT_DIR/.VolumeIcon.icns"
+                      SetFile -a C "$MOUNT_DIR"
+                      echo "Volume icon set"
+                    fi
+
+                    # Set Finder window properties
+                    echo "Configuring window layout..."
+                    cat > /tmp/dmg_layout.applescript << 'ASCRIPT'
+                    tell application "Finder"
+                        tell disk "QukaAI Installer"
+                            open
+                            set current view of container window to icon view
+                            set toolbar visible of container window to false
+                            set statusbar visible of container window to false
+                            set the bounds of container window to {400, 100, 980, 480}
+                            set viewOptions to the icon view options of container window
+                            set arrangement of viewOptions to not arranged
+                            set icon size of viewOptions to 160
+                            set background color of viewOptions to {255, 255, 255}
+                            delay 1
+                            set position of item "QukaAI.app" of container window to {145, 180}
+                            try
+                                set position of item "Applications" of container window to {435, 180}
+                            on error
+                                -- Applications symlink position may fail, skip it
+                            end try
+                            update without registering applications
+                            delay 1
+                            close
+                        end tell
+                    end tell
+                    ASCRIPT
+
+                    osascript /tmp/dmg_layout.applescript || echo "Window layout configuration skipped"
+                    rm -f /tmp/dmg_layout.applescript
+
+                    # Ensure changes are written
+                    sync
+                    sleep 1
+
+                    # Unmount
+                    echo "Saving changes..."
+                    hdiutil detach "$MOUNT_DIR" -quiet
+                  fi
+
+                  # Convert to compressed format
+                  echo "Compressing DMG..."
+                  hdiutil convert \
+                    "build/bin/temp.dmg" \
+                    -format UDZO \
+                    -o "build/bin/${{ matrix.name }}.dmg"
+
+                  # Clean up
+                  rm -f "build/bin/temp.dmg"
+                  rm -rf "$STAGING_DIR"
+
+                  # Verify DMG was created
+                  ls -lh build/bin/*.dmg
+              shell: bash
+
+            - name: Package Windows app
+              if: matrix.os == 'windows-latest'
+              working-directory: quka-desktop
+              run: |
+                  # The Wails build should create an installer in build/bin
+                  # List what was created
+                  ls -R build/bin/
+              shell: bash
+
+            - name: Package Linux app
+              if: matrix.os == 'ubuntu-latest'
+              working-directory: quka-desktop
+              run: |
+                  cd build/bin
+                  tar -czf ${{ matrix.name }}.tar.gz QukaAI
+                  ls -lh *.tar.gz
+              shell: bash
+
+            - name: Upload macOS artifacts
+              if: matrix.os == 'macos-latest'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ matrix.name }}
+                  path: quka-desktop/build/bin/${{ matrix.name }}.dmg
+                  retention-days: 7
+
+            - name: Upload Windows artifacts
+              if: matrix.os == 'windows-latest'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ matrix.name }}
+                  path: |
+                      quka-desktop/build/bin/*.exe
+                      quka-desktop/build/bin/*-installer.exe
+                  retention-days: 7
+
+            - name: Upload Linux artifacts
+              if: matrix.os == 'ubuntu-latest'
+              uses: actions/upload-artifact@v4
+              with:
+                  name: ${{ matrix.name }}
+                  path: quka-desktop/build/bin/${{ matrix.name }}.tar.gz
+                  retention-days: 7
+
+    release:
+        needs: build
+        runs-on: ubuntu-latest
+        if: startsWith(github.ref, 'refs/tags/v')
+
+        permissions:
+            contents: write
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Download all artifacts
+              uses: actions/download-artifact@v4
+              with:
+                  path: artifacts
+
+            - name: Display structure of downloaded files
+              run: ls -R artifacts/
+
+            - name: Create Release
+              uses: softprops/action-gh-release@v1
+              with:
+                  files: |
+                      artifacts/**/*.dmg
+                      artifacts/**/*.exe
+                      artifacts/**/*.tar.gz
+                  draft: false
+                  prerelease: false
+                  generate_release_notes: true
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

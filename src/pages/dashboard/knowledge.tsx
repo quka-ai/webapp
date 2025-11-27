@@ -52,7 +52,7 @@ export default memo(function Component() {
     // load knowledge logic
     function initPage() {
         if (ssDom && ssDom.current) {
-            ssDom.current.goToTop();
+            // ssDom.current.goToTop();
         }
         setPage(1);
         setHasMore(true);
@@ -111,7 +111,7 @@ export default memo(function Component() {
     const [onLoadingMore, setOnLoadingMore] = useState(false);
 
     async function onLoadMore() {
-        if (!hasMore || onLoadingMore) {
+        if (!hasMore || onLoadingMore || isLoading) {
             return;
         }
         setOnLoadingMore(true);
@@ -304,7 +304,7 @@ const KnowledgeList = memo(
                 setShowGoTop(false);
             }
 
-            if (e.target.scrollTop + e.target.clientHeight + 50 > e.target.scrollHeight) {
+            if (e.target.scrollTop + e.target.clientHeight + 50 > e.target.scrollHeight && knowledgeList &&  knowledgeList.length >= 0) {
                 onLoadMore();
             }
         }
@@ -319,7 +319,7 @@ const KnowledgeList = memo(
                     <div className="w-full  space-y-1 mb-6  py-1">
                         <div className="flex justify-between items-center gap-4 md:px-6 px-3">
                             <div className="flex flex-col gap-2">
-                                <div className="text-xl font-bold leading-9 text-default-foreground">{t('Your Memories')}</div>
+                                <div id="knowledgebox" className="text-xl font-bold leading-9 text-default-foreground">{t('Your Memories')}</div>
                                 <div className="text-small text-default-400">{t('memories count', { total: total, title: currentSelectedResource?.title })}</div>
                             </div>
                             {isLoading && <Progress isIndeterminate size="sm" aria-label="Loading..." className="w-14" />}
@@ -377,19 +377,19 @@ const NormalCard = memo(function NormalCard({
         <>
             <Card
                 shadow={shadow}
-                className="w-full h-[320px] relative border-small dark:border-default-100 overflow-hidden bg-gradient-to-br from-default-400/30 to-default-400 dark:from-default-400 dark:to-default-400/30
+                className="w-full h-80 relative border-small dark:border-default-100 overflow-hidden bg-linear-to-br from-default-400/30 to-default-400 dark:from-default-400 dark:to-default-400/30
                 hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md transition-all duration-200 cursor-pointer"
             >
                 {/* 前景内容层 */}
-                <div className="relative z-10 flex flex-col h-full p-5 bg-gradient-to-b from-background/70 to-background/70 text-sm">
+                <div className="relative z-10 flex flex-col h-full p-5 bg-linear-to-b from-background/70 to-background/70 text-sm">
                     {/* 标题 */}
-                    {title && title.trim() !== '' && <h3 className="text-lg font-semibold text-foreground/80 mb-2.5 line-clamp-2 leading-snug min-h-[2.5rem] flex-shrink-0">{title}</h3>}
+                    {title && title.trim() !== '' && <h3 className="text-lg font-semibold text-foreground mb-2.5 line-clamp-2 leading-snug min-h-10 shrink-0">{title}</h3>}
 
                     {/* 标签 */}
                     {tags && tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mb-3 flex-shrink-0">
+                        <div className="flex flex-wrap gap-1.5 mb-3 shrink-0">
                             {tags.slice(0, 3).map(item => (
-                                <Chip key={item} size="sm" variant="flat" className="bg-default-200/80 dark:bg-default-100/80 text-foreground-600 dark:text-foreground-500 text-xs h-5">
+                                <Chip key={item} size="sm" variant="flat" className="bg-default-200/80 dark:bg-default-200/60 text-foreground-600 dark:text-foreground-700 text-xs h-5">
                                     {item}
                                 </Chip>
                             ))}
@@ -403,7 +403,7 @@ const NormalCard = memo(function NormalCard({
 
                     {/* 内容预览区域 - 占据剩余空间 */}
                     <div className="flex-1 mb-3 relative min-h-[300px] w-full m-auto mt-2 p-2">
-                        <div className="text-[0.7rem] leading-relaxed text-foreground-500 dark:text-foreground-400 line-clamp-[9] opacity-70">
+                        <div className="text-[0.7rem] leading-relaxed text-foreground-500 dark:text-foreground-400 line-clamp-9 opacity-70">
                             <Markdown isLight>{content}</Markdown>
                         </div>
                     </div>

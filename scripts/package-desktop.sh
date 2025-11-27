@@ -64,18 +64,110 @@ echo ""
 # 创建 DMG
 echo "📦 创建 DMG 安装包..."
 
-# 删除旧文件
+# 删除旧文件（包括 .DS_Store 等缓存文件）
 rm -f "$OUTPUT_DMG" "$BUILD_DIR/temp.dmg" 2>/dev/null
+rm -rf "$BUILD_DIR/.fseventsd" "$BUILD_DIR/.Spotlight-V100" 2>/dev/null
+
+# 创建临时目录用于 DMG 内容
+STAGING_DIR="$BUILD_DIR/dmg_staging"
+rm -rf "$STAGING_DIR"
+mkdir -p "$STAGING_DIR"
+
+# 复制应用到临时目录
+echo "📋 准备 DMG 内容..."
+cp -R "$APP_PATH" "$STAGING_DIR/"
+
+# 创建 Applications 文件夹的符号链接
+echo "🔗 创建 Applications 快捷方式..."
+ln -s /Applications "$STAGING_DIR/Applications"
 
 # 创建临时 DMG
+echo "🔨 生成 DMG 文件..."
 hdiutil create \
     -volname "QukaAI Installer" \
-    -srcfolder "$APP_PATH" \
+    -srcfolder "$STAGING_DIR" \
     -ov \
     -format UDRW \
     "$BUILD_DIR/temp.dmg"
 
+# 挂载临时 DMG 进行自定义
+MOUNT_DIR=$(hdiutil attach -readwrite -noverify -noautoopen "$BUILD_DIR/temp.dmg" | grep Volumes | sed 's/.*\/Volumes/\/Volumes/')
+
+if [ -n "$MOUNT_DIR" ]; then
+    echo "🎨 自定义 DMG 外观..."
+
+    # 设置 DMG 卷图标
+    ICON_FILE="quka-desktop/icon.icns"
+    if [ -f "$ICON_FILE" ]; then
+        cp "$ICON_FILE" "$MOUNT_DIR/.VolumeIcon.icns"
+        SetFile -c icnC "$MOUNT_DIR/.VolumeIcon.icns"
+        SetFile -a C "$MOUNT_DIR"
+        echo "  ✓ 卷图标已设置"
+    fi
+
+    # 设置 Finder 窗口属性并强制刷新
+    echo "  → 配置窗口布局..."
+
+    # 先删除旧的 .DS_Store
+    rm -f "$MOUNT_DIR/.DS_Store"
+
+    # 使用 AppleScript 设置窗口（分两步：打开设置，然后关闭）
+    osascript <<EOF
+tell application "Finder"
+    tell disk "QukaAI Installer"
+        open
+        set current view of container window to icon view
+        set toolbar visible of container window to false
+        set statusbar visible of container window to false
+        set the bounds of container window to {400, 100, 980, 480}
+        set viewOptions to the icon view options of container window
+        set arrangement of viewOptions to not arranged
+        set icon size of viewOptions to 160
+        set background color of viewOptions to {255, 255, 255}
+        delay 2
+        set position of item "QukaAI.app" of container window to {145, 180}
+        try
+            set position of item "Applications" of container window to {435, 180}
+        on error errMsg
+            log "Cannot set Applications position: " & errMsg
+        end try
+        update without registering applications
+        delay 2
+    end tell
+end tell
+EOF
+
+    # 检查结果
+    if [ $? -eq 0 ]; then
+        echo "  ✓ 窗口布局已配置"
+    else
+        echo "  ⚠️  窗口布局配置失败"
+    fi
+
+    # 等待 Finder 写入 .DS_Store
+    echo "  → 等待 Finder 写入设置..."
+    sleep 3
+    sync
+
+    # 强制关闭窗口以确保 .DS_Store 被写入
+    osascript -e 'tell application "Finder" to close window "QukaAI Installer"' 2>/dev/null || true
+    sleep 1
+
+    # 验证 .DS_Store 存在
+    if [ -f "$MOUNT_DIR/.DS_Store" ]; then
+        echo "  ✓ .DS_Store 已创建"
+    else
+        echo "  ⚠️  .DS_Store 未创建，布局可能不会保存"
+    fi
+
+    # 卸载
+    echo "💾 保存更改..."
+    hdiutil detach "$MOUNT_DIR" -quiet
+    echo "✅ DMG 自定义完成"
+fi
+
 # 转换为压缩格式
+echo "🗜️  压缩 DMG..."
 hdiutil convert \
     "$BUILD_DIR/temp.dmg" \
     -format UDZO \
@@ -83,6 +175,7 @@ hdiutil convert \
 
 # 清理临时文件
 rm -f "$BUILD_DIR/temp.dmg"
+rm -rf "$STAGING_DIR"
 
 # 获取文件大小
 DMG_SIZE=$(du -h "$OUTPUT_DMG" | cut -f1)
