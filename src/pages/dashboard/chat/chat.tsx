@@ -40,8 +40,8 @@ export default function Chat() {
                     }
                 });
             } catch (e: any) {
-                throw e;
                 console.error(e);
+                throw e;
             }
             setIsLoading(false);
         },
@@ -51,7 +51,7 @@ export default function Chat() {
     const { t } = useTranslation();
 
     return (
-        <div className="w-full h-full flex justify-center">
+        <div className="overflow-hidden w-full h-full flex justify-center">
             <div className="flex w-full h-full flex-col px-4 sm:max-w-[760px] justify-center">
                 <div className="flex h-full flex-col items-center justify-center gap-10">
                     <div className="flex rounded-full items-center">

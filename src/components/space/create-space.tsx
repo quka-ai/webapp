@@ -11,7 +11,7 @@ const LabelWithTooltip = ({ label, tooltip }: { label: string; tooltip: string }
     return (
         <div className="flex items-center gap-1">
             <span className="text-sm text-foreground">{label}</span>
-            <Tooltip content={tooltip} placement="right" showArrow delay={200} className="max-w-xs">
+            <Tooltip showArrow content={tooltip} placement="right" delay={200} className="max-w-xs">
                 <div className="cursor-help">
                     <Icon icon="solar:question-circle-linear" className="text-default-400 text-lg" />
                 </div>

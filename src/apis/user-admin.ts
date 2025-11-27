@@ -14,6 +14,7 @@ import type {
 } from '@/types/user-admin';
 
 import request from './request';
+import request from './request';
 
 
 export const userAdminAPI = {

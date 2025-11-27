@@ -11,10 +11,6 @@ export default {
 	],
 	theme: {
 		extend: {
-			screens: {
-				xl: '1540px',
-				'2xl': '1860px'
-			},
 			animation: {
 				"shiny-text": "shiny-text 4s infinite",
 				shine: "shine var(--duration) infinite linear",
@@ -102,5 +98,8 @@ export default {
 		}
 	},
 	darkMode: "class",
-	plugins: [heroui(), require("tailwindcss-animate")],
+	plugins: [
+		heroui(),
+		require("tailwindcss-animate")
+	],
 }

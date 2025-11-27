@@ -47,7 +47,7 @@ declare type FireTowerMsg = {
         type: number | string; // 兼容数字和字符串形式
         data: any;
     };
-}
+};
 
 // 保持与 FireTowerMsg 兼容的回调函数类型
 declare type callbackFunc = (msg: FireTowerMsg) => void;

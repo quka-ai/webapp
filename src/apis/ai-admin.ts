@@ -189,14 +189,14 @@ export const aiSystemAPI = {
     },
 
     // 更新使用配置
-    updateUsageConfig: async (data: { 
-        chat: string; 
+    updateUsageConfig: async (data: {
+        chat: string;
         chat_thinking?: string; // v3新增：思考聊天模型
-        embedding: string; 
-        vision?: string; 
-        rerank?: string; 
-        reader?: string; 
-        enhance?: string 
+        embedding: string;
+        vision?: string;
+        rerank?: string;
+        reader?: string;
+        enhance?: string;
     }) => {
         const response = await request.put<
             ApiResponse<{

@@ -1,7 +1,7 @@
 import { proxy } from 'valtio';
 
-import userStore from '@/stores/user';
 import { CentrifugeManager, type CentrifugeMessage } from '@/lib/centrifuge-manager';
+import userStore from '@/stores/user';
 
 export const CONNECTION_OK = 'ok';
 export const CONNECTION_FAIL = 'fail';
@@ -25,7 +25,7 @@ export function buildTower(userId: string, appid: string, token: string, tokenTy
         console.log('buildTower already in progress, skipping');
         return;
     }
-    
+
     isBuilding = true;
     const host = userStore.host;
     // 使用 Centrifuge 的标准端点
@@ -39,19 +39,20 @@ export function buildTower(userId: string, appid: string, token: string, tokenTy
 
     // 初始化 Centrifuge 管理器
     centrifugeManager = new CentrifugeManager();
-    
+
     // 设置日志（与开发环境一致）
     centrifugeManager.setLogging(process.env.NODE_ENV === 'development');
 
     // 连接 Centrifuge
-    centrifugeManager.connect(endpoint, appid, token, tokenType)
+    centrifugeManager
+        .connect(endpoint, appid, token, tokenType)
         .then(() => {
             // 订阅用户频道
-            centrifugeManager.subscribe(['/user/' + userId], (msg) => {
+            centrifugeManager.subscribe(['/user/' + userId], msg => {
                 // 这里可以处理用户级别的消息
                 console.log('User message received:', msg);
             });
-            
+
             // 设置订阅函数
             socketStore.subscribe = (topics: string[], callback: (msg: FireTowerMsg) => void): (() => void) => {
                 // 将消息从 Centrifuge 格式转换为 FireTower 格式
@@ -72,21 +73,21 @@ export function buildTower(userId: string, appid: string, token: string, tokenTy
                     };
                     callback(fireTowerMsg);
                 };
-                
+
                 // 使用 Centrifuge 管理器订阅
                 const unsubscribe = centrifugeManager.subscribe(topics, centrifugeCallback);
                 return unsubscribe;
             };
-            
+
             socketStore.connectionStatus = CONNECTION_OK;
             isBuilding = false;
             onConnected();
         })
-        .catch((error) => {
+        .catch(error => {
             console.error('Centrifuge connection failed:', error);
             socketStore.connectionStatus = CONNECTION_FAIL;
             isBuilding = false;
-            
+
             // // 重连机制
             // setTimeout(() => {
             //     buildTower(userId, appid, token, onConnected);

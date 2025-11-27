@@ -162,7 +162,7 @@ const WorkBar = memo(
                         <Textarea
                             isClearable
                             variant="bordered"
-                            classNames={{inputWrapper: "!h-[200px]"}}
+                            classNames={{inputWrapper: "!h-[200px] border-small bg-gradient-to-br from-default-400/30 to-default-400 dark:from-default-100/50 dark:to-default-50/50"}}
                             placeholder={t('TypeKnowledgeByYourSelf')}
                             value={knowledgeContent}
                             startContent={
@@ -295,7 +295,7 @@ const FileTask = memo(function FileTask() {
             {!chunkFile.url ? (
                 <>
                     <FileUploader
-                        className="border-zinc-600 h-[180px] rounded-xl"
+                        className="w-full h-[180px] rounded-xl"
                         accept={{
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': [],
                             'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [],

@@ -97,11 +97,7 @@ export function extractTodosFromBlocks(blocks: OutputData): TodoList[] {
 /**
  * 更新 EditorJS blocks 中指定的 checklist item 的 checked 状态
  */
-export function updateChecklistItemInBlocks(
-    blocks: OutputData,
-    targetId: string,
-    index: number[]
-): OutputData | null {
+export function updateChecklistItemInBlocks(blocks: OutputData, targetId: string, index: number[]): OutputData | null {
     if (!blocks || !blocks.blocks) {
         return null;
     }

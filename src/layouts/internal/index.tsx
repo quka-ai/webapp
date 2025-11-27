@@ -11,16 +11,16 @@ import {
     DropdownSection,
     DropdownTrigger,
     Link,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
     ScrollShadow,
     Skeleton,
     Spacer,
     useDisclosure,
-    User,
-    Modal,
-    ModalContent,
-    ModalHeader,
-    ModalBody,
-    ModalFooter
+    User
 } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { getLocalTimeZone, today } from '@internationalized/date';
@@ -36,7 +36,7 @@ import Sidebar, { SidebarItem as SidebarItemType } from './sidebar';
 import SidebarDrawer from './sidebar-drawer';
 import WorkSpaceSelection from './space-selection';
 
-import { ChatSession, GetChatSessionList, DeleteChatSession } from '@/apis/chat';
+import { ChatSession, DeleteChatSession, GetChatSessionList } from '@/apis/chat';
 import { GithubIcon } from '@/components/icons';
 import { LogoIcon, Name } from '@/components/logo';
 import ResourceManage from '@/components/resource-modal';
@@ -206,11 +206,11 @@ export default function Component({ children }: { children: React.ReactNode }) {
     const { userPlan } = usePlan();
 
     return (
-        <div className="flex h-dvh w-full dark:bg-zinc-900">
+        <div className="flex h-dvh w-full bg-neutral-50 dark:bg-neutral-900">
             {/* Sidebar */}
             <SidebarDrawer className="min-w-64" sidebarWidth={260} hideCloseButton={true} isOpen={isOpen} onOpenChange={onOpenChange}>
                 <div
-                    className={cn('will-change relative flex w-[260px] flex-col bg-default-100 py-6 px-4 box-border transition-width h-dvh', {
+                    className={cn('will-change relative flex w-[260px] overflow-hidden box-border flex-col bg-neutral-50 dark:bg-neutral-900 py-6 px-4 h-dvh', {
                         'items-center': isCollapsed
                     })}
                 >
@@ -246,7 +246,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                         <Spacer y={2} />
                     </div>
 
-                    <ScrollShadow hideScrollBar className="-mr-6 h-full max-h-full pr-6">
+                    <ScrollShadow hideScrollBar className="h-full max-h-full">
                         <div className="flex flex-col gap-y-2">
                             <div className=" pb-2 px-2 text-zinc-500 text-sm">{isChat ? t('Chat Sessions') : t('Resource List')}</div>
                             {isChat ? (
@@ -292,7 +292,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             defaultSelectedKey={currentSelectedSession?.key}
                                             iconClassName="group-data-[selected=true]:text-primary-foreground"
                                             itemClasses={{
-                                                base: 'data-[selected=true]:bg-default-200 data-[selected=true]:focus:bg-default-200 dark:data-[selected=true]:bg-default-300/60 data-[hover=true]:bg-default-400 dark:data-[hover=true]:bg-default-200/40',
+                                                base: 'data-[selected=true]:bg-default-200 data-[selected=true]:focus:bg-default-200 dark:data-[selected=true]:bg-default-200/40 data-[hover=true]:bg-default-400 dark:data-[hover=true]:bg-default-200/20',
                                                 title: 'group-data-[selected=true]:text-primary-foreground'
                                             }}
                                             sectionClasses={{
@@ -346,7 +346,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             defaultSelectedKey={currentSelectedResource?.id}
                                             iconClassName="group-data-[selected=true]:text-primary-foreground"
                                             itemClasses={{
-                                                base: 'data-[selected=true]:bg-default-200 data-[selected=true]:focus:bg-default-200 dark:data-[selected=true]:bg-default-300/60 data-[hover=true]:bg-default-400 dark:data-[hover=true]:bg-default-200/40',
+                                                base: 'data-[selected=true]:bg-default-200 data-[selected=true]:focus:bg-default-200 dark:data-[selected=true]:bg-default-200/40 data-[hover=true]:bg-default-400 dark:data-[hover=true]:bg-default-200/20',
                                                 title: 'group-data-[selected=true]:text-primary-foreground'
                                             }}
                                             sectionClasses={{
@@ -526,7 +526,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
             {!isMobile ? <div>{/* for gap, dont delete */}</div> : <></>}
 
             {/* 删除确认对话框 */}
-            <Modal isOpen={isDeleteModalOpen} onClose={onDeleteModalClose} backdrop="blur" isDismissable={!isDeleting}>
+            <Modal isOpen={isDeleteModalOpen} backdrop="blur" isDismissable={!isDeleting} onClose={onDeleteModalClose}>
                 <ModalContent>
                     <ModalHeader className="flex flex-col gap-1">{t('Delete Session')}</ModalHeader>
                     <ModalBody>
@@ -536,10 +536,10 @@ export default function Component({ children }: { children: React.ReactNode }) {
                         <p className="text-small text-danger">{t('This action cannot be undone.')}</p>
                     </ModalBody>
                     <ModalFooter>
-                        <Button variant="light" onPress={onDeleteModalClose} isDisabled={isDeleting}>
+                        <Button variant="light" isDisabled={isDeleting} onPress={onDeleteModalClose}>
                             {t('Cancel')}
                         </Button>
-                        <Button color="danger" onPress={confirmDeleteSession} isLoading={isDeleting} isDisabled={isDeleting}>
+                        <Button color="danger" isLoading={isDeleting} isDisabled={isDeleting} onPress={confirmDeleteSession}>
                             {t('Delete')}
                         </Button>
                     </ModalFooter>

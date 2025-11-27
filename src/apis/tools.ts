@@ -9,17 +9,17 @@ export async function DescribeImage(url: string): Promise<string> {
 }
 
 export interface ReadResponse {
-  ai_result: {
-    warning: string;
-    title: string;
-    description: string;
-    url: string;
-    content: string;
-    usage: {
-        tokens: number;
-    }
-  }
-  type: string;
+    ai_result: {
+        warning: string;
+        title: string;
+        description: string;
+        url: string;
+        content: string;
+        usage: {
+            tokens: number;
+        };
+    };
+    type: string;
 }
 
 export async function Reader(url: string): Promise<ReadResponse> {

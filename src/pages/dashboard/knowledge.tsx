@@ -6,11 +6,11 @@ import { useSnapshot } from 'valtio';
 import { subscribeKey } from 'valtio/utils';
 
 import { GetKnowledge, type Knowledge, ListKnowledge } from '@/apis/knowledge';
-import DailyJournalTodo from '@/components/daily-journal-todo';
 import GoTop from '@/components/go-top';
 import KnowledgeModal from '@/components/knowledge-modal';
 import MainQuery from '@/components/main-query';
 import Markdown from '@/components/markdown';
+import MultiDayJournalTodos from '@/components/multi-day-journal-todos';
 import WorkBar, { WorkBarRef } from '@/components/work-bar';
 import { useMedia } from '@/hooks/use-media';
 import { useRole } from '@/hooks/use-role';
@@ -314,7 +314,7 @@ const KnowledgeList = memo(
                 <ScrollShadow ref={ssDom} hideScrollBar className="w-full flex-grow box-border mb-6 pb-20" onScroll={scrollChanged}>
                     <WorkBar ref={workBarRef} spaceid={currentSelectedSpace} isShowCreate={isShowCreate} onSubmit={onChanges} />
 
-                    <DailyJournalTodo />
+                    <MultiDayJournalTodos />
 
                     <div className="w-full  space-y-1 mb-6  py-1">
                         <div className="flex justify-between items-center gap-4 md:px-6 px-3">
@@ -329,7 +329,7 @@ const KnowledgeList = memo(
                             <p className="text-small text-default-400">{t('memories count', { total: total, title: currentSelectedResource?.title })}</p>
                         </Skeleton> */}
                     </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 3xl:grid-cols-5 gap-4 md:px-6 px-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-7 3xl:grid-cols-5 gap-4 md:px-6 px-3">
                         {/* {isShowCreate && (
                             <div className="mb-[24px]">
                                 <CreateKnowledge shadow={isMobile ? 'none' : 'sm'} onChanges={onChanges} openCreateKnowledge={onShowCreate} />
@@ -378,12 +378,12 @@ const NormalCard = memo(function NormalCard({
             <Card
                 shadow={shadow}
                 className="w-full h-[320px] relative border-small dark:border-default-100 overflow-hidden bg-gradient-to-br from-default-400/30 to-default-400 dark:from-default-400 dark:to-default-400/30
-                hover:border-indigo-500/50 hover:shadow-md transition-all duration-200 cursor-pointer"
+                hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md transition-all duration-200 cursor-pointer"
             >
                 {/* 前景内容层 */}
-                <div className="relative z-10 flex flex-col h-full p-5 bg-gradient-to-b from-background/70 to-background/90 text-sm">
+                <div className="relative z-10 flex flex-col h-full p-5 bg-gradient-to-b from-background/70 to-background/70 text-sm">
                     {/* 标题 */}
-                    {title && title.trim() !== '' && <h3 className="text-lg font-semibold text-foreground mb-2.5 line-clamp-2 leading-snug min-h-[2.5rem] flex-shrink-0">{title}</h3>}
+                    {title && title.trim() !== '' && <h3 className="text-lg font-semibold text-foreground/80 mb-2.5 line-clamp-2 leading-snug min-h-[2.5rem] flex-shrink-0">{title}</h3>}
 
                     {/* 标签 */}
                     {tags && tags.length > 0 && (
