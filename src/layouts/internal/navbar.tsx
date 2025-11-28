@@ -13,7 +13,7 @@ import ShareButton, { useShare } from '@/components/share-button';
 import { useChatPageCondition } from '@/hooks/use-chat-page';
 import { useMedia } from '@/hooks/use-media';
 import { usePlan } from '@/hooks/use-plan';
-import { useRole } from '@/hooks/use-role';
+import { useSpaceRole } from '@/hooks/use-role';
 import { SpaceSetting } from '@/pages/dashboard/space-setting';
 import knowledgeStore, { triggerKnowledgeSearch } from '@/stores/knowledge';
 import { onKnowledgeSearchKeywordsChange } from '@/stores/knowledge';
@@ -74,7 +74,7 @@ export default function Component({ onSideBarOpenChange }: { onSideBarOpenChange
     };
 
     const { userIsPro } = usePlan();
-    const { isEditor, isMember } = useRole();
+    const { isEditor, isMember } = useSpaceRole();
     const { isMobile } = useMedia();
 
     const {

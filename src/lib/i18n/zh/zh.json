@@ -290,10 +290,10 @@
     "Add Task": "添加任务",
     "Task": "任务",
     "Enter your task": "输入您的任务",
-    "Add": "添加",
     "Select group": "选择分组",
     "New group": "新建分组",
     "Group title (optional)": "分组标题（可选）",
     "Enter group title": "输入分组标题",
-    "Untitled": "无标题"
+    "Untitled": "无标题",
+    "System Setting": "系统设置"
 }

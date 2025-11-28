@@ -44,7 +44,7 @@ import { useChatPageCondition } from '@/hooks/use-chat-page';
 import { useMedia } from '@/hooks/use-media';
 import { usePlan } from '@/hooks/use-plan';
 import { useGroupedResources } from '@/hooks/use-resource';
-import { useRole } from '@/hooks/use-role';
+import { useSystemRole } from '@/hooks/use-role';
 import resourceStore, { loadSpaceResource, setCurrentSelectedResource } from '@/stores/resource';
 import sessionStore, { setCurrentSelectedSession } from '@/stores/session';
 import { closeSocket } from '@/stores/socket';
@@ -66,7 +66,8 @@ export default function Component({ children }: { children: React.ReactNode }) {
     const { userInfo } = useSnapshot(userStore);
     const { isChat } = useChatPageCondition();
     const { sessionID } = useParams();
-    const { isManager } = useRole();
+
+    const { isSystemAdmin } = useSystemRole();
 
     const { groupedResources, resourceList, resourceLoading, listResource } = useResourceMode();
 
@@ -421,14 +422,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                 <p className="p-4 text-small text-default-500">⭐️ Give us a star</p>
                             </CardBody>
                             <CardFooter className="absolute -bottom-8 justify-center">
-                                <Link
-                                    isExternal
-                                    href="https://github.com/quka-ai/quka-ai"
-                                    onClick={() => {
-                                        if (window.BrowserOpenURL) {
-                                        }
-                                    }}
-                                >
+                                <Link isExternal href="https://github.com/quka-ai/quka-ai">
                                     <Button className="px-10" color="primary" radius="full">
                                         <GithubIcon />
                                         Github
@@ -438,7 +432,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                         </Card>
                     </ScrollShadow>
 
-                    <Dropdown placement="top" className="w-full">
+                    <Dropdown placement="top" className="w-full" classNames={{ content: 'border border-default-200' }}>
                         <DropdownTrigger>
                             {userInfo && userInfo.userID ? (
                                 <Button
@@ -489,7 +483,9 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                         </div>
                                     </div>
                                 </DropdownItem>
-                                {isManager ? (
+                            </DropdownSection>
+                            {isSystemAdmin ? (
+                                <DropdownSection showDivider classNames={{ heading: 'text-sm mb-2' }} title={t('System Setting')}>
                                     <DropdownItem key="ai-admin" textValue="ai-admin">
                                         <div className="flex items-center gap-x-3">
                                             <div className="flex flex-col">
@@ -497,10 +493,6 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             </div>
                                         </div>
                                     </DropdownItem>
-                                ) : (
-                                    <></>
-                                )}
-                                {isManager ? (
                                     <DropdownItem key="user-admin" textValue="user-admin">
                                         <div className="flex items-center gap-x-3">
                                             <div className="flex flex-col">
@@ -508,10 +500,10 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             </div>
                                         </div>
                                     </DropdownItem>
-                                ) : (
-                                    <></>
-                                )}
-                            </DropdownSection>
+                                </DropdownSection>
+                            ) : (
+                                <></>
+                            )}
                             <DropdownSection>
                                 <DropdownItem key="logout" color="danger" textValue="logout">
                                     <div className="flex items-center gap-x-3">

@@ -153,7 +153,8 @@ export default function Component() {
                     classNames={{
                         trigger:
                             'min-h-14 bg-transparent border-small border-default-200 dark:border-default-200 data-[hover=true]:border-default-500 dark:data-[hover=true]:border-default-300 data-[hover=true]:bg-transparent',
-                        listbox: 'z-0'
+                        listbox: 'z-0',
+                        popoverContent: 'border-1 border-default-200'
                     }}
                     items={workspaces}
                     listboxProps={{

@@ -12,9 +12,9 @@ import { toast } from '@/hooks/use-toast';
 import { md5, processAvatarUrl } from '@/lib/utils';
 import SignUp from '@/pages/signup';
 import eventStore from '@/stores/event';
+import { buildTower } from '@/stores/socket';
 import { setCurrentSelectedSpace, setUserSpaces } from '@/stores/space';
 import userStore, { setHost, setUserAccessToken, setUserInfo, setUserLoginToken } from '@/stores/user';
-import { buildTower } from '@/stores/socket';
 
 export default function Component() {
     const [mode, setMode] = useState('login');
@@ -55,7 +55,7 @@ export default function Component() {
     );
 }
 
-const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode: (v:any) => void }) {
+const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode: (v: any) => void }) {
     const { t } = useTranslation();
     const [isVisible, setIsVisible] = useState(false);
     const [useTokenLogin, setUseTokenLogin] = useState(false);
@@ -147,7 +147,8 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
                 email: resp.email,
                 planID: resp.plan_id,
                 serviceMode: resp.service_mode,
-                appid: resp.appid
+                appid: resp.appid,
+                systemRole: resp.system_role
             });
 
             buildTower(resp.user_id, resp.appid, accessToken, '', () => {
@@ -181,7 +182,8 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
                 email: resp.meta.email,
                 planID: resp.meta.plan_id,
                 serviceMode: resp.meta.service_mode,
-                appid: resp.meta.appid
+                appid: resp.meta.appid,
+                systemRole: resp.meta.system_role
             });
 
             buildTower(resp.meta.user_id, resp.meta.appid, resp.token, 'authorization', () => {

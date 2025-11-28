@@ -83,6 +83,7 @@ declare type UserInfo = {
     planID: string;
     serviceMode: string;
     appid: string;
+    systemRole: string;
 };
 
 declare type UserStore = {

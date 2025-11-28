@@ -288,10 +288,10 @@
     "Add Task": "Add Task",
     "Task": "Task",
     "Enter your task": "Enter your task",
-    "Add": "Add",
     "Select group": "Select group",
     "New group": "New group",
     "Group title (optional)": "Group title (optional)",
     "Enter group title": "Enter group title",
-    "Untitled": "Untitled"
+    "Untitled": "Untitled",
+    "System Setting": "System Setting"
 }

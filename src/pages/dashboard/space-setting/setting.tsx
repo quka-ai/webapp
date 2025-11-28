@@ -10,7 +10,7 @@ import SpaceUserApplications from './user-applications';
 
 import { CreateSpaceShareURL } from '@/apis/share';
 import ShareButton from '@/components/share-button';
-import { useRole } from '@/hooks/use-role';
+import { useSpaceRole } from '@/hooks/use-role';
 //import UserManagement from './user-management';
 import SpaceUserSetting from '@/pages/dashboard/space-setting/user-setting';
 import spaceStore from '@/stores/space';
@@ -34,7 +34,7 @@ const Setting = React.forwardRef<HTMLDivElement, SpaceSettingCardProps>(({ onClo
         navigate('/dashboard');
     }
 
-    const { isManager } = useRole();
+    const { isManager } = useSpaceRole();
 
     return (
         <div className="w-full flex flex-col items-center">

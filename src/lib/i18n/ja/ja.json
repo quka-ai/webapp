@@ -213,10 +213,10 @@
     "Add Task": "タスクを追加",
     "Task": "タスク",
     "Enter your task": "タスクを入力してください",
-    "Add": "追加",
     "Select group": "グループを選択",
     "New group": "新しいグループ",
     "Group title (optional)": "グループタイトル（任意）",
     "Enter group title": "グループタイトルを入力",
-    "Untitled": "無題"
+    "Untitled": "無題",
+    "System Setting": "システム設定"
 }

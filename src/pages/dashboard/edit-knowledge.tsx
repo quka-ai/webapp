@@ -11,7 +11,7 @@ import KnowledgeEdit, { KnwoledgeEditorRefObject } from '@/components/knowledge-
 import KnowledgeView from '@/components/knowledge-view';
 import ShareButton from '@/components/share-button';
 import { usePlan } from '@/hooks/use-plan';
-import { useRole } from '@/hooks/use-role';
+import { useSpaceRole } from '@/hooks/use-role';
 import resourceStore, { loadSpaceResource } from '@/stores/resource';
 import spaceStore, { setCurrentSelectedSpace } from '@/stores/space';
 
@@ -25,7 +25,7 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
     const { t } = useTranslation();
     const [knowledge, setKnowledge] = useState<Knowledge>();
     const [isEdit, setIsEdit] = useState(false);
-    const { isSpaceViewer } = useRole();
+    const { isSpaceViewer } = useSpaceRole();
     const { spaceID, knowledgeID } = useParams<{ spaceID: string; knowledgeID: string }>();
     const navigate = useNavigate();
 

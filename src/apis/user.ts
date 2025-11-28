@@ -8,6 +8,7 @@ export interface LoginResponse {
     service_mode: string;
     plan_id: string;
     appid: string;
+    system_role: string;
 }
 
 export async function LoginWithAccessToken(accessToken: string): Promise<LoginResponse> {

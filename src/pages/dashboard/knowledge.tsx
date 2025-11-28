@@ -13,7 +13,7 @@ import Markdown from '@/components/markdown';
 import MultiDayJournalTodos from '@/components/multi-day-journal-todos';
 import WorkBar, { WorkBarRef } from '@/components/work-bar';
 import { useMedia } from '@/hooks/use-media';
-import { useRole } from '@/hooks/use-role';
+import { useSpaceRole } from '@/hooks/use-role';
 import knowledgeStore from '@/stores/knowledge';
 import resourceStore from '@/stores/resource';
 import socketStore, { CONNECTION_OK } from '@/stores/socket';
@@ -34,7 +34,7 @@ export default memo(function Component() {
     const { subscribe, connectionStatus } = useSnapshot(socketStore);
     const navigate = useNavigate();
 
-    const { isSpaceViewer } = useRole();
+    const { isSpaceViewer } = useSpaceRole();
 
     useEffect(() => {
         if (!currentSelectedResource || !currentSelectedSpace) {
@@ -304,7 +304,7 @@ const KnowledgeList = memo(
                 setShowGoTop(false);
             }
 
-            if (e.target.scrollTop + e.target.clientHeight + 50 > e.target.scrollHeight && knowledgeList &&  knowledgeList.length >= 0) {
+            if (e.target.scrollTop + e.target.clientHeight + 50 > e.target.scrollHeight && knowledgeList && knowledgeList.length >= 0) {
                 onLoadMore();
             }
         }
@@ -319,7 +319,9 @@ const KnowledgeList = memo(
                     <div className="w-full  space-y-1 mb-6  py-1">
                         <div className="flex justify-between items-center gap-4 md:px-6 px-3">
                             <div className="flex flex-col gap-2">
-                                <div id="knowledgebox" className="text-xl font-bold leading-9 text-default-foreground">{t('Your Memories')}</div>
+                                <div id="knowledgebox" className="text-xl font-bold leading-9 text-default-foreground">
+                                    {t('Your Memories')}
+                                </div>
                                 <div className="text-small text-default-400">{t('memories count', { total: total, title: currentSelectedResource?.title })}</div>
                             </div>
                             {isLoading && <Progress isIndeterminate size="sm" aria-label="Loading..." className="w-14" />}
