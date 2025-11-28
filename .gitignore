@@ -18,6 +18,7 @@ dist-ssr
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
+.claude/
 .idea
 .DS_Store
 *.suo
@@ -29,3 +30,6 @@ dist-ssr
 build_assets
 Dockerfile-local
 build-local.sh
+
+quka-desktop/build/bin
+quka-desktop/frontend

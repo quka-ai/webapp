@@ -20,7 +20,7 @@ export default function KnowledgeSharePage() {
         setIsLoading(true);
         try {
             let data = await GetSharedKnowledge(token);
-            if (data.user_avatar === '') {
+            if (data && data.user_avatar === '') {
                 data.user_avatar = 'https://avatar.vercel.sh/' + data.user_id;
             }
 
@@ -83,7 +83,7 @@ export default function KnowledgeSharePage() {
                 {/* Chat */}
                 <div className="relative flex flex-col h-full gap-2 w-full md:max-w-[720px] rounded-xl bg-content1 overflow-hidden">
                     <div className="flex flex-grow w-full max-w-full flex-col box-border px-1 gap-2 relative overflow-y-auto overflow-x-hidden">
-                        <div className="flex sm:h-[40px] pt-10 border-b-small border-divider flex-col sm:flex-row mx-4 sm:mx-[52px] flex-wrap items-center justify-center gap-2 pb-4 sm:pb-12 sm:justify-between">
+                        <div className="flex pt-10 border-b-small border-divider flex-col sm:flex-row mx-4 sm:mx-[52px] flex-wrap items-center justify-center gap-2 pb-4 sm:justify-between">
                             <p className="text-2xl font-medium">{knowledge?.title}</p>
                         </div>
 

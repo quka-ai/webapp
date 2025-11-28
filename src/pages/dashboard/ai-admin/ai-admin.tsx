@@ -2,9 +2,9 @@ import { Button, Tab, Tabs } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
-import { useRole } from '@/hooks/use-role';
+import { useSpaceRole } from '@/hooks/use-role';
 
 interface AIAdminProps {
     className?: string;
@@ -15,7 +15,7 @@ const AIAdmin = React.forwardRef<HTMLDivElement, AIAdminProps>(({ className, ...
     const { t: tGlobal } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
-    const { isManager } = useRole();
+    const { isManager } = useSpaceRole();
 
     function back() {
         // 直接返回仪表板，因为AI管理是全局功能
@@ -74,7 +74,7 @@ const AIAdmin = React.forwardRef<HTMLDivElement, AIAdminProps>(({ className, ...
                 <Tabs
                     fullWidth
                     selectedKey={currentTab}
-                    onSelectionChange={(key) => handleTabChange(key as string)}
+                    onSelectionChange={key => handleTabChange(key as string)}
                     classNames={{
                         base: 'mt-6',
                         cursor: 'bg-content1 dark:bg-content1',

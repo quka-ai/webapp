@@ -1,21 +1,4 @@
-import {
-    BreadcrumbItem,
-    Breadcrumbs,
-    Button,
-    ButtonGroup,
-    Code,
-    Divider,
-    Input,
-    Kbd,
-    Link,
-    Modal,
-    ModalBody,
-    ModalContent,
-    ModalFooter,
-    ModalHeader,
-    Textarea,
-    useDisclosure
-} from '@heroui/react';
+import { BreadcrumbItem, Breadcrumbs, Button, ButtonGroup, Code, Divider, Input, Kbd, Link, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Textarea, useDisclosure } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -47,212 +30,219 @@ export interface WorkBarProps {
     onShowChange?: (isShow: boolean) => void;
 }
 
-const WorkBar = memo(forwardRef<WorkBarRef, WorkBarProps>(function WorkBar({ onSubmit, isShowCreate = true, onShowChange }, ref) {
-    const { t } = useTranslation();
+const WorkBar = memo(
+    forwardRef<WorkBarRef, WorkBarProps>(function WorkBar({ onSubmit, isShowCreate = true, onShowChange }, ref) {
+        const { t } = useTranslation();
 
-    const { currentSelectedSpace } = useSnapshot(spaceStore);
-    const { currentSelectedResource } = useSnapshot(resourceStore);
-    const { userIsPro } = usePlan();
-    const { isMobile } = useMedia();
-    const navigate = useNavigate();
+        const { currentSelectedSpace } = useSnapshot(spaceStore);
+        const { currentSelectedResource } = useSnapshot(resourceStore);
+        const { userIsPro } = usePlan();
+        const { isMobile } = useMedia();
+        const navigate = useNavigate();
 
-    const createToResource = useMemo(() => {
-        if (currentSelectedResource && currentSelectedResource.id !== '') {
-            return {
-                id: currentSelectedResource.id,
-                title: currentSelectedResource.title
-            };
-        }
-        return {
-            id: 'knowledge',
-            title: t('resourceKnowledge')
-        };
-    }, [currentSelectedResource]);
-
-    const [knowledgeContent, setKnowledgeContent] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const createKnowledge = useCallback(async () => {
-        if (!userIsPro) {
-            // TODO alert upgrade plan
-            return;
-        }
-        if (knowledgeContent === '') {
-            toast.error(t('Error'), {
-                description: 'Knowledge content is empty'
-            });
-
-            return;
-        }
-
-        setIsLoading(true);
-        try {
-            await CreateKnowledge(currentSelectedSpace, createToResource?.id, knowledgeContent, 'markdown');
-            setKnowledgeContent('');
-            toast.success(t('Success'));
-            if (onSubmit) {
-                onSubmit();
+        const createToResource = useMemo(() => {
+            if (currentSelectedResource && currentSelectedResource.id !== '') {
+                return {
+                    id: currentSelectedResource.id,
+                    title: currentSelectedResource.title
+                };
             }
-        } catch (e: any) {
-            console.error(e);
-        }
-        setIsLoading(false);
-    }, [knowledgeContent, currentSelectedSpace, createToResource, userIsPro]);
+            return {
+                id: 'knowledge',
+                title: t('resourceKnowledge')
+            };
+        }, [currentSelectedResource]);
 
-    const [readEndpoint, setReadEndpoint] = useState('');
-    const [readLoading, setReadLoading] = useState(false);
-    const reader = useCallback(
-        async (e: any) => {
-            e.preventDefault(); // 阻止表单默认刷新行为
-            setReadLoading(true);
+        const [knowledgeContent, setKnowledgeContent] = useState('');
+        const [isLoading, setIsLoading] = useState(false);
+        const createKnowledge = useCallback(async () => {
+            if (!userIsPro) {
+                // TODO alert upgrade plan
+                return;
+            }
+            if (knowledgeContent === '') {
+                toast.error(t('Error'), {
+                    description: 'Knowledge content is empty'
+                });
+
+                return;
+            }
+
+            setIsLoading(true);
             try {
-                const resp = await Reader(readEndpoint);
-                switch (resp.type) {
-                    case "ai":
-                        const data = resp.ai_result
-                        if (data.warning && data.warning.length > 0) {
-                            setKnowledgeContent(data.warning);
-                        } else {
-                            setKnowledgeContent(["URL: " + data.url, data.title, data.description, data.content].join('\n\n'));
-                        }
-                    break;
+                await CreateKnowledge(currentSelectedSpace, createToResource?.id, knowledgeContent, 'markdown');
+                setKnowledgeContent('');
+                toast.success(t('Success'));
+                if (onSubmit) {
+                    onSubmit();
                 }
-                
-                setReadEndpoint('');
             } catch (e: any) {
                 console.error(e);
             }
-            setReadLoading(false);
-        },
-        [readEndpoint]
-    );
+            setIsLoading(false);
+        }, [knowledgeContent, currentSelectedSpace, createToResource, userIsPro]);
 
-    const knowledgeModal = useRef<{ show: (knowledge: { space_id: string }) => void }>(null);
-    const [knowledgeIsShow, setKnowledgeIsShow] = useState(false);
-    const showCreate = useCallback(() => {
-        if (knowledgeModal && knowledgeModal.current) {
-            knowledgeModal.current.show({
-                space_id: currentSelectedSpace
-            });
-            setKnowledgeIsShow(true);
-            onShowChange?.(true);
-        }
-    }, [knowledgeModal, currentSelectedSpace]);
+        const [readEndpoint, setReadEndpoint] = useState('');
+        const [readLoading, setReadLoading] = useState(false);
+        const reader = useCallback(
+            async (e: any) => {
+                e.preventDefault(); // 阻止表单默认刷新行为
+                setReadLoading(true);
+                try {
+                    const resp = await Reader(readEndpoint);
+                    switch (resp.type) {
+                        case 'ai':
+                            const data = resp.ai_result;
+                            if (data.warning && data.warning.length > 0) {
+                                setKnowledgeContent(data.warning);
+                            } else {
+                                setKnowledgeContent(['URL: ' + data.url, data.title, data.description, data.content].join('\n\n'));
+                            }
+                            break;
+                    }
 
-    useImperativeHandle(ref, () => ({
-        showCreateModal: showCreate
-    }), [showCreate]);
+                    setReadEndpoint('');
+                } catch (e: any) {
+                    console.error(e);
+                }
+                setReadLoading(false);
+            },
+            [readEndpoint]
+        );
 
-    useEffect(() => {
-        if (isMobile || !isShowCreate) {
-            return;
-        }
-        const handleKeyDown = (event: KeyboardEvent) => {
-            if (knowledgeIsShow) {
+        const knowledgeModal = useRef<{ show: (knowledge: { space_id: string }) => void }>(null);
+        const [knowledgeIsShow, setKnowledgeIsShow] = useState(false);
+        const showCreate = useCallback(() => {
+            if (knowledgeModal && knowledgeModal.current) {
+                knowledgeModal.current.show({
+                    space_id: currentSelectedSpace
+                });
+                setKnowledgeIsShow(true);
+                onShowChange?.(true);
+            }
+        }, [knowledgeModal, currentSelectedSpace]);
+
+        useImperativeHandle(
+            ref,
+            () => ({
+                showCreateModal: showCreate
+            }),
+            [showCreate]
+        );
+
+        useEffect(() => {
+            if (isMobile || !isShowCreate) {
                 return;
             }
-            // meta + b = create knowledge
-            if (event.key === 'b' && event.metaKey) {
-                showCreate();
-            }
-        };
+            const handleKeyDown = (event: KeyboardEvent) => {
+                if (knowledgeIsShow) {
+                    return;
+                }
+                // meta + b = create knowledge
+                if (event.key === 'b' && event.metaKey) {
+                    showCreate();
+                }
+            };
 
-        document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keydown', handleKeyDown);
 
-        return () => {
-            document.removeEventListener('keydown', handleKeyDown);
-        };
-    }, [isMobile, isShowCreate, knowledgeIsShow, showCreate]);
+            return () => {
+                document.removeEventListener('keydown', handleKeyDown);
+            };
+        }, [isMobile, isShowCreate, knowledgeIsShow, showCreate]);
 
-    return (
-        <div className="w-full flex flex-col gap-2 py-6 ">
-            <div className="flex md:flex-row flex-col px-6 mb-2 w-full  items-center gap-4">
-                <div className="text-2xl font-bold leading-9 text-default-foreground">🤯 {t('WorkSpace')}</div>
-                <Code className="text-sm text-default-500">{t('CurrentResourceType', { type: createToResource.title })}</Code>
-            </div>
-            <div className="flex lg:flex-row flex-col flex-wrap gap-4 md:px-6 px-3">
-                <div className="flex flex-col lg:w-1/2 w-full h-[200px]">
-                    <Textarea
-                        isClearable
-                        variant="bordered"
-                        placeholder={t('TypeKnowledgeByYourSelf')}
-                        onValueChange={setKnowledgeContent}
-                        value={knowledgeContent}
-                        startContent={
-                            <>
-                                {!knowledgeContent && (
-                                    <form onSubmit={reader}>
-                                        <div className="absolute bottom-2 left-2 flex gap-2 w-5/6">
-                                            <Input variant="faded" className="w-full" value={readEndpoint} onValueChange={setReadEndpoint} size="sm" placeholder={t('ReadWebContentFromURL')} />
-                                            <Button variant="faded" size="sm" type="submit" isLoading={readLoading}>
-                                                {t('Read')}
-                                            </Button>
-                                        </div>
-                                    </form>
-                                )}
-                            </>
-                        }
-                        endContent={
-                            <>
-                                {knowledgeContent ? (
-                                    <div className="absolute bottom-2 right-2">
-                                        <Button variant="faded" size="sm" isLoading={isLoading} onPress={createKnowledge}>
-                                            {t('Submit')}
-                                        </Button>
-                                    </div>
-                                ) : (
-                                    <>
-                                        {isShowCreate && (
-                                            <div className="absolute top-2 right-2">
-                                                <Button
-                                                    variant="faded"
-                                                    size="sm"
-                                                    isLoading={isLoading}
-                                                    onPress={() => {
-                                                        if (isMobile) {
-                                                            navigate(`/dashboard/${currentSelectedSpace}/knowledge/create`);
-                                                        } else {
-                                                            showCreate();
-                                                        }
-                                                    }}
-                                                    endContent={<Kbd keys={['command']}>B</Kbd>}
-                                                >
-                                                    🤔 {t('OpenRichText')}
+        return (
+            <div className="w-full flex flex-col gap-2 py-6">
+                <div className="flex md:flex-row flex-col px-6 mb-2 w-full items-center gap-4">
+                    <div className="text-2xl font-bold leading-9 text-default-foreground">🤯 {t('WorkSpace')}</div>
+                    <Code className="text-sm text-default-500">{t('CurrentResourceType', { type: createToResource.title })}</Code>
+                </div>
+                <div className="flex lg:flex-row flex-col flex-wrap gap-4 md:px-6 px-3">
+                    <div className="flex flex-col lg:w-1/2 w-full">
+                        <Textarea
+                            isClearable
+                            variant="bordered"
+                            classNames={{inputWrapper: "!h-[200px] border-small bg-gradient-to-br from-default-400/30 to-default-400 dark:from-default-100/50 dark:to-default-50/50"}}
+                            placeholder={t('TypeKnowledgeByYourSelf')}
+                            value={knowledgeContent}
+                            startContent={
+                                <>
+                                    {!knowledgeContent && (
+                                        <form onSubmit={reader}>
+                                            <div className="absolute bottom-2 left-2 flex gap-2 w-5/6">
+                                                <Input variant="faded" className="w-full" value={readEndpoint} size="sm" placeholder={t('ReadWebContentFromURL')} onValueChange={setReadEndpoint} />
+                                                <Button variant="faded" size="sm" type="submit" isLoading={readLoading}>
+                                                    {t('Read')}
                                                 </Button>
                                             </div>
-                                        )}
-                                    </>
-                                )}
-                            </>
-                        }
-                        minRows={8}
-                    />
-                    <div className="flex w-full items-center justify-end gap-2 p-1">
-                        <Icon className="text-default-400 dark:text-default-300" icon="la:markdown" width={20} />
-                        <p className="text-tiny text-default-400 dark:text-default-300">
-                            <Link className="text-tiny text-default-500" color="foreground" href="https://guides.github.com/features/mastering-markdown/" rel="noreferrer" target="_blank">
-                                Markdown
-                                <Icon className="[&>path]:stroke-[2px]" icon="solar:arrow-right-up-linear" />
-                            </Link>
-                            &nbsp;supported.
-                        </p>
-                    </div>
+                                        </form>
+                                    )}
+                                </>
+                            }
+                            endContent={
+                                <>
+                                    {knowledgeContent ? (
+                                        <div className="absolute bottom-2 right-2">
+                                            <Button variant="faded" size="sm" isLoading={isLoading} onPress={createKnowledge}>
+                                                {t('Submit')}
+                                            </Button>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            {isShowCreate && (
+                                                <div className="absolute top-2 right-2">
+                                                    <Button
+                                                        variant="faded"
+                                                        size="sm"
+                                                        isLoading={isLoading}
+                                                        onPress={() => {
+                                                            if (isMobile) {
+                                                                navigate(`/dashboard/${currentSelectedSpace}/knowledge/create`);
+                                                            } else {
+                                                                showCreate();
+                                                            }
+                                                        }}
+                                                        endContent={<Kbd keys={['command']}>B</Kbd>}
+                                                    >
+                                                        🤔 {t('OpenRichText')}
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </>
+                            }
+                            minRows={8}
+                            onValueChange={setKnowledgeContent}
+                        />
+                        <div className="flex w-full items-center justify-end gap-2 p-1">
+                            <Icon className="text-default-400 dark:text-default-300" icon="la:markdown" width={20} />
+                            <p className="text-tiny text-default-400 dark:text-default-300">
+                                <Link className="text-tiny text-default-500" color="foreground" href="https://guides.github.com/features/mastering-markdown/" rel="noreferrer" target="_blank">
+                                    Markdown
+                                    <Icon className="[&>path]:stroke-[2px]" icon="solar:arrow-right-up-linear" />
+                                </Link>
+                                &nbsp;supported.
+                            </p>
+                        </div>
 
-                    <CreateKnowledgeModal
-                        ref={knowledgeModal}
-                        onChange={onSubmit || (() => {})}
-                        onClose={() => {
-                            setKnowledgeIsShow(false);
-                            onShowChange?.(false);
-                        }}
-                    />
-                </div>
-                <div className="w-full flex-1 relative">
-                    <FileTask />
+                        <CreateKnowledgeModal
+                            ref={knowledgeModal}
+                            onChange={onSubmit || (() => {})}
+                            onClose={() => {
+                                setKnowledgeIsShow(false);
+                                onShowChange?.(false);
+                            }}
+                        />
+                    </div>
+                    <div className="w-full flex-1 relative">
+                        <FileTask />
+                    </div>
                 </div>
             </div>
-        </div>
-    );
-}));
+        );
+    })
+);
 
 export default WorkBar;
 
@@ -305,7 +295,7 @@ const FileTask = memo(function FileTask() {
             {!chunkFile.url ? (
                 <>
                     <FileUploader
-                        className="border-zinc-600 h-[180px] rounded-xl"
+                        className="w-full h-[180px] rounded-xl"
                         accept={{
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': [],
                             'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [],
@@ -476,12 +466,18 @@ const CreateKnowledgeModal = memo(
                                     </Breadcrumbs>
                                 </ModalHeader>
                                 <ModalBody className="w-full flex flex-col items-center">
-                                    <KnowledgeEdit ref={editor} hideSubmit classNames={{ editor: '!mx-0', base: '' }} 
-                                    // @ts-ignore
-                                    knowledge={{
-                                        ...knowledge,
-                                        space_id: currentSelectedSpace
-                                    }} onChange={onChangeFunc} onCancel={onCancelFunc} />
+                                    <KnowledgeEdit
+                                        ref={editor}
+                                        hideSubmit
+                                        classNames={{ editor: '!mx-0', base: '' }}
+                                        // @ts-ignore
+                                        knowledge={{
+                                            ...knowledge,
+                                            space_id: currentSelectedSpace
+                                        }}
+                                        onChange={onChangeFunc}
+                                        onCancel={onCancelFunc}
+                                    />
                                 </ModalBody>
                                 <ModalFooter className="flex justify-center">
                                     <ButtonGroup variant="flat" size="md" className="mb-4">

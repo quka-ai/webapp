@@ -1,4 +1,4 @@
-import { OutputBlockData, OutputData } from '@editorjs/editorjs';
+import type { OutputData } from '@editorjs/editorjs';
 import type { CalendarDate, Selection } from '@heroui/react';
 import { BreadcrumbItem, Breadcrumbs, Button, ButtonGroup, Checkbox, Listbox, ListboxItem, ListboxSection, Popover, PopoverContent, PopoverTrigger, Progress } from '@heroui/react';
 import { Calendar } from '@heroui/react';
@@ -16,48 +16,8 @@ import { Editor, EditorRefObject } from '@/components/editor/index';
 import KnowledgeDrawer from '@/components/knowledge-drawer';
 import KnowledgeModal from '@/components/knowledge-modal';
 import { toast } from '@/hooks/use-toast';
+import { extractTodosFromBlocks, type TodoList, type TodoListItem, updateChecklistItemInBlocks } from '@/lib/journal-todos';
 import spaceStore, { setCurrentSelectedSpace } from '@/stores/space';
-
-export interface TodoList {
-    title: string;
-    list: TodoListItem[];
-}
-export interface TodoListItem {
-    id: string;
-    index: number[];
-    checked: boolean;
-    content: string;
-    items: TodoListItem[];
-}
-
-export interface EditorCheckListItem {
-    content: string;
-    items: EditorCheckListItem[];
-    meta: {
-        checked: boolean;
-    };
-}
-
-function parserCheckList(id: string, index: number[], data: EditorCheckListItem): TodoListItem {
-    let todoItem: TodoListItem = {
-        id: id,
-        index: index,
-        checked: data.meta.checked,
-        content: data.content,
-        items: []
-    };
-    if (!data.items) {
-        return todoItem;
-    }
-
-    for (const i in data.items) {
-        const indexCopy = [...index];
-        indexCopy.push(i);
-        todoItem.items.push(parserCheckList(id, indexCopy, data.items[i]));
-    }
-
-    return todoItem;
-}
 
 function parseDateParamsToDate(dateStr: string) {
     const res = dateStr.split('-');
@@ -211,39 +171,7 @@ export default function Component() {
             }
 
             // patch todo list
-            let todos: TodoList[] = [];
-            let previousBlock = {} as OutputBlockData;
-            let isConsecutive = false;
-            for (const item of blocks.blocks) {
-                if (item.type === 'listv2' && item.data.style === 'checklist') {
-                    if (!isConsecutive) {
-                        // 如果不是连续的checklist
-                        let title = '';
-                        if (previousBlock && previousBlock.type === 'header') {
-                            title = previousBlock.data.text;
-                        }
-                        // 且Title不同，则新增一个todo组
-                        if (todos.length == 0 || todos[todos.length - 1].title !== title) {
-                            todos.push({
-                                title: title,
-                                list: []
-                            });
-                        }
-                    }
-                    for (const i in item.data.items) {
-                        if (item.data.items[i]) {
-                            todos[todos.length - 1].list.push(parserCheckList(item.id, [i], item.data.items[i]));
-                        }
-                    }
-
-                    isConsecutive = true;
-                } else {
-                    isConsecutive = false;
-                }
-                if (item.type === 'header') {
-                    previousBlock = item;
-                }
-            }
+            const todos = extractTodosFromBlocks(blocks);
             setJournalTodos(todos);
         },
         [selectDate, currentSelectedSpace]
@@ -338,34 +266,17 @@ export default function Component() {
     const editor = useRef<EditorRefObject>();
 
     function onJournalTodoChanged(data: OutputData, targetId: string, index: number[]) {
-        const block = data.blocks.find(block => block.id === targetId);
-        if (!block) {
-            console.error('Target block not found.');
+        const updatedData = updateChecklistItemInBlocks(data, targetId, index);
+        if (!updatedData) {
             return;
         }
 
-        let currentItem = block.data.items;
-
-        for (let i = 0; i < index.length; i++) {
-            if (!currentItem || !currentItem[index[i]]) {
-                console.error('Invalid index path.');
-                return;
-            }
-            if (index.length === i + 1) {
-                currentItem = currentItem[index[i]];
-            } else {
-                currentItem = currentItem[index[i]].items;
-            }
+        const block = updatedData.blocks.find(block => block.id === targetId);
+        if (!block) {
+            return;
         }
 
-        const targetItem = currentItem;
-        if (targetItem && targetItem.meta) {
-            targetItem.meta.checked = !targetItem.meta.checked;
-        } else {
-            console.error('Target item not found or missing meta.');
-        }
-
-        onBlocksChanged(data);
+        onBlocksChanged(updatedData);
         if (editor.current) {
             editor.current.update(block.id, block.data);
         }

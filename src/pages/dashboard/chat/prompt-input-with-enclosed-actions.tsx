@@ -272,7 +272,7 @@ export default function Component(
                     {...props}
                     ref={inputRef}
                     classNames={{
-                        inputWrapper: '!bg-transparent shadow-none',
+                        inputWrapper: '!bg-transparent shadow-none outline-none',
                         innerWrapper: cn('items-center outline-0', props.classNames?.innerWrapper),
                         input: cn('text-medium pl-1 data-[has-start-content=true]:ps-0 data-[has-start-content=true]:pe-0', props.classNames?.input)
                     }}

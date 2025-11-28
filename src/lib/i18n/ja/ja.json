@@ -101,6 +101,7 @@
     "knowledgeCreateResourceLablePlaceholder": "リソースタイプを指定してください（デフォルトは knowledge）",
     "showRelevanceDocs": "関連ドキュメントを表示",
     "Today": "今日",
+    "Tomorrow": "明日",
     "Yesterday": "昨日",
     "Journal": "日誌",
     "PreviousDays": "過去{{day}}日",
@@ -205,5 +206,17 @@
     "UseSearch": "検索を使用",
     "UseMemory": "記憶を使用",
     "AI Model Management": "AIモデル管理",
-    "User Management": "ユーザー管理"
+    "User Management": "ユーザー管理",
+    "pending": "保留中",
+    "All completed": "すべて完了",
+    "No todos for this day": "その日にタスクはありません",
+    "Add Task": "タスクを追加",
+    "Task": "タスク",
+    "Enter your task": "タスクを入力してください",
+    "Select group": "グループを選択",
+    "New group": "新しいグループ",
+    "Group title (optional)": "グループタイトル（任意）",
+    "Enter group title": "グループタイトルを入力",
+    "Untitled": "無題",
+    "System Setting": "システム設定"
 }

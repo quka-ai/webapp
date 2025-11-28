@@ -38,7 +38,7 @@ export default memo(
         const { t } = useTranslation();
         const [title, setTitle] = useState(knowledge ? knowledge.title : '');
         const [content, setContent] = useState<string | OutputData>(knowledge ? (knowledge.blocks ? knowledge.blocks : knowledge.content) : '');
-        const [contentType, setContentType] = useState(knowledge? knowledge.content_type : 'markdown'); // text | blocks | jso
+        const [contentType, setContentType] = useState(knowledge ? knowledge.content_type : 'markdown'); // text | blocks | jso
         const [tags, setTags] = useState(knowledge ? knowledge.tags : []);
         const [isInvalid, setInvalid] = useState(false);
         const [errorMessage, setErrorMessage] = useState('');
@@ -51,9 +51,9 @@ export default memo(
             const cached = JSON.parse(sessionStorage.getItem(temporaryStorage) || '{}');
             if (knowledge && cached.blocks) {
                 knowledge.blocks = cached;
-                setContent(knowledge.blocks)
+                setContent(knowledge.blocks);
                 knowledge.content_type = 'blocks';
-                setContentType(knowledge.content_type)
+                setContentType(knowledge.content_type);
             }
         }
 
@@ -158,7 +158,6 @@ export default memo(
             <>
                 {knowledge && (
                     <>
-
                         {/* <ScrollShadow hideScrollBar isEnabled={enableScrollShadow} className="w-full flex-grow box-border  flex justify-center"> */}
                         <KnowledgeAITaskList />
                         <div className="w-full h-full md:max-w-[650px]">
@@ -293,7 +292,7 @@ export default memo(
                                 </div>
                             )}
 
-                            <div className="pb-20" />
+                            <div className="pb-6" />
                         </div>
                         {/* </ScrollShadow> */}
                     </>

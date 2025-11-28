@@ -2,12 +2,12 @@
 
 import { HeroUIProvider, ToastProvider } from '@heroui/react';
 import { enableMapSet } from 'immer';
-import { Children, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { Toaster as SonnerTotaster } from 'sonner';
 import { subscribeKey } from 'valtio/utils';
 
+// import VConsole from 'vconsole';
 import { ShareProvider } from './components/share-button';
 import { useMedia } from './hooks/use-media';
 import { setNotAutoLoginDirect } from './lib/utils';
@@ -17,6 +17,9 @@ import { KnowledgeProvider } from '@/components/knowledge-drawer';
 import { Toaster } from '@/components/ui/toaster';
 import { useTheme } from '@/hooks/use-theme';
 import { Init as InitI18n } from '@/lib/i18n';
+
+// 或者使用配置参数进行初始化
+// const vConsole = new VConsole({ theme: 'dark' });
 
 export function App({ children }: { children: React.ReactNode }) {
     const { theme, isDark } = useTheme();

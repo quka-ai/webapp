@@ -57,13 +57,14 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
                 try {
                     const resp = await GetUserInfo();
                     setUserInfo({
+                        appid: resp.appid,
                         userID: resp.user_id,
                         avatar: processAvatarUrl(resp.avatar, resp.user_id, true),
                         userName: resp.user_name,
                         email: resp.email,
                         planID: resp.plan_id,
                         serviceMode: resp.service_mode,
-                        appid: resp.appid
+                        systemRole: resp.system_role
                     });
 
                     await loadUserSpaces();

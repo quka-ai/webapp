@@ -7,7 +7,6 @@ import {
     ModalContent,
     ModalFooter,
     ModalHeader,
-    Skeleton,
     Spinner,
     Table,
     TableBody,
@@ -19,19 +18,12 @@ import {
 } from '@heroui/react';
 import { cn } from '@heroui/react';
 import { Icon } from '@iconify/react';
-import { fromAbsolute, getLocalTimeZone } from '@internationalized/date';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
-import { useSnapshot } from 'valtio';
 
-import { PlanCustomRadio } from './plan-custom-radio';
-
-import { GetPlanList, type Plan, RedeemGiftCode, RedeemGiftCodeResponse } from '@/apis/plan';
-import { AccessToken, CreateUserAccessToken, DeleteUserAccessTokens, GetUserPlanDescription, ListUserAccessTokens } from '@/apis/user';
+import { AccessToken, CreateUserAccessToken, DeleteUserAccessTokens, ListUserAccessTokens } from '@/apis/user';
 import { useMedia } from '@/hooks/use-media';
-import { usePlan } from '@/hooks/use-plan';
-import userStore, { setUserInfo } from '@/stores/user';
 
 interface SecretSettingCardProps {
     className?: string;

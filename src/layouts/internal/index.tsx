@@ -11,6 +11,11 @@ import {
     DropdownSection,
     DropdownTrigger,
     Link,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
     ScrollShadow,
     Skeleton,
     Spacer,
@@ -31,7 +36,7 @@ import Sidebar, { SidebarItem as SidebarItemType } from './sidebar';
 import SidebarDrawer from './sidebar-drawer';
 import WorkSpaceSelection from './space-selection';
 
-import { ChatSession, GetChatSessionList } from '@/apis/chat';
+import { ChatSession, DeleteChatSession, GetChatSessionList } from '@/apis/chat';
 import { GithubIcon } from '@/components/icons';
 import { LogoIcon, Name } from '@/components/logo';
 import ResourceManage from '@/components/resource-modal';
@@ -39,22 +44,20 @@ import { useChatPageCondition } from '@/hooks/use-chat-page';
 import { useMedia } from '@/hooks/use-media';
 import { usePlan } from '@/hooks/use-plan';
 import { useGroupedResources } from '@/hooks/use-resource';
-import { useRole } from '@/hooks/use-role';
+import { useSystemRole } from '@/hooks/use-role';
 import resourceStore, { loadSpaceResource, setCurrentSelectedResource } from '@/stores/resource';
 import sessionStore, { setCurrentSelectedSession } from '@/stores/session';
 import { closeSocket } from '@/stores/socket';
 import spaceStore from '@/stores/space';
 import userStore, { logout } from '@/stores/user';
 
-interface SidebarItem {
-    id: string;
-    title: string;
-}
-
 export default function Component({ children }: { children: React.ReactNode }) {
     const { t } = useTranslation();
     const navigate = useNavigate();
     const { isOpen, onOpenChange } = useDisclosure();
+    const { isOpen: isDeleteModalOpen, onOpen: onDeleteModalOpen, onClose: onDeleteModalClose } = useDisclosure();
+    const [sessionToDelete, setSessionToDelete] = useState<{ id: string; title: string } | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
     const [isCollapsed, _] = React.useState(false);
     const { isMobile } = useMedia();
     const { currentSelectedSpace } = useSnapshot(spaceStore);
@@ -63,7 +66,8 @@ export default function Component({ children }: { children: React.ReactNode }) {
     const { userInfo } = useSnapshot(userStore);
     const { isChat } = useChatPageCondition();
     const { sessionID } = useParams();
-    const { isManager } = useRole();
+
+    const { isSystemAdmin } = useSystemRole();
 
     const { groupedResources, resourceList, resourceLoading, listResource } = useResourceMode();
 
@@ -164,6 +168,37 @@ export default function Component({ children }: { children: React.ReactNode }) {
         [currentSelectedSpace]
     );
 
+    const handleDeleteSession = useCallback(
+        (sessionId: string, sessionTitle: string) => {
+            setSessionToDelete({ id: sessionId, title: sessionTitle });
+            onDeleteModalOpen();
+        },
+        [onDeleteModalOpen]
+    );
+
+    const confirmDeleteSession = useCallback(async () => {
+        if (!sessionToDelete || !currentSelectedSpace || isDeleting) {
+            return;
+        }
+
+        setIsDeleting(true);
+        try {
+            await DeleteChatSession(currentSelectedSpace, sessionToDelete.id);
+            // 刷新 session 列表
+            reload(currentSelectedSpace);
+            // 如果删除的是当前打开的 session，跳转到聊天首页
+            if (sessionID === sessionToDelete.id) {
+                navigate(`/dashboard/${currentSelectedSpace}/chat`);
+            }
+            onDeleteModalClose();
+            setSessionToDelete(null);
+        } catch (error) {
+            console.error('Failed to delete session:', error);
+        } finally {
+            setIsDeleting(false);
+        }
+    }, [sessionToDelete, currentSelectedSpace, isDeleting, reload, sessionID, navigate, onDeleteModalClose]);
+
     function goJournal() {
         const t = today(getLocalTimeZone()).toString();
         navigate(`/dashboard/${currentSelectedSpace}/journal/${t}`);
@@ -172,11 +207,11 @@ export default function Component({ children }: { children: React.ReactNode }) {
     const { userPlan } = usePlan();
 
     return (
-        <div className="flex h-dvh w-full dark:bg-zinc-900">
+        <div className="flex h-dvh w-full bg-neutral-50 dark:bg-neutral-900">
             {/* Sidebar */}
             <SidebarDrawer className="min-w-64" sidebarWidth={260} hideCloseButton={true} isOpen={isOpen} onOpenChange={onOpenChange}>
                 <div
-                    className={cn('will-change relative flex w-[260px] flex-col bg-default-100 py-6 px-4 box-border transition-width h-dvh', {
+                    className={cn('will-change relative flex w-[260px] overflow-hidden box-border flex-col bg-neutral-50 dark:bg-neutral-900 py-6 px-4 h-dvh', {
                         'items-center': isCollapsed
                     })}
                 >
@@ -212,7 +247,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                         <Spacer y={2} />
                     </div>
 
-                    <ScrollShadow hideScrollBar className="-mr-6 h-full max-h-full pr-6">
+                    <ScrollShadow hideScrollBar className="h-full max-h-full">
                         <div className="flex flex-col gap-y-2">
                             <div className=" pb-2 px-2 text-zinc-500 text-sm">{isChat ? t('Chat Sessions') : t('Resource List')}</div>
                             {isChat ? (
@@ -258,7 +293,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             defaultSelectedKey={currentSelectedSession?.key}
                                             iconClassName="group-data-[selected=true]:text-primary-foreground"
                                             itemClasses={{
-                                                base: 'data-[selected=true]:bg-primary-200 data-[selected=true]:focus:bg-primary-200 dark:data-[selected=true]:bg-primary-300/60 data-[hover=true]:bg-default-300 dark:data-[hover=true]:bg-default-200/40',
+                                                base: 'data-[selected=true]:bg-default-200 data-[selected=true]:focus:bg-default-200 dark:data-[selected=true]:bg-default-200/40 data-[hover=true]:bg-default-400 dark:data-[hover=true]:bg-default-200/20',
                                                 title: 'group-data-[selected=true]:text-primary-foreground'
                                             }}
                                             sectionClasses={{
@@ -274,7 +309,10 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                                         items: item.items?.map(v => {
                                                             return {
                                                                 key: v.id,
-                                                                title: v.title || v.id
+                                                                title: v.title || v.id,
+                                                                onDelete: (sessionId: string) => {
+                                                                    handleDeleteSession(sessionId, v.title || v.id);
+                                                                }
                                                             };
                                                         })
                                                     });
@@ -309,7 +347,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             defaultSelectedKey={currentSelectedResource?.id}
                                             iconClassName="group-data-[selected=true]:text-primary-foreground"
                                             itemClasses={{
-                                                base: 'data-[selected=true]:bg-primary-200 data-[selected=true]:focus:bg-primary-200 dark:data-[selected=true]:bg-primary-300/60 data-[hover=true]:bg-default-300 dark:data-[hover=true]:bg-default-200/40',
+                                                base: 'data-[selected=true]:bg-default-200 data-[selected=true]:focus:bg-default-200 dark:data-[selected=true]:bg-default-200/40 data-[hover=true]:bg-default-400 dark:data-[hover=true]:bg-default-200/20',
                                                 title: 'group-data-[selected=true]:text-primary-foreground'
                                             }}
                                             sectionClasses={{
@@ -394,7 +432,7 @@ export default function Component({ children }: { children: React.ReactNode }) {
                         </Card>
                     </ScrollShadow>
 
-                    <Dropdown placement="top" className="w-full">
+                    <Dropdown placement="top" className="w-full" classNames={{ content: 'border border-default-200' }}>
                         <DropdownTrigger>
                             {userInfo && userInfo.userID ? (
                                 <Button
@@ -445,7 +483,9 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                         </div>
                                     </div>
                                 </DropdownItem>
-                                {isManager ? (
+                            </DropdownSection>
+                            {isSystemAdmin ? (
+                                <DropdownSection showDivider classNames={{ heading: 'text-sm mb-2' }} title={t('System Setting')}>
                                     <DropdownItem key="ai-admin" textValue="ai-admin">
                                         <div className="flex items-center gap-x-3">
                                             <div className="flex flex-col">
@@ -453,8 +493,6 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             </div>
                                         </div>
                                     </DropdownItem>
-                                ): <></>}
-                                {isManager ? (
                                     <DropdownItem key="user-admin" textValue="user-admin">
                                         <div className="flex items-center gap-x-3">
                                             <div className="flex flex-col">
@@ -462,8 +500,10 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                             </div>
                                         </div>
                                     </DropdownItem>
-                                ): <></>}
-                            </DropdownSection>
+                                </DropdownSection>
+                            ) : (
+                                <></>
+                            )}
                             <DropdownSection>
                                 <DropdownItem key="logout" color="danger" textValue="logout">
                                     <div className="flex items-center gap-x-3">
@@ -483,6 +523,27 @@ export default function Component({ children }: { children: React.ReactNode }) {
                 {children}
             </div>
             {!isMobile ? <div>{/* for gap, dont delete */}</div> : <></>}
+
+            {/* 删除确认对话框 */}
+            <Modal isOpen={isDeleteModalOpen} backdrop="blur" isDismissable={!isDeleting} onClose={onDeleteModalClose}>
+                <ModalContent>
+                    <ModalHeader className="flex flex-col gap-1">{t('Delete Session')}</ModalHeader>
+                    <ModalBody>
+                        <p>
+                            {t('Are you sure you want to delete this session?')} <strong>{sessionToDelete?.title}</strong>
+                        </p>
+                        <p className="text-small text-danger">{t('This action cannot be undone.')}</p>
+                    </ModalBody>
+                    <ModalFooter>
+                        <Button variant="light" isDisabled={isDeleting} onPress={onDeleteModalClose}>
+                            {t('Cancel')}
+                        </Button>
+                        <Button color="danger" isLoading={isDeleting} isDisabled={isDeleting} onPress={confirmDeleteSession}>
+                            {t('Delete')}
+                        </Button>
+                    </ModalFooter>
+                </ModalContent>
+            </Modal>
         </div>
     );
 }

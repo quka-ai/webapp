@@ -61,17 +61,24 @@ const CreateKnowledge = () => {
                 </Breadcrumbs>
             </div>
             <div className="w-full overflow-hidden p-4">
-                <KnowledgeEdit ref={editor} hideSubmit knowledge={{
-                    //@ts-ignore
-                    space_id: spaceID
-                }} classNames={{ base: '', editor: '!mx-0 ' }} />
+                <KnowledgeEdit
+                    ref={editor}
+                    hideSubmit
+                    knowledge={{
+                        //@ts-ignore
+                        space_id: spaceID
+                    }}
+                    classNames={{ base: '', editor: '!mx-0 ' }}
+                />
             </div>
             <div className="fixed w-full left-0 bottom-0 h-14 flex justify-center items-center bg-content1 z-50">
                 <ButtonGroup variant="flat" size="md" className="mb-4">
-                    <Button color="primary" isLoading={createLoading} onPress={submit} className="bg-default">
+                    <Button color="primary" isLoading={createLoading} className="bg-default" onPress={submit}>
                         {t('Save')}
                     </Button>
-                    <Button onPress={() => navigate(-1)} className="bg-default">{t('Close')}</Button>
+                    <Button className="bg-default" onPress={() => navigate(-1)}>
+                        {t('Close')}
+                    </Button>
                 </ButtonGroup>
             </div>
         </div>

@@ -11,7 +11,7 @@ import KnowledgeView from '@/components/knowledge-view';
 import ShareButton from '@/components/share-button';
 import { useMedia } from '@/hooks/use-media';
 import { usePlan } from '@/hooks/use-plan';
-import { useRole } from '@/hooks/use-role';
+import { useSpaceRole } from '@/hooks/use-role';
 import resourceStore, { loadSpaceResource } from '@/stores/resource';
 import spaceStore from '@/stores/space';
 
@@ -30,7 +30,7 @@ const ViewKnowledge = memo(
         const [isEdit, setIsEdit] = useState(false);
         const { isMobile } = useMedia();
         const [canEsc, setCanEsc] = useState(true);
-        const { isSpaceViewer } = useRole();
+        const { isSpaceViewer } = useSpaceRole();
 
         const { onChange, onDelete } = props;
 
@@ -156,7 +156,7 @@ const ViewKnowledge = memo(
 
         return (
             <>
-                <Modal hideCloseButton backdrop="blur" placement="top-center" size={size} isOpen={isOpen} isKeyboardDismissDisabled={!canEsc} scrollBehavior="inside" onClose={close}>
+                <Modal hideCloseButton className="overflow-hidden" placement="top-center" size={size} isOpen={isOpen} isKeyboardDismissDisabled={!canEsc} scrollBehavior="inside" onClose={close}>
                     {knowledge && !isLoading ? (
                         <ModalContent>
                             {onClose => (

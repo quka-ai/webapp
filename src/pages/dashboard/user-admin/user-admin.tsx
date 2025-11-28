@@ -2,9 +2,9 @@ import { Button } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate, Outlet, useLocation } from 'react-router-dom';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 
-import { useRole } from '@/hooks/use-role';
+import { useSpaceRole } from '@/hooks/use-role';
 
 interface UserAdminProps {
     className?: string;
@@ -15,7 +15,7 @@ const UserAdmin = React.forwardRef<HTMLDivElement, UserAdminProps>(({ className,
     const { t: tGlobal } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
-    const { isManager } = useRole();
+    const { isManager } = useSpaceRole();
 
     function back() {
         navigate('/dashboard');
@@ -54,7 +54,7 @@ const UserAdmin = React.forwardRef<HTMLDivElement, UserAdminProps>(({ className,
                     <h1 className="text-3xl font-bold leading-9 text-default-foreground">{t('User Management')}</h1>
                 </div>
                 <h2 className="mt-2 text-small text-default-500">{t('Manage user accounts, create new users and regenerate access tokens')}</h2>
-                
+
                 {/* Content */}
                 <div className="mt-6 w-full">
                     <Outlet />

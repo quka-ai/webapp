@@ -1,0 +1,27 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "QukaAI",
+  "outputfilename": "QukaAI",
+  "frontendDirectory": "../",
+  "frontend:build:dir": "../dist",
+  "author": {
+    "name": "boyce",
+    "email": "w@ojbk.io"
+  },
+  "info": {
+    "companyName": "QukaAI",
+    "productName": "QukaAI",
+    "productVersion": "v0.2.8",
+    "copyright": "© 2025 QukaAI",
+    "comments": "QukaAI Desktop Application"
+  },
+  "nsisType": "multiple",
+  "obfuscated": false,
+  "garbleargs": "",
+  "appstoreconnect": {
+    "bundleIdentifier": "com.llmapis.QukaAI"
+  },
+  "darwin:icon": "icon.icns",
+  "windows:icon": "appicon.png",
+  "linux:icon": "appicon.png"
+}

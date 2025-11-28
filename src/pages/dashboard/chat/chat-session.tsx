@@ -11,7 +11,6 @@ import KnowledgeModal from '@/components/knowledge-modal';
 import { LogoIcon } from '@/components/logo';
 import { useMedia } from '@/hooks/use-media';
 import useUserAvatar from '@/hooks/use-user-avatar';
-import { FireTowerMsg } from '@/stores/socket';
 import MessageCard, { type MessageExt } from '@/pages/dashboard/chat/message-card';
 import PromptInputWithEnclosedActions from '@/pages/dashboard/chat/prompt-input-with-enclosed-actions';
 import { notifySessionNamedEvent, notifySessionReload } from '@/stores/session';
@@ -54,7 +53,7 @@ function setMessageDaemon(messageID: string, callback: () => void) {
     if (existInterval) {
         clearTimeout(existInterval);
     }
-    const id = setTimeout(callback, 20000);
+    const id = setTimeout(callback, 30000);
     messageDaemon.set(messageID, id);
 }
 
@@ -120,7 +119,7 @@ export default function Chat() {
 
     useEffect(() => {
         if (!currentSelectedSpace || !sessionID) {
-            return
+            return;
         }
         let queue: MessageEvent[] = [];
         let isExist = false;
@@ -128,7 +127,20 @@ export default function Chat() {
         const reloadFunc = async () => {
             onChatSessionMessageListReload = true;
             await loadData(1);
-            // queue = [];
+            // 检查重新加载后的消息状态，如果所有消息都已完成，重置 aiTyping
+            setMessages((prev: Message[]) => {
+                if (prev.length > 0) {
+                    const hasOngoingMessage = prev.some(msg => msg.status === 'continue');
+                    if (!hasOngoingMessage) {
+                        console.log('[reloadFunc] No ongoing messages found, setting aiTyping to false');
+                        setAiTyping(false);
+                    }
+                } else {
+                    // 如果没有消息，也重置 aiTyping
+                    setAiTyping(false);
+                }
+                return prev;
+            });
             onChatSessionMessageListReload = false;
         };
 
@@ -168,6 +180,7 @@ export default function Chat() {
 
                     switch (data.type) {
                         case EventType.EVENT_TOOL_INIT:
+                            console.log(`[TOOL_INIT] Tool message initialized, messageID: ${data.messageID}`);
                             setMessages((prev: Message[]) => {
                                 prev.push({
                                     key: data.messageID,
@@ -184,8 +197,10 @@ export default function Chat() {
                             setMessageDaemon(data.messageID, reloadFunc);
                             break;
                         case EventType.EVENT_ASSISTANT_INIT:
+                            console.log(`[INIT] Assistant message initialized, messageID: ${data.messageID}`);
                             setAiTyping(false);
                             if (messages.find(v => v.key === data.messageID)) {
+                                console.log(`[INIT] Message already exists, skipping`);
                                 break;
                             }
 
@@ -207,15 +222,21 @@ export default function Chat() {
                             break;
                         case EventType.EVENT_ASSISTANT_CONTINUE:
                             const messageRunes = runes(data.message);
+                            // 只在消息开始时和较长的消息时记录日志，避免日志过多
+                            if (data.startAt === 0 || messageRunes.length > 100) {
+                                console.log(`[CONTINUE] messageID: ${data.messageID}, startAt: ${data.startAt}, length: ${messageRunes.length}`);
+                            }
                             for (let i = 0; i < messageRunes.length; i += 2) {
                                 setMessages((prev: Message[]) => {
                                     const todo = prev.find(todo => todo.key === data.messageID);
                                     if (!todo) {
+                                        console.warn(`[CONTINUE] Message not found, triggering reload. messageID: ${data.messageID}`);
                                         reloadFunc();
                                         return;
                                     }
 
                                     if (todo.len !== data.startAt) {
+                                        console.warn(`[CONTINUE] Length mismatch - expected: ${data.startAt}, actual: ${todo.len}`);
                                         return;
                                     }
 
@@ -244,19 +265,20 @@ export default function Chat() {
 
                             break;
                         case EventType.EVENT_ASSISTANT_DONE:
+                            console.log(`[DONE] messageID: ${data.messageID}, startAt: ${data.startAt}`);
                             setAiTyping(false);
+                            removeMessageDaemon(data.messageID);
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
+                                console.log(`[DONE] found message:`, todo ? `len=${todo.len}, expected=${data.startAt}` : 'not found');
                                 if (!todo || todo.len !== data.startAt) {
-                                    console.warn('reload history');
+                                    console.warn('reload history due to message length mismatch or message not found');
                                     reloadFunc();
                                 } else {
                                     todo.status = 'success';
                                     loadMessageExt(data.messageID);
                                 }
                             });
-                            // todo load this message exts
-                            removeMessageDaemon(data.messageID);
                             break;
                         case EventType.EVENT_TOOL_CONTINUE:
                             setMessages((prev: Message[]) => {
@@ -268,22 +290,40 @@ export default function Chat() {
                             });
                             break;
                         case EventType.EVENT_TOOL_DONE:
+                            console.log(`[TOOL_DONE] Tool execution completed, messageID: ${data.messageID}`);
+                            removeMessageDaemon(data.messageID);
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
                                 if (!todo || !todo.toolTips) {
+                                    console.log(`[TOOL_DONE] Message or toolTips not found`);
                                     return;
                                 }
 
                                 todo.toolTips.forEach(toolTip => {
                                     toolTip.status = ToolStatus.TOOL_STATUS_SUCCESS;
                                 });
+
+                                // 标记 tool 消息为完成状态
+                                todo.status = 'success';
                             });
-                            removeMessageDaemon(data.messageID);
+                            // Tool 完成后也需要检查是否还有其他正在进行的消息
+                            // 如果没有，则重置 aiTyping
+                            setMessages((prev: Message[]) => {
+                                const hasOngoingMessage = prev.some(msg => msg.status === 'continue');
+                                if (!hasOngoingMessage) {
+                                    console.log('[TOOL_DONE] No ongoing messages, setting aiTyping to false');
+                                    setAiTyping(false);
+                                }
+                                return prev;
+                            });
                             break;
                         case EventType.EVENT_TOOL_FAILED:
+                            console.log(`[TOOL_FAILED] Tool execution failed, messageID: ${data.messageID}`);
+                            removeMessageDaemon(data.messageID);
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
                                 if (!todo || !todo.toolTips) {
+                                    console.log(`[TOOL_FAILED] Message or toolTips not found, triggering reload`);
                                     reloadFunc();
                                     return;
                                 }
@@ -291,13 +331,27 @@ export default function Chat() {
                                 todo.toolTips.forEach(toolTip => {
                                     toolTip.status = ToolStatus.TOOL_STATUS_FAILED;
                                 });
+
+                                // 标记 tool 消息为失败状态
+                                todo.status = 'failed';
                             });
-                            removeMessageDaemon(data.messageID);
+                            // Tool 失败后也需要检查是否还有其他正在进行的消息
+                            // 如果没有，则重置 aiTyping
+                            setMessages((prev: Message[]) => {
+                                const hasOngoingMessage = prev.some(msg => msg.status === 'continue');
+                                if (!hasOngoingMessage) {
+                                    console.log('[TOOL_FAILED] No ongoing messages, setting aiTyping to false');
+                                    setAiTyping(false);
+                                }
+                                return prev;
+                            });
                             break;
                         case EventType.EVENT_ASSISTANT_FAILED:
+                            console.log(`[FAILED] Assistant message failed, messageID: ${data.messageID}`);
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
                                 if (!todo) {
+                                    console.log(`[FAILED] Message not found, triggering reload`);
                                     reloadFunc();
                                     return;
                                 }
@@ -306,6 +360,8 @@ export default function Chat() {
                                 }
                             });
                             removeMessageDaemon(data.messageID);
+                            // 消息失败时也应该重置 aiTyping
+                            setAiTyping(false);
                             break;
 
                         default:
@@ -328,11 +384,10 @@ export default function Chat() {
             if (msg.data.subject !== 'on_message' && msg.data.subject !== 'on_message_init') {
                 return;
             }
-            
 
             const { type, data } = msg.data;
             const streamData = data as StreamMessage;
-            
+
             // 处理 Centrifuge 字符串类型的 EventType
             const eventType = typeof type === 'string' ? parseInt(type) : type;
             switch (eventType) {
@@ -489,16 +544,23 @@ export default function Chat() {
     const isNew = urlParams.get('isNew');
 
     const isGenerating = useMemo<boolean>(() => {
-        if (!messages) {
-            return false;
+        if (!messages || messages.length === 0) {
+            // 如果没有消息，只依赖 aiTyping 状态
+            return aiTyping;
         }
-        if (aiTyping) {
-            return true;
+
+        // 检查是否有任何消息处于 continue 状态（正在生成中）
+        const hasOngoingMessage = messages[messages.length - 1].status === 'continue';
+
+        // 只有当 aiTyping 为 true 或者存在正在生成的消息时，才认为正在生成
+        const generating = aiTyping || hasOngoingMessage;
+
+        // 调试日志：帮助排查状态不一致的问题
+        if (generating !== aiTyping && hasOngoingMessage) {
+            console.log(`[isGenerating] State mismatch - aiTyping: ${aiTyping}, hasOngoingMessage: ${hasOngoingMessage}`);
         }
-        if (messages.length < 2 || messages[messages.length - 1].status === 'continue') {
-            return true;
-        }
-        return false;
+
+        return generating;
     }, [aiTyping, messages]);
 
     const query = useCallback(
