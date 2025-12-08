@@ -1,3 +1,4 @@
+import { MessageDetail } from './chat';
 import instance from './request';
 
 export interface SharedKnowledge {
@@ -82,22 +83,10 @@ export interface SharedSession {
     created_at: number;
 }
 
-export interface SharedSessionMessage {
-    id: string;
-    sequence: number;
-    send_time: number;
-    role: number;
-    user_id: string;
-    session_id: string;
-    complete: number;
-    message_type: number;
-    message: string;
-}
-
 export interface SharedSessionDetail {
     user: SharedSessionUser;
     session: SharedSession;
-    messages: SharedSessionMessage[];
+    messages: MessageDetail[];
 }
 
 export async function GetSharedSession(token: string): Promise<SharedSessionDetail> {

@@ -11,6 +11,7 @@ export interface SpaceApplicationFormProps {
 
 export default function SpaceApplicationForm({ spaceToken, onSubmit }: SpaceApplicationFormProps) {
     const { t } = useTranslation();
+    const { t: tSpace } = useTranslation('space');
 
     const [isLoading, setIsLoading] = useState(false);
     const submit = useCallback(
@@ -36,7 +37,7 @@ export default function SpaceApplicationForm({ spaceToken, onSubmit }: SpaceAppl
                 submit(data.applicationInfo);
             }}
         >
-            <Textarea isRequired variant="bordered" label={t('space.ApplicationInfo')} labelPlacement="outside" name="applicationInfo" type="text" />
+            <Textarea isRequired variant="bordered" label={tSpace('ApplicationInfo')} labelPlacement="outside" name="applicationInfo" type="text" />
 
             <div className="flex gap-2">
                 <Button color="primary" type="submit" isLoading={isLoading}>

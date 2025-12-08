@@ -1,5 +1,6 @@
 // !!! TODO !!!
 import { Button, Chip, Link, Skeleton, User } from '@heroui/react';
+import { Icon } from '@iconify/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
@@ -8,11 +9,15 @@ import { GetSpaceLandingDetail, SpaceLandingDetail } from '@/apis/space';
 import { LogoIcon, Name } from '@/components/logo';
 import SpaceApplicationForm from '@/components/space/space-application-form';
 import { SPACE_APPLICATION_STATUS } from '@/components/space/space-application-list';
-import { Icon } from '@iconify/react';
 
 export default function SpaceLnadingPage() {
     const { t } = useTranslation();
+    const { t: tSpace } = useTranslation('space');
     const { token } = useParams();
+
+    if (!token) {
+        return <>Not Found</>;
+    }
 
     // const [isLoading, setIsLoading] = useState(true);
     // const loadKnowledge = useCallback(async () => {
@@ -65,7 +70,7 @@ export default function SpaceLnadingPage() {
                 return (
                     <div className="border-box w-full bg-content1 rounded-xl border-1 border-zinc-800 p-6">
                         <div className="flex flex-col gap-4 items-start">
-                            <h1 className="text-xl font-semibold">{t('space.Application')}</h1>
+                            <h1 className="text-xl font-semibold">{tSpace('Application')}</h1>
                             <SpaceApplicationForm
                                 spaceToken={token}
                                 onSubmit={() => {
@@ -80,9 +85,9 @@ export default function SpaceLnadingPage() {
                 return (
                     <div className="border-box w-full bg-content1 rounded-xl border-1 border-zinc-800 p-6">
                         <div className="flex flex-col gap-4 items-start">
-                            <h1 className="text-xl font-semibold">{t('space.Application')}</h1>
+                            <h1 className="text-xl font-semibold">{tSpace('Application')}</h1>
                             <Chip color="warning" variant="dot">
-                                {t('space.ApplicationRefused')}
+                                {tSpace('ApplicationRefused')}
                             </Chip>
                             <SpaceApplicationForm
                                 spaceToken={token}
@@ -98,9 +103,9 @@ export default function SpaceLnadingPage() {
                 return (
                     <div className="border-box w-full bg-content1 rounded-xl border-1 border-zinc-800 p-6">
                         <div className="flex flex-col gap-4 items-start">
-                            <h1 className="text-xl font-semibold">{t('space.ApplicationStatus')}</h1>
+                            <h1 className="text-xl font-semibold">{tSpace('ApplicationStatus')}</h1>
                             <Chip color="warning" variant="dot">
-                                {t('space.WaitingReview')}
+                                {tSpace('WaitingReview')}
                             </Chip>
                         </div>
                     </div>
@@ -115,7 +120,7 @@ export default function SpaceLnadingPage() {
                                 navigator(`/dashboard/${detail.space_id}/chat`);
                             }}
                         >
-                            {t('space.EnterSpace')}
+                            {tSpace('EnterSpace')}
                         </Button>
                     </div>
                 );
@@ -177,7 +182,7 @@ export default function SpaceLnadingPage() {
                         <h1 className="text-2xl font-semibold">{t('SpaceName')}</h1>
                     </div> */}
                     <div className="flex flex-col gap-4 items-start">
-                        <h1 className="text-xl font-semibold">{t('space.AboutTheCreator')}</h1>
+                        <h1 className="text-xl font-semibold">{tSpace('AboutTheCreator')}</h1>
                         {detail ? (
                             <User
                                 avatarProps={{ radius: 'full', size: 'md', src: detail?.user.avatar }}
@@ -202,9 +207,9 @@ export default function SpaceLnadingPage() {
                 </div>
                 <div className="border-box w-full bg-content1 rounded-xl border-1 border-zinc-800 p-6">
                     <div className="flex flex-col gap-4 items-start">
-                        <h1 className="text-xl font-semibold">{t('space.AboutTheSpace')}</h1>
+                        <h1 className="text-xl font-semibold">{tSpace('AboutTheSpace')}</h1>
                         {detail ? (
-                            <p dangerouslySetInnerHTML={{__html: detail?.desc.replaceAll('\n', '<br/>')}}></p>
+                            <p dangerouslySetInnerHTML={{ __html: detail?.desc.replaceAll('\n', '<br/>') }}></p>
                         ) : (
                             <div className="w-full flex flex-col gap-2">
                                 <Skeleton className="h-3 w-3/5 rounded-lg" />

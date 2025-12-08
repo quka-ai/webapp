@@ -80,16 +80,21 @@ const ShareSessionPage = function () {
                                 <main className="h-full w-full relative gap-4 py-3 flex flex-col justify-center items-center">
                                     <ScrollShadow hideScrollBar className="w-full py-6 flex-grow items-center">
                                         <div className="w-full m-auto max-w-[760px] overflow-hidden relative flex flex-col gap-6">
-                                            {session.messages.map(({ id, role, attach, message, complete }) => (
+                                            {session.messages.map(({ meta, ext }) => (
                                                 <MessageCard
-                                                    key={id}
-                                                    avatar={role === 2 ? <LogoIcon size={isMobile ? '30' : '38'} /> : <Avatar src={session.user.avatar} size={isMobile ? 'sm' : 'md'} />}
-                                                    message={message}
-                                                    attach={attach}
-                                                    messageClassName={role === 1 ? 'bg-content2 text-content2-foreground !py-3 w-full' : 'w-full'}
+                                                    key={meta.message_id}
+                                                    avatar={meta.role === 2 ? <LogoIcon size={isMobile ? '30' : '38'} /> : <Avatar src={session.user.avatar} size={isMobile ? 'sm' : 'md'} />}
+                                                    message={meta.message.text}
+                                                    attach={meta.attach}
+                                                    messageClassName={meta.role === 1 ? 'bg-content2 text-content2-foreground !py-3 w-full' : 'w-full'}
                                                     // showFeedback={role === 'assistant'}
-                                                    status={complete === 1 ? 'success' : 'failed'}
-                                                    role={role === 1 ? 'user' : 'assistant'}
+                                                    status={meta.complete === 1 ? 'success' : 'failed'}
+                                                    role={meta.role === 1 ? 'user' : meta.role === 4 ? 'tool' : 'assistant'}
+                                                    ext={{
+                                                        relDocs: ext?.rel_docs,
+                                                        toolArgs: ext?.tool_args,
+                                                        toolName: ext?.tool_name
+                                                    }}
                                                 />
                                             ))}
                                         </div>

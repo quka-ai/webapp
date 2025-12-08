@@ -18,7 +18,7 @@ import socketStore, { CONNECTION_OK } from '@/stores/socket';
 import spaceStore from '@/stores/space';
 import { EventType, MessageType, StreamMessage, ToolStatus, ToolTips } from '@/types/chat';
 
-interface Message {
+export interface Message {
     key: string;
     message: string;
     role: string;

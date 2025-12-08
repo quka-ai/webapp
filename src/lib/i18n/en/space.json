@@ -1,3 +1,11 @@
 {
-    "ApplicationInfo": "Application Info"
+    "Application": "Application",
+    "ApplicationInfo": "Application Info",
+    "ApplicationRefused": "Application Refused",
+    "WaitingReview": "Waiting for Review",
+    "EnterSpace": "Enter Space",
+    "AboutTheCreator": "About the Creator",
+    "AboutTheSpace": "About the Space",
+    "ApplicationStatus": "Application Status",
+    "LandingFooter": "Please confirm that the space content complies with the laws and regulations of your country/region before applying to participate."
 }

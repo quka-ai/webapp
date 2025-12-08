@@ -55,9 +55,9 @@ export function App({ children }: { children: React.ReactNode }) {
         };
     }, [currentTheme]);
 
-    setTimeout(() => {
-        setNotAutoLoginDirect();
-    }, 2000);
+    // setTimeout(() => {
+    //     setNotAutoLoginDirect();
+    // }, 2000);
 
     const { isMobile } = useMedia();
 
