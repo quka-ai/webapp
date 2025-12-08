@@ -17,7 +17,6 @@ import showdown from 'showdown';
 import { useSnapshot } from 'valtio';
 
 import { ToastProps } from '../ui/toast';
-
 import CustomImage from './image-tool';
 import './style.css';
 
@@ -381,7 +380,7 @@ export const Editor = memo(
             setEditor(editor);
 
             return () => {
-                editor && editor.destroy();
+                editor && editor.destroy && editor.destroy();
             };
         }, [currentSelectedSpace]);
 

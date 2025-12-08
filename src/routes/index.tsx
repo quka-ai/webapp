@@ -46,7 +46,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
     }, [accessToken, loginToken]);
 
     useEffect(() => {
-        if (pathname === '/dashboard' && currentSelectedSpace && userInfo) {
+        if ((pathname === '/dashboard' || pathname === '/') && currentSelectedSpace && userInfo) {
             navigate(`/dashboard/${currentSelectedSpace}/chat`, { replace: true });
             return;
         }
@@ -109,7 +109,17 @@ function PreLogin({ init, children }: { init?: boolean; children: ReactNode }) {
         }
     }
 
-    return isLogin ? <Navigate to="/dashboard" /> : children;
+    console.log('islogin', isLogin);
+    return isLogin ? (
+        <>
+            {' '}
+            {console.log(66666, isLogin)}
+            1111
+            <Navigate to="/dashboard" />
+        </>
+    ) : (
+        children
+    );
 }
 
 const routes = createBrowserRouter([
