@@ -5,7 +5,6 @@ import { useSnapshot } from 'valtio';
 
 import { GetUserInfo } from '@/apis/user';
 import { App } from '@/App';
-import ToolUsing from '@/components/tool-using';
 import { autoLoginDirect, processAvatarUrl } from '@/lib/utils';
 import Dashboard from '@/pages/dashboard';
 import AIAdmin from '@/pages/dashboard/ai-admin/ai-admin';
@@ -19,6 +18,11 @@ import CreateKnowledge from '@/pages/dashboard/create-knowledge';
 import EditKnowledge from '@/pages/dashboard/edit-knowledge';
 import Journal from '@/pages/dashboard/journal/journal';
 import Knowledge from '@/pages/dashboard/knowledge';
+import PodcastDetail from '@/pages/dashboard/podcast/[id]';
+import PodcastList from '@/pages/dashboard/podcast/podcasts';
+import RSSDigestDetail from '@/pages/dashboard/rss-digest/[id]/page';
+import RSSDigest from '@/pages/dashboard/rss-digest/page';
+import RSSSubscriptions from '@/pages/dashboard/rss-subscriptions';
 import Setting from '@/pages/dashboard/setting/setting';
 import SpaceSetting from '@/pages/dashboard/space-setting/setting';
 import UserAdmin from '@/pages/dashboard/user-admin/user-admin';
@@ -27,8 +31,9 @@ import Forgot from '@/pages/forgot';
 import Login from '@/pages/login';
 import Reset from '@/pages/reset';
 import ShareKnowledge from '@/pages/share/knowledge';
+import PodcastSharePage from '@/pages/share/podcast';
 import ShareSessionPage from '@/pages/share/session';
-import SpaceLnadingPage from '@/pages/space-landing';
+import SpaceLandingPage from '@/pages/space-landing';
 import Test from '@/pages/test';
 import { setLoginRedirect } from '@/stores/event';
 import { buildTower } from '@/stores/socket';
@@ -109,12 +114,8 @@ function PreLogin({ init, children }: { init?: boolean; children: ReactNode }) {
         }
     }
 
-    console.log('islogin', isLogin);
     return isLogin ? (
         <>
-            {' '}
-            {console.log(66666, isLogin)}
-            1111
             <Navigate to="/dashboard" />
         </>
     ) : (
@@ -169,10 +170,14 @@ const routes = createBrowserRouter([
                 element: <ShareSessionPage />
             },
             {
+                path: '/s/p/:token', // /share/podcast
+                element: <PodcastSharePage />
+            },
+            {
                 path: '/s/sp/:token',
                 element: (
                     <ProtectedRoute>
-                        <SpaceLnadingPage />
+                        <SpaceLandingPage />
                     </ProtectedRoute>
                 )
             },
@@ -201,6 +206,30 @@ const routes = createBrowserRouter([
                 )
             },
             {
+                path: '/dashboard/:spaceID/rss-subscriptions',
+                element: (
+                    <ProtectedRoute>
+                        <RSSSubscriptions />
+                    </ProtectedRoute>
+                )
+            },
+            {
+                path: '/dashboard/:spaceID/rss-digest',
+                element: (
+                    <ProtectedRoute>
+                        <RSSDigest />
+                    </ProtectedRoute>
+                )
+            },
+            {
+                path: '/dashboard/:spaceID/rss-digest/:id',
+                element: (
+                    <ProtectedRoute>
+                        <RSSDigestDetail />
+                    </ProtectedRoute>
+                )
+            },
+            {
                 path: '/dashboard/',
                 element: (
                     <ProtectedRoute>
@@ -221,6 +250,22 @@ const routes = createBrowserRouter([
                         element: <ChatSession />
                     }
                 ]
+            },
+            {
+                path: '/dashboard/:spaceID/podcasts',
+                element: (
+                    <ProtectedRoute>
+                        <PodcastList />
+                    </ProtectedRoute>
+                )
+            },
+            {
+                path: '/dashboard/:spaceID/podcasts/:id',
+                element: (
+                    <ProtectedRoute>
+                        <PodcastDetail />
+                    </ProtectedRoute>
+                )
             },
             {
                 path: '/dashboard/space-setting/:spaceID',

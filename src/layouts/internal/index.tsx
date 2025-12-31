@@ -241,9 +241,14 @@ export default function Component({ children }: { children: React.ReactNode }) {
                         <WorkSpaceSelection />
 
                         <Spacer y={2} />
-                        <Button className="mx-1" startContent={<Icon icon="stash:data-date" width={24} />} onPress={goJournal}>
-                            {t('Journal')}
-                        </Button>
+                        <div className="flex gap-2 mx-1">
+                            <Button className="flex-1" startContent={<Icon icon="stash:data-date" width={20} />} onPress={goJournal}>
+                                {t('Journal')}
+                            </Button>
+                            <Button className="flex-1" startContent={<Icon icon="mdi:podcast" width={20} />} onPress={() => navigate(`/dashboard/${currentSelectedSpace}/podcasts`)}>
+                                {t('Podcast')}
+                            </Button>
+                        </div>
                         <Spacer y={2} />
                     </div>
 

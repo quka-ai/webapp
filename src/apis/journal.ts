@@ -1,3 +1,5 @@
+import { OutputData } from '@editorjs/editorjs';
+
 import instance from './request';
 
 export interface Journal {

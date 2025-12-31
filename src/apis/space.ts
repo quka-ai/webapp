@@ -58,6 +58,13 @@ export async function RemoveUser(spaceID: string, userID: string): Promise<void>
     await instance.delete(`/space/${spaceID}/user/${userID}`);
 }
 
+export async function SetUserRole(spaceID: string, userID: string, role: string): Promise<void> {
+    await instance.put(`/space/${spaceID}/user/role`, {
+        user_id: userID,
+        role: role
+    });
+}
+
 export interface SpaceApplicationItem {
     user: SpaceApplicationUser;
     desc: string;

@@ -27,8 +27,8 @@ export default function ToolUsing({ toolTips }: ToolUsingProps) {
     return (
         toolTips?.map((toolTip: ToolTips) => {
             return (
-                <AnimatedShinyText key={toolTip.id} animate={toolTip.status === ToolStatus.TOOL_STATUS_RUNNING} className="inline-flex items-center text-sm justify-center pb-4 transition ease-out">
-                    <span>
+                <AnimatedShinyText key={toolTip.id} animate={toolTip.status === ToolStatus.TOOL_STATUS_RUNNING} className="inline-flex items-center h-10 text-sm justify-center transition ease-out">
+                    <span className="pl-2">
                         {toolTip.status === ToolStatus.TOOL_STATUS_RUNNING
                             ? '😶‍🌫️'
                             : toolTip.status === ToolStatus.TOOL_STATUS_SUCCESS

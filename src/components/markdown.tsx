@@ -5,14 +5,17 @@ import { memo, useMemo, useState } from 'react';
 import Markdown, { type Components, type ExtraProps, type Options } from 'react-markdown';
 import Zoom from 'react-medium-image-zoom';
 import 'react-medium-image-zoom/dist/styles.css';
+import { useNavigate } from 'react-router-dom';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import stringWidth from 'string-width';
+import { useSnapshot } from 'valtio';
 
 import { useTheme } from '@/hooks/use-theme';
+import spaceStore from '@/stores/space';
 
 // 预处理函数，智能处理数学公式和普通$符号
 const preprocessMathContent = (content: string): string => {
@@ -125,8 +128,26 @@ const LightLink = ({ children }: { children: React.ReactNode }) => {
 };
 
 const CustomLink = ({ href, children }: { href?: string; children: React.ReactNode }) => {
+    const navigate = useNavigate();
+    const { currentSelectedSpace } = useSnapshot(spaceStore);
+
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+        if (!href) return;
+
+        // 匹配 #article-{id} 格式的链接
+        const articleMatch = href.match(/^#article-(.+)$/);
+        if (articleMatch && articleMatch[1]) {
+            e.preventDefault();
+            const knowledgeId = articleMatch[1];
+            if (currentSelectedSpace) {
+                navigate(`/dashboard/${currentSelectedSpace}/knowledge/${knowledgeId}/editor`);
+            }
+            return;
+        }
+    };
+
     return (
-        <a href={href} className={href && href !== '#' ? 'text-blue-400' : ''} target="_blank" rel="noopener noreferrer">
+        <a href={href} className={href && href !== '#' ? 'text-blue-400' : ''} target="_blank" rel="noopener noreferrer" onClick={handleClick}>
             {children}
         </a>
     );
@@ -141,7 +162,7 @@ const CustomTable = ({ children }: { children: React.ReactNode }) => {
 };
 
 const Pre = ({ children }: { children: React.ReactNode }) => {
-    return <pre className="my-2 rounded-lg overflow-hidden break-words text-wrap">{children}</pre>;
+    return <pre className="my-2 rounded-lg overflow-hidden wrap-break-words text-wrap">{children}</pre>;
 };
 
 const Img = ({ src, alt, ...rest }: { src?: string; alt?: string; [key: string]: any }) => {

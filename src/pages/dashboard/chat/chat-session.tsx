@@ -53,7 +53,7 @@ function setMessageDaemon(messageID: string, callback: () => void) {
     if (existInterval) {
         clearTimeout(existInterval);
     }
-    const id = setTimeout(callback, 30000);
+    const id = setTimeout(callback, 50000);
     messageDaemon.set(messageID, id);
 }
 
@@ -235,7 +235,7 @@ export default function Chat() {
                                         return;
                                     }
 
-                                    if (todo.len !== data.startAt) {
+                                    if (todo.len && todo.len !== data.startAt) {
                                         console.warn(`[CONTINUE] Length mismatch - expected: ${data.startAt}, actual: ${todo.len}`);
                                         return;
                                     }
@@ -761,9 +761,9 @@ export default function Chat() {
                             {aiTyping && (
                                 <MessageCard
                                     key="aiTyping"
+                                    isLoading
                                     className={messages.length > 0 && messages[messages.length - 1].role === 'user' ? 'mt-4' : 'mt-1'}
                                     messageClassName="w-full"
-                                    isLoading
                                     attempts={1}
                                     currentAttempt={1}
                                     message={''}

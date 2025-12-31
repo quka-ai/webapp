@@ -1,3 +1,9 @@
 {
-    "ShareButton": "Create share link"
+    "ShareButton": "Create share link",
+    "UserApplication": "User Applications",
+    "ApplicationSearchPlaceholder": "Search by ID, email or username",
+    "AllowAllApplications": "Allow All",
+    "AllowApplication": "Allow",
+    "RejectAllApplications": "Reject All",
+    "RejectApplication": "Reject"
 }

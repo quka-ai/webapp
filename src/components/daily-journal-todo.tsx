@@ -595,13 +595,13 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
     return (
         <div className="w-full md:px-6 px-3 mb-6">
             <Card className={clsx('w-full dark:border-default-100 bg-content2 dark:bg-content1 shadow-sm', dateObj.isToday && 'border-small')}>
-                <div className="flex flex-row gap-4 p-4 bg-gradient-to-br from-default-400/30 to-default-400 dark:from-default-100/30 dark:to-default-50/50">
-                    {/* 左侧日期卡片 */}
+                <div className="flex flex-col md:flex-row gap-4 p-4 bg-linear-to-br from-default-400/30 to-default-400 dark:from-default-100/30 dark:to-default-50/50">
+                    {/* 日期信息 - 移动端横向显示，桌面端纵向显示 */}
                     <div className="flex-shrink-0">
                         <div
                             role="button"
                             tabIndex={0}
-                            className="flex flex-col items-center justify-center bg-primary dark:bg-primary/90 rounded-xl px-6 py-4 min-w-[100px] min-h-[160px] cursor-pointer hover:bg-primary/90 dark:hover:bg-primary transition-colors"
+                            className="flex md:flex-col flex-row items-center justify-between md:justify-center bg-primary dark:bg-primary/90 rounded-xl md:px-6 px-4 md:py-4 py-3 md:min-w-[100px] md:min-h-40 w-full cursor-pointer hover:bg-primary/90 dark:hover:bg-primary transition-colors"
                             onClick={handleDateClick}
                             onKeyDown={e => {
                                 if (e.key === 'Enter' || e.key === ' ') {
@@ -609,17 +609,30 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
                                 }
                             }}
                         >
-                            <div className="text-lg font-bold text-white mb-0.5">
-                                {dateObj.month} {dateObj.day}
+                            {/* 左侧：月份和日期 */}
+                            <div className="flex items-center gap-2">
+                                <div className="text-lg font-bold text-white">
+                                    {dateObj.month} {dateObj.day}
+                                </div>
+                                {dateObj.dateLabel && <div className="text-xs font-medium text-white/90 md:hidden">{dateObj.dateLabel}</div>}
                             </div>
-                            {dateObj.dateLabel && <div className="text-xs font-medium text-white/90">{dateObj.dateLabel}</div>}
-                            <div className="text-xs text-white/70 mt-0.5">{dateObj.weekday}</div>
+
+                            {/* 中间：星期（桌面端）或状态信息（移动端） */}
+                            <div className="flex items-center gap-2">
+                                <div className="text-xs text-white/70 hidden md:block md:mt-0.5">{dateObj.weekday}</div>
+                                {!isLoading && journalTodos.length > 0 && (
+                                    <div className="text-xs text-white/80 md:hidden">{uncompletedCount > 0 ? `${uncompletedCount} ${t('pending')}` : t('All completed')}</div>
+                                )}
+                            </div>
+
+                            {/* 桌面端显示日期标签 */}
+                            {dateObj.dateLabel && <div className="text-xs font-medium text-white/90 hidden md:block md:mb-0.5">{dateObj.dateLabel}</div>}
                         </div>
                     </div>
 
-                    {/* 右侧待办事项区域 */}
+                    {/* 待办事项区域 */}
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="hidden md:flex items-center justify-between mb-3">
                             <div className="flex items-center gap-2">
                                 <span className="text-sm font-medium text-default-600">{dateObj.dateLabel || dateObj.dateString}</span>
                             </div>

@@ -10,7 +10,7 @@ import { LogoIcon, Name } from '@/components/logo';
 import SpaceApplicationForm from '@/components/space/space-application-form';
 import { SPACE_APPLICATION_STATUS } from '@/components/space/space-application-list';
 
-export default function SpaceLnadingPage() {
+export default function SpaceLandingPage() {
     const { t } = useTranslation();
     const { t: tSpace } = useTranslation('space');
     const { token } = useParams();
@@ -83,7 +83,7 @@ export default function SpaceLnadingPage() {
                 break;
             case SPACE_APPLICATION_STATUS.Refused:
                 return (
-                    <div className="border-box w-full bg-content1 rounded-xl border-1 border-zinc-800 p-6">
+                    <div className="border-box w-full bg-content1 rounded-xl border border-zinc-800 p-6">
                         <div className="flex flex-col gap-4 items-start">
                             <h1 className="text-xl font-semibold">{tSpace('Application')}</h1>
                             <Chip color="warning" variant="dot">
@@ -101,7 +101,7 @@ export default function SpaceLnadingPage() {
                 break;
             case SPACE_APPLICATION_STATUS.Waiting:
                 return (
-                    <div className="border-box w-full bg-content1 rounded-xl border-1 border-zinc-800 p-6">
+                    <div className="border-box w-full bg-content1 rounded-xl border border-zinc-800 p-6">
                         <div className="flex flex-col gap-4 items-start">
                             <h1 className="text-xl font-semibold">{tSpace('ApplicationStatus')}</h1>
                             <Chip color="warning" variant="dot">
@@ -113,7 +113,7 @@ export default function SpaceLnadingPage() {
                 break;
             case SPACE_APPLICATION_STATUS.Approved:
                 return (
-                    <div className="border-box w-full bg-content1 rounded-xl border-1 border-zinc-800 p-6">
+                    <div className="border-box w-full bg-content1 rounded-xl border border-zinc-800 p-6">
                         <Button
                             color="primary"
                             onPress={() => {

@@ -110,6 +110,12 @@
     "Tomorrow": "Tomorrow",
     "Yesterday": "Yesterday",
     "Journal": "Journal",
+    "Podcast": "Podcast",
+    "PodcastList": "Podcast List",
+    "ManageYourPodcasts": "Manage your podcast audio",
+    "PodcastCount": "{{count}} podcasts",
+    "Knowledge": "Knowledge",
+    "Back": "Back",
     "PreviousDays": "Previous {{day}} Days",
     "Earlier": "Earlier",
     "UserMenu": "User Menu",
@@ -293,5 +299,9 @@
     "Group title (optional)": "Group title (optional)",
     "Enter group title": "Enter group title",
     "Untitled": "Untitled",
-    "System Setting": "System Setting"
+    "System Setting": "System Setting",
+    "SharedBy": "Shared by",
+    "UserID": "User ID",
+    "ShareFailed": "Failed to create share link",
+    "PodcastSharedFooter": "This podcast was shared with you. Sign up to create your own podcasts!"
 }

@@ -15,6 +15,7 @@ import KnowledgeAITaskList from '@/components/ai-tasks-list';
 import { Editor, EditorRefObject } from '@/components/editor/index';
 import KnowledgeDrawer from '@/components/knowledge-drawer';
 import KnowledgeModal from '@/components/knowledge-modal';
+import PodcastBar from '@/components/podcast-bar';
 import { toast } from '@/hooks/use-toast';
 import { extractTodosFromBlocks, type TodoList, type TodoListItem, updateChecklistItemInBlocks } from '@/lib/journal-todos';
 import spaceStore, { setCurrentSelectedSpace } from '@/stores/space';
@@ -33,8 +34,8 @@ export default function Component() {
     const { selectDate, spaceID } = useParams();
     const navigate = useNavigate();
 
-    const [journal, setJournal] = useState<Journal>({});
-    const [blocks, setBlocks] = useState<OutputData>('');
+    const [journal, setJournal] = useState<Journal>();
+    const [blocks, setBlocks] = useState<OutputData>();
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -363,9 +364,11 @@ export default function Component() {
                         <div className="flex sm:h-[40px] border-b-small border-divider flex-col sm:flex-row mx-4 sm:mx-[52px] flex-wrap items-center justify-center gap-2 pb-4 sm:pb-12 sm:justify-between">
                             <p className="text-2xl font-medium">
                                 {selectDate}
-                                {!journal.id && !isLoading && <span className=" text-sm text-zinc-400">&nbsp;(new)</span>}
+                                {!journal?.id && !isLoading && <span className=" text-sm text-zinc-400">&nbsp;(new)</span>}
                             </p>
+                        </div>
 
+                        <div className="px-4 sm:px-[52px] mb-2">
                             <ButtonGroup>
                                 <Button
                                     variant="ghost"

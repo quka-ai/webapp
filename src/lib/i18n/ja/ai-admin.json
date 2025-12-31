@@ -152,5 +152,10 @@
     "Failed to update usage configuration": "使用設定の更新に失敗しました",
     "Reader Support": "リーダーサポート",
     "Enable Reader Support": "リーダーサポートを有効にする",
-    "Indicates this provider supports document reading functionality": "このプロバイダーがドキュメント読み取り機能をサポートしていることを示します"
+    "Indicates this provider supports document reading functionality": "このプロバイダーがドキュメント読み取り機能をサポートしていることを示します",
+    "OCR Support": "OCRサポート",
+    "Enable OCR Support": "OCRサポートを有効にする",
+    "Indicates this provider supports OCR functionality": "このプロバイダーがOCR(光学文字認識)機能をサポートしていることを示します",
+    "OCR": "OCR",
+    "AI provider for OCR functionality": "OCR機能のAIプロバイダー"
 }

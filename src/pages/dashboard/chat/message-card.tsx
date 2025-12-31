@@ -128,14 +128,14 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
                     {
                         id: '',
                         tool_name: ext.toolName,
-                        status: ToolStatus.TOOL_STATUS_SUCCESS,
+                        status: status == 'failed' ? ToolStatus.TOOL_STATUS_FAILED : status == 'success' ? ToolStatus.TOOL_STATUS_SUCCESS : ToolStatus.TOOL_STATUS_RUNNING,
                         content: ''
                     }
                 ];
             }
 
             return <ToolUsing toolTips={toolTips} />;
-        }, [toolTips, ext]);
+        }, [toolTips, ext, status]);
 
         return (
             <div {...props} ref={ref} className={cn('flex flex-col md:flex-row md:gap-2', className)}>

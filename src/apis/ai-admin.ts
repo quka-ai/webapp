@@ -183,6 +183,7 @@ export const aiSystemAPI = {
                 rerank: string;
                 reader: string;
                 enhance: string;
+                ocr?: string; // OCR提供商ID
             }>
         >(`${API_BASE}/ai/system/usage`);
         return response.data.data;
@@ -197,6 +198,7 @@ export const aiSystemAPI = {
         rerank?: string;
         reader?: string;
         enhance?: string;
+        ocr?: string; // OCR提供商ID
     }) => {
         const response = await request.put<
             ApiResponse<{

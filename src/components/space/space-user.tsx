@@ -1,4 +1,4 @@
-import { Button, Chip, Input, Popover, PopoverContent, PopoverTrigger, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, User } from '@heroui/react';
+import { Button, Chip, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Input, Popover, PopoverContent, PopoverTrigger, Spinner, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, User } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useImmer } from 'use-immer';
 import { useSnapshot } from 'valtio';
 
-import { ListSpaceUsers, RemoveUser, SpaceUser } from '@/apis/space';
+import { ListSpaceUsers, RemoveUser, SetUserRole, SpaceUser } from '@/apis/space';
 import userStore from '@/stores/user';
 import { Role } from '@/types';
 
@@ -79,6 +79,19 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
         [spaceID]
     );
 
+    const changeUserRole = useCallback(
+        async (userID: string, newRole: string) => {
+            try {
+                await SetUserRole(spaceID, userID, newRole);
+                await loadSpaceUsers(1);
+            } catch (e: any) {
+                console.error(e);
+                throw e;
+            }
+        },
+        [spaceID]
+    );
+
     useEffect(() => {
         if (!spaceID) {
             setSpaceUsers([]);
@@ -135,25 +148,53 @@ export function SpaceUserList({ spaceID }: SpaceUserProps) {
                         </User>
                     );
                 case 'role':
-                    const color = (cellValue => {
-                        switch (cellValue) {
-                            case Role.ADMIN || Role.CHIEF:
-                                return 'danger';
+                    // Admin and Chief roles cannot be modified
+                    if (cellValue === Role.ADMIN || cellValue === Role.CHIEF) {
+                        const color = 'danger';
+                        return (
+                            <Chip className="capitalize border-none gap-1 text-default-600" color={color} size="sm">
+                                {t(cellValue)}
+                            </Chip>
+                        );
+                    }
+
+                    // Allow editing roles for Editor, Viewer, and Member
+                    const getRoleColor = (role: string) => {
+                        switch (role) {
                             case Role.EDITOR:
                                 return 'warning';
                             case Role.VIEWER:
                                 return 'primary';
-                            case Role.MEMBER:
-                                return 'secondary';
                             default:
                                 return 'secondary';
                         }
-                    })(cellValue);
+                    };
 
                     return (
-                        <Chip className="capitalize border-none gap-1 text-default-600" color={color} size="sm">
-                            {t(cellValue)}
-                        </Chip>
+                        <Dropdown>
+                            <DropdownTrigger>
+                                <Button className="capitalize" color={getRoleColor(cellValue)} size="sm" variant="flat">
+                                    {t(cellValue)}
+                                    <Icon icon="solar:alt-arrow-down-linear" width={16} />
+                                </Button>
+                            </DropdownTrigger>
+                            <DropdownMenu
+                                aria-label="Role selection"
+                                onAction={key => {
+                                    const newRole = key as string;
+                                    if (newRole !== cellValue) {
+                                        toast.promise(changeUserRole(item.user_id, newRole), {
+                                            loading: t('Doing'),
+                                            success: t('Success'),
+                                            error: t('Failed')
+                                        });
+                                    }
+                                }}
+                            >
+                                <DropdownItem key={Role.EDITOR}>{t(Role.EDITOR)}</DropdownItem>
+                                <DropdownItem key={Role.VIEWER}>{t(Role.VIEWER)}</DropdownItem>
+                            </DropdownMenu>
+                        </Dropdown>
                     );
                 case 'actions':
                     return (

@@ -9,6 +9,7 @@ import { useSnapshot } from 'valtio';
 import { TaskList } from './create';
 import { FilePreview, FileUploader } from './file-uploader';
 import KnowledgeEdit, { KnwoledgeEditorRefObject } from './knowledge-edit';
+import RSSSubscriptionBox from './rss-subscription-box';
 
 import { CreateFileChunkTask } from '@/apis/chunk-task';
 import { CreateKnowledge, Knowledge } from '@/apis/knowledge';
@@ -157,21 +158,21 @@ const WorkBar = memo(
                     <div className="text-2xl font-bold leading-9 text-default-foreground">🤯 {t('WorkSpace')}</div>
                     <Code className="text-sm text-default-500">{t('CurrentResourceType', { type: createToResource.title })}</Code>
                 </div>
-                <div className="flex lg:flex-row flex-col flex-wrap gap-4 md:px-6 px-3">
-                    <div className="flex flex-col lg:w-1/2 w-full">
+                <div className="flex lg:flex-row flex-col gap-4 md:px-6 px-3">
+                    <div className="flex flex-col flex-1 lg:max-w-[33.333%] w-full">
                         <Textarea
                             isClearable
                             variant="bordered"
-                            classNames={{inputWrapper: "!h-[200px] border-small bg-gradient-to-br from-default-400/30 to-default-400 dark:from-default-100/50 dark:to-default-50/50"}}
+                            classNames={{ inputWrapper: '!h-[200px] border-small bg-gradient-to-br from-default-400/30 to-default-400 dark:from-default-100/50 dark:to-default-50/50' }}
                             placeholder={t('TypeKnowledgeByYourSelf')}
                             value={knowledgeContent}
                             startContent={
                                 <>
                                     {!knowledgeContent && (
                                         <form onSubmit={reader}>
-                                            <div className="absolute bottom-2 left-2 flex gap-2 w-5/6">
+                                            <div className="absolute bottom-2 left-2 flex gap-2 w-[calc(100%-16px)]">
                                                 <Input variant="faded" className="w-full" value={readEndpoint} size="sm" placeholder={t('ReadWebContentFromURL')} onValueChange={setReadEndpoint} />
-                                                <Button variant="faded" size="sm" type="submit" isLoading={readLoading}>
+                                                <Button variant="faded" size="sm" type="submit" isLoading={readLoading} isDisabled={readEndpoint === ''}>
                                                     {t('Read')}
                                                 </Button>
                                             </div>
@@ -235,8 +236,11 @@ const WorkBar = memo(
                             }}
                         />
                     </div>
-                    <div className="w-full flex-1 relative">
+                    <div className="flex-1 lg:max-w-[33.333%] w-full relative">
                         <FileTask />
+                    </div>
+                    <div className="flex-1 lg:max-w-[33.333%] w-full">
+                        <RSSSubscriptionBox />
                     </div>
                 </div>
             </div>
