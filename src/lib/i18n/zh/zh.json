@@ -110,6 +110,12 @@
     "Tomorrow": "明天",
     "Yesterday": "昨天",
     "Journal": "日记",
+    "Podcast": "播客",
+    "PodcastList": "播客列表",
+    "ManageYourPodcasts": "管理你的播客音频",
+    "PodcastCount": "{{count}} 个播客",
+    "Knowledge": "知识库",
+    "Back": "返回",
     "PreviousDays": "前{{day}}天",
     "Earlier": "更早之前",
     "UserMenu": "个人菜单",
@@ -295,5 +301,9 @@
     "Group title (optional)": "分组标题（可选）",
     "Enter group title": "输入分组标题",
     "Untitled": "无标题",
-    "System Setting": "系统设置"
+    "System Setting": "系统设置",
+    "SharedBy": "分享者",
+    "UserID": "用户ID",
+    "ShareFailed": "创建分享链接失败",
+    "PodcastSharedFooter": "这是与您分享的播客。注册以创建您自己的播客！"
 }

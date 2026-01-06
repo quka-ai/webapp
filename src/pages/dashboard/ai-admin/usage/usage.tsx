@@ -24,6 +24,7 @@ interface UsageConfig {
     rerank: string;
     reader: string;
     enhance: string;
+    ocr?: string; // OCR提供商ID
 }
 
 export default function Usage() {
@@ -95,6 +96,14 @@ export default function Usage() {
             icon: 'material-symbols:chrome-reader-mode',
             color: 'danger',
             description: t('AI model for document reading and analysis'),
+            required: false
+        },
+        {
+            key: 'ocr' as keyof UsageConfig,
+            label: t('OCR'),
+            icon: 'material-symbols:document-scanner',
+            color: 'secondary',
+            description: t('AI provider for OCR functionality'),
             required: false
         }
     ];
@@ -253,7 +262,7 @@ export default function Usage() {
                     moduleConfigs.map((module) => {
                         const availableModels = getModelsForType(module.key);
                         const selectedModelId = usageConfig[module.key];
-                        const selectedModel = getSelectedModelInfo(selectedModelId);
+                        const selectedModel = selectedModelId ? getSelectedModelInfo(selectedModelId) : null;
                         
                         return (
                             <Card key={module.key} className="hover:shadow-lg transition-shadow">

@@ -132,8 +132,8 @@ export function FileUploader(props: FileUploaderProps) {
             setFiles(updatedFiles);
 
             if (rejectedFiles.length > 0) {
-                rejectedFiles.forEach(({ file }) => {
-                    toast.error(t('FileRejected', { description: file.name + ':' + file.errors.join('\n') }));
+                rejectedFiles.forEach(({ file, errors }) => {
+                    toast.error(t('FileRejected', { description: file.name + ':' + errors.join('\n') }));
                 });
             }
 
@@ -194,21 +194,37 @@ export function FileUploader(props: FileUploaderProps) {
                         <input {...getInputProps()} />
                         {isDragActive ? (
                             <div className="flex flex-col items-center justify-center gap-4 sm:px-5">
-                                <div className="rounded-full border border-dashed p-3">
-                                    <Icon icon="line-md:upload-loop" className="size-7 text-muted-foreground" aria-hidden="true" />
+                                <div className="rounded-full border border-dashed p-3 border-primary">
+                                    <Icon icon="line-md:uploading-loop" className="size-7 text-primary" aria-hidden="true" />
                                 </div>
-                                <p className="font-medium text-muted-foreground">{t('DropHere')}</p>
+                                <p className="font-medium text-primary">{t('DropHere')}</p>
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center gap-4 sm:px-5">
-                                <div className="rounded-full border border-dashed p-3">
-                                    <Icon icon="line-md:upload-loop" className="size-7 text-muted-foreground" aria-hidden="true" />
+                                <div className="rounded-full p-2">
+                                    <Icon icon="mdi:file-document-outline" className="size-8 text-muted-foreground" aria-hidden="true" />
                                 </div>
-                                <div className="flex flex-col gap-px">
-                                    <p className=" text-sm font-medium text-muted-foreground">{t('FileChunkDropZoneDescription')}</p>
+                                <div className="flex flex-col gap-2 items-center">
+                                    <div className="flex flex-wrap gap-1.5 justify-center">
+                                        <Chip size="sm" radius="sm" variant="flat" className="text-xs">
+                                            docx
+                                        </Chip>
+                                        <Chip size="sm" radius="sm" variant="flat" className="text-xs">
+                                            xlsx
+                                        </Chip>
+                                        <Chip size="sm" radius="sm" variant="flat" className="text-xs">
+                                            pdf
+                                        </Chip>
+                                        <Chip size="sm" radius="sm" variant="flat" className="text-xs">
+                                            txt
+                                        </Chip>
+                                        <Chip size="sm" radius="sm" variant="flat" className="text-xs">
+                                            md
+                                        </Chip>
+                                    </div>
                                     <p className="text-xs text-muted-foreground/70">
                                         {t('MemoryUploadLimit', { times: maxFileCount })}
-                                        <br />
+                                        {' · '}
                                         {t('MemoryUploadSize', { size: formatBytes(maxSize) })}
                                     </p>
                                 </div>

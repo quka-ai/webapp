@@ -285,7 +285,8 @@ export default function Models() {
         { key: 'vision', label: t('Vision') },
         { key: 'rerank', label: t('Rerank') },
         { key: 'reader', label: t('Reader') },
-        { key: 'enhance', label: t('Enhance') }
+        { key: 'enhance', label: t('Enhance') },
+        { key: 'ocr', label: t('OCR') }
     ];
 
     return (

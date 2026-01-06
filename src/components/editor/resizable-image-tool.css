@@ -1,0 +1,211 @@
+/* 可调整大小的图片工具样式 */
+
+.resizable-image-wrapper {
+    position: relative;
+    margin: 1rem auto;
+    transition: width 0.1s ease;
+}
+
+/* 调整大小手柄 */
+.resize-handle {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    width: 20px;
+    height: 20px;
+    background: linear-gradient(135deg, transparent 50%, #3b82f6 50%);
+    border-radius: 0 0 4px 0;
+    cursor: nwse-resize;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    z-index: 10;
+}
+
+.resize-handle::before {
+    content: '';
+    position: absolute;
+    right: 2px;
+    bottom: 2px;
+    width: 12px;
+    height: 12px;
+    background-image:
+        linear-gradient(135deg, transparent 40%, white 40%, white 45%, transparent 45%),
+        linear-gradient(135deg, transparent 50%, white 50%, white 55%, transparent 55%);
+    background-size: 100% 100%;
+}
+
+.resize-handle:hover {
+    opacity: 1 !important;
+    background: linear-gradient(135deg, transparent 50%, #2563eb 50%);
+}
+
+/* 鼠标悬停效果 */
+.resizable-image-wrapper:hover .resize-handle {
+    opacity: 0.7;
+}
+
+/* 调整大小时的状态 */
+.resizable-image-wrapper.resizing {
+    user-select: none;
+}
+
+.resizable-image-wrapper.resizing .resize-handle {
+    opacity: 1;
+}
+
+/* 宽度指示器（可选，显示当前宽度百分比）*/
+.resizable-image-wrapper::after {
+    content: attr(data-width);
+    position: absolute;
+    top: -24px;
+    right: 0;
+    padding: 2px 8px;
+    background: rgba(59, 130, 246, 0.9);
+    color: white;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    pointer-events: none;
+}
+
+.resizable-image-wrapper.resizing::after {
+    opacity: 1;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .resize-handle {
+        width: 24px;
+        height: 24px;
+        opacity: 0.6 !important;
+    }
+}
+
+/* 只读模式下隐藏手柄 */
+.resizable-image-wrapper[data-readonly="true"] .resize-handle {
+    display: none;
+}
+
+/* 图片容器样式优化 */
+.resizable-image-wrapper .cdx-block {
+    margin: 0;
+}
+
+.resizable-image-wrapper img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    border-radius: 8px;
+}
+
+/* 自定义边框样式 */
+.resizable-image-wrapper.image-tool--withBorder img {
+    border: 2px solid #e5e7eb;
+    padding: 4px;
+}
+
+/* 自定义背景样式 */
+.resizable-image-wrapper.image-tool--withBackground {
+    background: #f3f4f6;
+    padding: 1rem;
+    border-radius: 12px;
+}
+
+.resizable-image-wrapper.image-tool--withBackground img {
+    background: white;
+}
+
+/* 图片标题样式 */
+.resizable-image-wrapper .cdx-input {
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #6b7280;
+    transition: border-color 0.2s;
+}
+
+.resizable-image-wrapper .cdx-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+}
+
+/* 加载状态 */
+.resizable-image-wrapper .image-tool__image-preloader {
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+    animation: loading 1.5s infinite;
+    border-radius: 8px;
+}
+
+@keyframes loading {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* 拖拽上传区域样式 */
+.resizable-image-wrapper .cdx-button {
+    background: #f9fafb;
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    padding: 2rem;
+    transition: all 0.2s;
+}
+
+.resizable-image-wrapper .cdx-button:hover {
+    background: #f3f4f6;
+    border-color: #3b82f6;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .resize-handle {
+        background: linear-gradient(135deg, transparent 50%, #60a5fa 50%);
+    }
+
+    .resize-handle:hover {
+        background: linear-gradient(135deg, transparent 50%, #3b82f6 50%);
+    }
+
+    .resizable-image-wrapper::after {
+        background: rgba(96, 165, 250, 0.9);
+    }
+
+    .resizable-image-wrapper.image-tool--withBorder img {
+        border-color: #374151;
+    }
+
+    .resizable-image-wrapper.image-tool--withBackground {
+        background: #1f2937;
+    }
+
+    .resizable-image-wrapper.image-tool--withBackground img {
+        background: #111827;
+    }
+
+    .resizable-image-wrapper .cdx-input {
+        background: #1f2937;
+        border-color: #374151;
+        color: #d1d5db;
+    }
+
+    .resizable-image-wrapper .cdx-input:focus {
+        border-color: #60a5fa;
+    }
+
+    .resizable-image-wrapper .cdx-button {
+        background: #1f2937;
+        border-color: #374151;
+    }
+
+    .resizable-image-wrapper .cdx-button:hover {
+        background: #111827;
+        border-color: #60a5fa;
+    }
+}

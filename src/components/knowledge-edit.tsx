@@ -57,13 +57,13 @@ export default memo(
             }
         }
 
-        const reloadSpaceResource = useCallback(async (spaceID: string) => {
-            try {
-                await loadSpaceResource(spaceID);
-            } catch (e: any) {
-                console.error(e);
-            }
-        }, []);
+        // const reloadSpaceResource = useCallback(async (spaceID: string) => {
+        //     try {
+        //         await loadSpaceResource(spaceID);
+        //     } catch (e: any) {
+        //         console.error(e);
+        //     }
+        // }, []);
 
         useEffect(() => {
             if (!currentSelectedSpace || (currentSelectedResource && currentSelectedResource.id)) {
@@ -210,7 +210,7 @@ export default memo(
                                         >
                                             {groupedResources.map(item => {
                                                 return (
-                                                    <SelectSection showDivider key={item.title} title={t(item.title)}>
+                                                    <SelectSection key={item.title} showDivider title={t(item.title)}>
                                                         {item.items.map(v => {
                                                             return <SelectItem key={v.id}>{v.title}</SelectItem>;
                                                         })}
@@ -283,7 +283,7 @@ export default memo(
                                     )}
 
                                     <Button
-                                        className="mt-6 float-right w-32 text-white bg-gradient-to-br from-pink-400 to-indigo-400 dark:from-indigo-500 dark:to-pink-500"
+                                        className="mt-6 float-right w-32 text-white bg-linear-to-br from-pink-400 to-indigo-400 dark:from-indigo-500 dark:to-pink-500"
                                         isLoading={isLoading}
                                         onPress={submit}
                                     >

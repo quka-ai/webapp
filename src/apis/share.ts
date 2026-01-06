@@ -102,3 +102,50 @@ export async function CopyKnowledge(shareToken: string, spaceID: string, resourc
         user_resource: resource
     });
 }
+
+export interface CreatePodcastShareURLResponse {
+    token: string;
+    url: string;
+}
+
+export async function CreatePodcastShareURL(spaceID: string, embeddingURL: string, podcastID: string): Promise<CreatePodcastShareURLResponse> {
+    let resp = await instance.post(`/space/${spaceID}/podcast/share`, {
+        embedding_url: embeddingURL,
+        podcast_id: podcastID
+    });
+
+    return resp.data.data;
+}
+
+export interface SharedPodcast {
+    user_id: string;
+    user_name: string;
+    user_avatar: string;
+    podcast: {
+        id: string;
+        space_id: string;
+        source_type: string;
+        source_id: string;
+        title: string;
+        description: string;
+        tags: string[];
+        audio_url: string;
+        audio_duration: number;
+        audio_size: number;
+        audio_format: string;
+        tts_provider: string;
+        tts_model: string;
+        status: string;
+        created_at: number;
+        updated_at: number;
+        generated_at: number;
+        retry_times: number;
+        error_message: string;
+    };
+    embedding_url: string;
+}
+
+export async function GetSharedPodcast(token: string): Promise<SharedPodcast> {
+    const resp = await instance.get(`/share/podcast/${token}`);
+    return resp.data.data;
+}

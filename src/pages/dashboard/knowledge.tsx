@@ -1,4 +1,4 @@
-import { Card, Chip, Progress, ScrollShadow } from '@heroui/react';
+import { Card, Chip, Progress, ScrollShadow, Skeleton } from '@heroui/react';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -35,6 +35,9 @@ export default memo(function Component() {
     const navigate = useNavigate();
 
     const { isSpaceViewer } = useSpaceRole();
+
+    // @ts-ignore
+    const ssDom = useRef<{ goToTop: () => void; scrollToKnowledgeBox: () => void }>();
 
     useEffect(() => {
         if (!currentSelectedResource || !currentSelectedSpace) {
@@ -149,12 +152,25 @@ export default memo(function Component() {
         [dataList]
     );
 
-    //@ts-ignore
-    const ssDom = useRef<{ goToTop: () => void }>();
-
     const isShowCreate = useMemo(() => {
         return !isSpaceViewer;
     }, [isMobile, isSpaceViewer]);
+
+    // 当 resource 变化时，滚动到知识列表区域（排除"全部"选项）
+    useEffect(() => {
+        if (!currentSelectedResource || !currentSelectedResource.id) {
+            return;
+        }
+
+        // 使用 setTimeout 确保在数据加载后再滚动
+        const timer = setTimeout(() => {
+            if (ssDom && ssDom.current && ssDom.current.scrollToKnowledgeBox) {
+                ssDom.current.scrollToKnowledgeBox();
+            }
+        }, 300);
+
+        return () => clearTimeout(timer);
+    }, [currentSelectedResource?.id]);
 
     useEffect(() => {
         if (!onEvent || !onEvent.data || onEvent.data.subject !== 'stage_changed') {
@@ -287,10 +303,23 @@ const KnowledgeList = memo(
             }
         }
 
+        function scrollToKnowledgeBox() {
+            const knowledgeBox = document.getElementById('knowledgebox');
+            if (knowledgeBox && ssDom.current) {
+                const offsetTop = knowledgeBox.offsetTop - 20; // 减去20px作为上边距
+                // @ts-ignore
+                ssDom.current.scrollTo({
+                    top: offsetTop,
+                    behavior: 'smooth'
+                });
+            }
+        }
+
         // @ts-ignore
         useImperativeHandle(ref, () => {
             return {
-                goToTop
+                goToTop,
+                scrollToKnowledgeBox
             };
         });
 
@@ -337,13 +366,22 @@ const KnowledgeList = memo(
                                 <CreateKnowledge shadow={isMobile ? 'none' : 'sm'} onChanges={onChanges} openCreateKnowledge={onShowCreate} />
                             </div>
                         )} */}
-                        {dataList.map(item => {
-                            return (
-                                <div key={item.id} role="button" tabIndex={0} className="relative" onClick={() => onSelect(item)} onKeyDown={() => {}}>
-                                    <NormalCard shadow={isMobile ? 'none' : 'sm'} content={item.content} tags={item.tags} title={item.title} stage={item.stage} />
-                                </div>
-                            );
-                        })}
+                        {isLoading && dataList.length === 0 ? (
+                            // 显示骨架屏
+                            <>
+                                {Array.from({ length: isMobile ? 6 : 10 }).map((_, index) => (
+                                    <SkeletonCard key={index} shadow={isMobile ? 'none' : 'sm'} />
+                                ))}
+                            </>
+                        ) : (
+                            dataList.map(item => {
+                                return (
+                                    <div key={item.id} role="button" tabIndex={0} className="relative" onClick={() => onSelect(item)} onKeyDown={() => {}}>
+                                        <NormalCard shadow={isMobile ? 'none' : 'sm'} content={item.content} tags={item.tags} title={item.title} stage={item.stage} knowledgeId={item.id} />
+                                    </div>
+                                );
+                            })
+                        )}
                     </div>
                 </ScrollShadow>
                 {isShowCreate && (
@@ -362,18 +400,52 @@ const KnowledgeList = memo(
     })
 );
 
+const SkeletonCard = memo(function SkeletonCard({ shadow }: { shadow: 'none' | 'sm' | 'md' | 'lg' | undefined }) {
+    return (
+        <Card
+            shadow={shadow}
+            className="w-full h-80 relative border-small dark:border-default-100 overflow-hidden bg-linear-to-br from-default-400/30 to-default-400 dark:from-default-400 dark:to-default-400/30"
+        >
+            <div className="relative z-10 flex flex-col h-full p-5 bg-linear-to-b from-background/70 to-background/70">
+                {/* 标题骨架 */}
+                <Skeleton className="w-3/4 h-6 mb-3 rounded-lg" />
+
+                {/* 标签骨架 */}
+                <div className="flex gap-1.5 mb-3">
+                    <Skeleton className="w-16 h-5 rounded-full" />
+                    <Skeleton className="w-20 h-5 rounded-full" />
+                    <Skeleton className="w-12 h-5 rounded-full" />
+                </div>
+
+                {/* 内容骨架 */}
+                <div className="flex-1 space-y-2 mt-2">
+                    <Skeleton className="w-full h-3 rounded-lg" />
+                    <Skeleton className="w-full h-3 rounded-lg" />
+                    <Skeleton className="w-5/6 h-3 rounded-lg" />
+                    <Skeleton className="w-full h-3 rounded-lg" />
+                    <Skeleton className="w-4/5 h-3 rounded-lg" />
+                    <Skeleton className="w-full h-3 rounded-lg" />
+                    <Skeleton className="w-3/4 h-3 rounded-lg" />
+                </div>
+            </div>
+        </Card>
+    );
+});
+
 const NormalCard = memo(function NormalCard({
     shadow,
     title,
     content,
     tags,
-    stage
+    stage,
+    knowledgeId
 }: {
     shadow: 'none' | 'sm' | 'md' | 'lg' | undefined;
     title: string;
     content: string;
     tags: string[] | undefined;
     stage: number;
+    knowledgeId: string;
 }) {
     return (
         <>
@@ -390,13 +462,18 @@ const NormalCard = memo(function NormalCard({
                     {/* 标签 */}
                     {tags && tags.length > 0 && (
                         <div className="flex flex-wrap gap-1.5 mb-3 shrink-0">
-                            {tags.slice(0, 3).map(item => (
-                                <Chip key={item} size="sm" variant="flat" className="bg-default-200/80 dark:bg-default-200/60 text-foreground-600 dark:text-foreground-700 text-xs h-5">
+                            {tags.slice(0, 3).map((item, index) => (
+                                <Chip
+                                    key={`${knowledgeId}-tag-${index}`}
+                                    size="sm"
+                                    variant="flat"
+                                    className="bg-default-200/80 dark:bg-default-200/60 text-foreground-600 dark:text-foreground-700 text-xs h-5"
+                                >
                                     {item}
                                 </Chip>
                             ))}
                             {tags.length > 3 && (
-                                <Chip size="sm" variant="flat" className="bg-default-200/60 dark:bg-default-100/10 text-foreground-500 text-xs h-5">
+                                <Chip key={`${knowledgeId}-tag-more`} size="sm" variant="flat" className="bg-default-200/60 dark:bg-default-100/10 text-foreground-500 text-xs h-5">
                                     +{tags.length - 3}
                                 </Chip>
                             )}
@@ -404,21 +481,19 @@ const NormalCard = memo(function NormalCard({
                     )}
 
                     {/* 内容预览区域 - 占据剩余空间 */}
-                    <div className="flex-1 mb-3 relative min-h-[300px] w-full m-auto mt-2 p-2">
+                    <div className="flex-1 mb-3 relative w-full m-auto mt-2 p-2">
                         <div className="text-[0.7rem] leading-relaxed text-foreground-500 dark:text-foreground-400 line-clamp-9 opacity-70">
                             <Markdown isLight>{content}</Markdown>
                         </div>
                     </div>
 
-                    {/* 底部状态 */}
-                    <div className="flex items-center gap-2 pt-2 border-foreground/5">
-                        {stage !== 3 && (
-                            <div className="flex items-center gap-1.5">
-                                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-                                <span className="text-xs text-foreground-400">{stage === 1 ? 'Summarizing' : 'Embedding'}</span>
-                            </div>
-                        )}
-                    </div>
+                    {/* 底部状态 - 绝对定位 */}
+                    {stage !== 3 && (
+                        <div className="absolute bottom-3 h-10 left-3 right-3 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-background/80 backdrop-blur-sm border border-default-200/50">
+                            <div className="w-3.5 h-3.5 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+                            <span className="text-xs text-foreground-600">{stage === 1 ? 'Summarizing' : 'Embedding'} ...</span>
+                        </div>
+                    )}
                 </div>
             </Card>
         </>

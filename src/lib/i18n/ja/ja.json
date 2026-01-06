@@ -104,6 +104,12 @@
     "Tomorrow": "明日",
     "Yesterday": "昨日",
     "Journal": "日誌",
+    "Podcast": "Podcast",
+    "PodcastList": "Podcast リスト",
+    "ManageYourPodcasts": "Podcast オーディオを管理",
+    "PodcastCount": "{{count}} 個のPodcast",
+    "Knowledge": "ナレッジ",
+    "Back": "戻る",
     "PreviousDays": "過去{{day}}日",
     "Earlier": "以前",
     "UserMenu": "ユーザーメニュー",
@@ -218,5 +224,9 @@
     "Group title (optional)": "グループタイトル（任意）",
     "Enter group title": "グループタイトルを入力",
     "Untitled": "無題",
-    "System Setting": "システム設定"
+    "System Setting": "システム設定",
+    "SharedBy": "共有者",
+    "UserID": "ユーザーID",
+    "ShareFailed": "共有リンクの作成に失敗しました",
+    "PodcastSharedFooter": "このポッドキャストはあなたと共有されました。サインアップして自分のポッドキャストを作成しましょう！"
 }

@@ -1,13 +1,6 @@
-import {
-    Button,
-    Input,
-    Switch,
-    Textarea,
-    Divider,
-    Chip
-} from '@heroui/react';
+import { Button, Chip, Divider, Input, Switch, Textarea } from '@heroui/react';
 import { Icon } from '@iconify/react';
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { Provider, ProviderFormData } from '@/types/ai-admin';
@@ -28,7 +21,8 @@ const DEFAULT_FORM_DATA: ProviderFormData = {
     config: {
         timeout: 30000,
         max_retries: 3,
-        is_reader: false
+        is_reader: false,
+        is_ocr: false
     }
 };
 
@@ -51,6 +45,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, loading = f
                     timeout: provider.config?.timeout || 30000,
                     max_retries: provider.config?.max_retries || 3,
                     is_reader: provider.config?.is_reader || false,
+                    is_ocr: provider.config?.is_ocr || false
                 }
             });
         }
@@ -123,7 +118,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, loading = f
             ...prev,
             [field]: value
         }));
-        
+
         // 清除对应字段的错误
         if (errors[field]) {
             setErrors(prev => ({
@@ -160,11 +155,6 @@ export default function ProviderForm({ provider, onSubmit, onCancel, loading = f
             description: 'Official OpenAI API'
         },
         {
-            name: '白山云',
-            api_url: 'https://api.edgefn.net/v1',
-            description: '白山智算云 API',
-        },
-        {
             name: 'Jina(Reader)',
             api_url: 'https://r.jina.ai',
             description: 'Jina Reader API (with Reader support)',
@@ -172,7 +162,7 @@ export default function ProviderForm({ provider, onSubmit, onCancel, loading = f
         }
     ];
 
-    const applyPreset = (preset: typeof presetConfigs[0]) => {
+    const applyPreset = (preset: (typeof presetConfigs)[0]) => {
         setFormData(prev => ({
             ...prev,
             name: preset.name,
@@ -180,7 +170,8 @@ export default function ProviderForm({ provider, onSubmit, onCancel, loading = f
             description: preset.description,
             config: {
                 ...prev.config,
-                is_reader: (preset as any).is_reader || false
+                is_reader: (preset as any).is_reader || false,
+                is_ocr: (preset as any).is_ocr || false
             }
         }));
     };
@@ -192,14 +183,8 @@ export default function ProviderForm({ provider, onSubmit, onCancel, loading = f
                 <div>
                     <h4 className="text-sm font-medium mb-2">{t('Quick Start Templates')}</h4>
                     <div className="flex flex-wrap gap-2">
-                        {presetConfigs.map((preset) => (
-                            <Chip
-                                key={preset.name}
-                                variant="flat"
-                                color="primary"
-                                className="cursor-pointer hover:bg-primary/20"
-                                onClick={() => applyPreset(preset)}
-                            >
+                        {presetConfigs.map(preset => (
+                            <Chip key={preset.name} variant="flat" color="primary" className="cursor-pointer hover:bg-primary/20" onClick={() => applyPreset(preset)}>
                                 {preset.name}
                             </Chip>
                         ))}
@@ -211,56 +196,53 @@ export default function ProviderForm({ provider, onSubmit, onCancel, loading = f
             {/* 基本信息 */}
             <div className="space-y-4">
                 <h4 className="text-sm font-medium">{t('Basic Information')}</h4>
-                
+
                 <Input
+                    isRequired
                     label={t('Provider Name')}
                     placeholder={t('Enter provider name')}
                     value={formData.name}
-                    onValueChange={(value) => handleInputChange('name', value)}
                     isInvalid={!!errors.name}
                     errorMessage={errors.name}
-                    isRequired
+                    onValueChange={value => handleInputChange('name', value)}
                 />
 
                 <Textarea
+                    isRequired
                     label={t('Description')}
                     placeholder={t('Enter provider description')}
                     value={formData.description}
-                    onValueChange={(value) => handleInputChange('description', value)}
                     isInvalid={!!errors.description}
                     errorMessage={errors.description}
                     maxRows={3}
-                    isRequired
+                    onValueChange={value => handleInputChange('description', value)}
                 />
 
                 <Input
+                    isRequired
                     label={t('API URL')}
                     placeholder="https://api.example.com/v1"
                     value={formData.api_url}
-                    onValueChange={(value) => handleInputChange('api_url', value)}
                     isInvalid={!!errors.api_url}
                     errorMessage={errors.api_url}
                     startContent={<Icon icon="material-symbols:link" width={16} />}
-                    isRequired
+                    onValueChange={value => handleInputChange('api_url', value)}
                 />
 
                 <Input
+                    isRequired
                     label={t('API Key')}
                     placeholder={t('Enter your API key')}
                     value={formData.api_key}
-                    onValueChange={(value) => handleInputChange('api_key', value)}
                     isInvalid={!!errors.api_key}
                     errorMessage={errors.api_key}
                     startContent={<Icon icon="material-symbols:key" width={16} />}
                     type="password"
-                    isRequired
+                    onValueChange={value => handleInputChange('api_key', value)}
                 />
 
                 <div className="flex items-center gap-2">
-                    <Switch
-                        isSelected={formData.status === 1}
-                        onValueChange={(checked) => handleInputChange('status', checked ? 1 : 0)}
-                    />
+                    <Switch isSelected={formData.status === 1} onValueChange={checked => handleInputChange('status', checked ? 1 : 0)} />
                     <span className="text-sm">{t('Enable this provider')}</span>
                 </div>
             </div>
@@ -270,18 +252,18 @@ export default function ProviderForm({ provider, onSubmit, onCancel, loading = f
             {/* 高级配置 */}
             <div className="space-y-4">
                 <h4 className="text-sm font-medium">{t('Advanced Configuration')}</h4>
-                
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Input
                         label={t('Timeout (ms)')}
                         placeholder="30000"
                         type="number"
                         value={formData.config.timeout.toString()}
-                        onValueChange={(value) => handleConfigChange('timeout', parseInt(value) || 30000)}
                         isInvalid={!!errors.config}
                         description={t('Request timeout in milliseconds')}
                         min={1000}
                         max={300000}
+                        onValueChange={value => handleConfigChange('timeout', parseInt(value) || 30000)}
                     />
 
                     <Input
@@ -289,48 +271,41 @@ export default function ProviderForm({ provider, onSubmit, onCancel, loading = f
                         placeholder="3"
                         type="number"
                         value={formData.config.max_retries.toString()}
-                        onValueChange={(value) => handleConfigChange('max_retries', parseInt(value) || 3)}
                         isInvalid={!!errors.config}
                         description={t('Maximum number of retry attempts')}
                         min={0}
                         max={10}
+                        onValueChange={value => handleConfigChange('max_retries', parseInt(value) || 3)}
                     />
                 </div>
 
                 <div className="flex items-center gap-2">
-                    <Switch
-                        isSelected={formData.config.is_reader || false}
-                        onValueChange={(checked) => handleConfigChange('is_reader', checked)}
-                    />
+                    <Switch isSelected={formData.config.is_reader || false} onValueChange={checked => handleConfigChange('is_reader', checked)} />
                     <div className="flex items-center gap-2">
                         <Icon icon="material-symbols:chrome-reader-mode" width={16} className="text-default-400" />
                         <span className="text-sm">{t('Enable Reader Support')}</span>
                     </div>
                 </div>
-                <p className="text-xs text-default-500 pl-6">
-                    {t('Indicates this provider supports document reading functionality')}
-                </p>
+                <p className="text-xs text-default-500 pl-6">{t('Indicates this provider supports document reading functionality')}</p>
 
-                {errors.config && (
-                    <p className="text-danger text-sm">{errors.config}</p>
-                )}
+                <div className="flex items-center gap-2">
+                    <Switch isSelected={formData.config.is_ocr || false} onValueChange={checked => handleConfigChange('is_ocr', checked)} />
+                    <div className="flex items-center gap-2">
+                        <Icon icon="material-symbols:document-scanner" width={16} className="text-default-400" />
+                        <span className="text-sm">{t('Enable OCR Support')}</span>
+                    </div>
+                </div>
+                <p className="text-xs text-default-500 pl-6">{t('Indicates this provider supports OCR functionality')}</p>
+
+                {errors.config && <p className="text-danger text-sm">{errors.config}</p>}
             </div>
 
             {/* 操作按钮 */}
             <div className="flex justify-end gap-2 pt-4">
-                <Button
-                    variant="light"
-                    onPress={onCancel}
-                    isDisabled={loading}
-                >
+                <Button variant="light" isDisabled={loading} onPress={onCancel}>
                     {t('Cancel')}
                 </Button>
-                <Button
-                    color="primary"
-                    onPress={handleSubmit}
-                    isLoading={loading}
-                    startContent={!loading ? <Icon icon="material-symbols:save" width={16} /> : undefined}
-                >
+                <Button color="primary" isLoading={loading} startContent={!loading ? <Icon icon="material-symbols:save" width={16} /> : undefined} onPress={handleSubmit}>
                     {provider ? t('Update Provider') : t('Create Provider')}
                 </Button>
             </div>

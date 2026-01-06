@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ResizableImageTool 测试页面</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .description {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        #editorjs {
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            padding: 20px;
+            min-height: 300px;
+            background: white;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #4b5563;
+        }
+
+        .output {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+
+        .output-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #374151;
+        }
+
+        .console-log {
+            margin-top: 20px;
+            padding: 15px;
+            background: #1f2937;
+            color: #f3f4f6;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .console-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #60a5fa;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #60a5fa;
+            padding-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ ResizableImageTool 测试页面</h1>
+        <p class="description">
+            这个页面用于测试可调整大小的图片工具。<br>
+            <strong>使用方法：</strong>
+            <ol>
+                <li>点击图片工具按钮添加图片</li>
+                <li>拖拽右下角的蓝色手柄调整大小</li>
+                <li>点击"保存数据"查看输出</li>
+                <li>检查控制台日志了解详细信息</li>
+            </ol>
+        </p>
+
+        <div id="editorjs"></div>
+
+        <div class="controls">
+            <button class="btn-primary" onclick="saveData()">💾 保存数据</button>
+            <button class="btn-secondary" onclick="clearEditor()">🗑️ 清空编辑器</button>
+            <button class="btn-secondary" onclick="loadSampleData()">📝 加载示例数据</button>
+        </div>
+
+        <div class="output" id="output" style="display: none;">
+            <div class="output-title">📊 保存的数据：</div>
+            <div id="output-content"></div>
+        </div>
+
+        <div class="console-log" id="console">
+            <div class="console-title">📋 控制台日志：</div>
+            <div id="console-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // 拦截 console.log 以显示在页面上
+        const consoleContent = document.getElementById('console-content');
+        const originalLog = console.log;
+
+        console.log = function(...args) {
+            originalLog.apply(console, args);
+
+            const logEntry = document.createElement('div');
+            logEntry.className = 'log-entry';
+            logEntry.textContent = args.map(arg =>
+                typeof arg === 'object' ? JSON.stringify(arg, null, 2) : String(arg)
+            ).join(' ');
+
+            consoleContent.appendChild(logEntry);
+            consoleContent.scrollTop = consoleContent.scrollHeight;
+        };
+
+        console.log('🚀 测试页面已加载');
+        console.log('⚠️ 注意：这是一个测试页面，需要正确配置 EditorJS 和 ResizableImageTool');
+        console.log('');
+
+        // 这里需要你的实际 EditorJS 和 ResizableImageTool 配置
+        // 示例代码：
+        /*
+        import EditorJS from '@editorjs/editorjs';
+        import ResizableImageTool from './resizable-image-tool';
+
+        const editor = new EditorJS({
+            holder: 'editorjs',
+            tools: {
+                image: {
+                    class: ResizableImageTool,
+                    config: {
+                        uploader: {
+                            uploadByFile(file) {
+                                // 模拟上传
+                                return Promise.resolve({
+                                    success: 1,
+                                    file: {
+                                        url: URL.createObjectURL(file)
+                                    }
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+        });
+        */
+
+        console.log('💡 提示：请在你的项目中导入此 HTML，并配置 EditorJS');
+
+        function saveData() {
+            console.log('');
+            console.log('📝 开始保存数据...');
+
+            // 这里需要你的 editor 实例
+            // editor.save().then(data => {
+            //     console.log('✅ 数据保存成功');
+            //     console.log('完整数据:', JSON.stringify(data, null, 2));
+            //
+            //     document.getElementById('output').style.display = 'block';
+            //     document.getElementById('output-content').textContent = JSON.stringify(data, null, 2);
+            //
+            //     // 检查 width 字段
+            //     const imageBlocks = data.blocks.filter(b => b.type === 'image');
+            //     imageBlocks.forEach((block, index) => {
+            //         console.log(`图片 ${index + 1} 的宽度:`, block.data.width);
+            //     });
+            // });
+
+            console.log('⚠️ editor 实例未初始化，请在项目中使用');
+        }
+
+        function clearEditor() {
+            console.log('');
+            console.log('🗑️ 清空编辑器');
+            // editor.clear();
+            document.getElementById('output').style.display = 'none';
+        }
+
+        function loadSampleData() {
+            console.log('');
+            console.log('📝 加载示例数据');
+
+            const sampleData = {
+                blocks: [
+                    {
+                        type: 'image',
+                        data: {
+                            file: {
+                                url: 'https://picsum.photos/800/400'
+                            },
+                            caption: '这是一张示例图片',
+                            withBorder: false,
+                            withBackground: false,
+                            stretched: false,
+                            width: 60
+                        }
+                    }
+                ]
+            };
+
+            console.log('示例数据:', JSON.stringify(sampleData, null, 2));
+            // editor.render(sampleData);
+        }
+    </script>
+</body>
+</html>

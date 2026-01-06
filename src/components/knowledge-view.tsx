@@ -2,6 +2,7 @@ import { Chip } from '@heroui/react';
 import { memo } from 'react';
 
 import Markdown from './markdown';
+import PodcastBar from './podcast-bar';
 
 import { Knowledge } from '@/apis/knowledge';
 import { Editor } from '@/components/editor/index';
@@ -15,7 +16,7 @@ export default memo(function KnowledgeView({ knowledge }: { knowledge: Knowledge
                         <h1 className="text-xl text-gray-800 dark:text-gray-100">{knowledge.title}</h1>
                     </div>
 
-                    <div className="flex flex-wrap gap-1 mb-5">
+                    <div className="flex flex-wrap gap-1 mb-3">
                         {knowledge.tags &&
                             knowledge.tags.map(item => {
                                 return (
@@ -26,11 +27,15 @@ export default memo(function KnowledgeView({ knowledge }: { knowledge: Knowledge
                             })}
                     </div>
 
+                    <div className="mb-5">
+                        <PodcastBar sourceType="knowledge" sourceId={knowledge.id} />
+                    </div>
+
                     <div className="w-full flex-wrap pb-20">
                         {knowledge.content ? (
-                            <Markdown className="w-full text-wrap break-words whitespace-pre-wrap">{knowledge.content}</Markdown>
+                            <Markdown className="w-full text-wrap wrap-break-words whitespace-pre-wrap">{knowledge.content}</Markdown>
                         ) : (
-                            <Editor readOnly className="!mx-0" data={knowledge.blocks || knowledge.content} dataType={knowledge.content_type} />
+                            <Editor readOnly className="mx-0!" data={knowledge.blocks || knowledge.content} dataType={knowledge.content_type} />
                         )}
                     </div>
                 </div>

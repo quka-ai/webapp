@@ -10,6 +10,7 @@ export interface Provider {
         timeout: number;
         max_retries: number;
         is_reader?: boolean;
+        is_ocr?: boolean;
         [key: string]: any;
     };
     created_at: number;
@@ -22,7 +23,7 @@ export interface ModelConfig {
     provider_id: string;
     model_name: string;
     display_name: string;
-    model_type: 'chat' | 'embedding' | 'vision' | 'rerank' | 'reader' | 'enhance';
+    model_type: 'chat' | 'embedding' | 'vision' | 'rerank' | 'reader' | 'enhance' | 'ocr';
     is_multi_modal: boolean;
     thinking_support?: 0 | 1 | 2; // 0=不支持, 1=可选, 2=强制
     status: 0 | 1;
@@ -61,6 +62,7 @@ export interface UsageConfig {
     rerank: string;
     reader: string;
     enhance: string;
+    ocr?: string; // OCR提供商ID
 }
 
 // 分页数据接口
@@ -133,6 +135,7 @@ export interface ProviderFormData {
         timeout: number;
         max_retries: number;
         is_reader?: boolean;
+        is_ocr?: boolean;
         [key: string]: any;
     };
 }
@@ -141,7 +144,7 @@ export interface ModelFormData {
     provider_id: string;
     model_name: string;
     display_name: string;
-    model_type: 'chat' | 'embedding' | 'vision' | 'rerank' | 'reader' | 'enhance';
+    model_type: 'chat' | 'embedding' | 'vision' | 'rerank' | 'reader' | 'enhance' | 'ocr';
     is_multi_modal: boolean;
     thinking_support?: 0 | 1 | 2; // v3新增：思考功能支持
     status: 0 | 1;
@@ -160,7 +163,8 @@ export const ModelTypeColors: Record<ModelConfig['model_type'], string> = {
     vision: 'success',
     rerank: 'warning',
     reader: 'danger',
-    enhance: 'default'
+    enhance: 'default',
+    ocr: 'secondary'
 };
 
 // 状态颜色映射

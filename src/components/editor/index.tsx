@@ -11,13 +11,13 @@ import Quote from '@editorjs/quote';
 import Table from '@editorjs/table';
 //@ts-ignore
 import CodeTool from '@holdno/editorjs-codemirror';
-import { forwardRef, memo, Ref, useEffect, useImperativeHandle, useState } from 'react';
+import { forwardRef, memo, Ref, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import showdown from 'showdown';
 import { useSnapshot } from 'valtio';
 
 import { ToastProps } from '../ui/toast';
-import CustomImage from './image-tool';
+import ResizableImageTool from './resizable-image-tool';
 import './style.css';
 
 import { CreateUploadKey, UploadFileToKey } from '@/apis/upload';
@@ -112,6 +112,7 @@ export const Editor = memo(
         const [editor, setEditor] = useState<EditorJS>();
 
         const [randomID, setRandomID] = useState(randomString(6));
+        const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
         useEffect(() => {
             if (!readOnly && currentSelectedSpace === '') {
@@ -153,7 +154,7 @@ export const Editor = memo(
                             ];
                         });
 
-                        const converter = new showdown.Converter({ extensions: ['code'] });
+                        const converter = new showdown.Converter({ extensions: ['code'], tables: true });
                         let htmlDoms = converter.makeHtml(data as string) + '\n<p></p>';
 
                         try {
@@ -283,7 +284,7 @@ export const Editor = memo(
                      * Or pass class directly without any configuration
                      */
                     image: {
-                        class: CustomImage,
+                        class: ResizableImageTool,
                         config: {
                             types: 'image/*',
                             features: {
@@ -373,7 +374,18 @@ export const Editor = memo(
                     await renderFunc(editor, data, dataType);
                 },
                 onChange: async function (api, _) {
-                    onValueChange && onValueChange(await api.saver.save());
+                    // 清除之前的定时器
+                    if (saveTimeoutRef.current) {
+                        clearTimeout(saveTimeoutRef.current);
+                    }
+
+                    // 使用防抖：延迟 500ms 后再保存，确保用户完成所有操作
+                    saveTimeoutRef.current = setTimeout(async () => {
+                        if (onValueChange) {
+                            const savedData = await api.saver.save();
+                            onValueChange(savedData);
+                        }
+                    }, 500);
                 }
             });
 

@@ -59,7 +59,8 @@ export default function ModelForm({
         { key: 'vision', label: t('Vision'), icon: 'material-symbols:visibility' },
         { key: 'rerank', label: t('Rerank'), icon: 'material-symbols:sort' },
         { key: 'reader', label: t('Reader'), icon: 'material-symbols:chrome-reader-mode' },
-        { key: 'enhance', label: t('Enhance'), icon: 'material-symbols:auto-fix-high' }
+        { key: 'enhance', label: t('Enhance'), icon: 'material-symbols:auto-fix-high' },
+        { key: 'ocr', label: t('OCR'), icon: 'material-symbols:document-scanner' }
     ];
     
     // 初始化表单数据
