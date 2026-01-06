@@ -688,7 +688,6 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
                                 <Input autoFocus label={t('Task')} placeholder={t('Enter your task')} value={newTodoText} onValueChange={setNewTodoText} />
 
                                 <RadioGroup label={t('Select group')} value={selectedGroup} onValueChange={setSelectedGroup}>
-                                    <Radio value="new">{t('New group')}</Radio>
                                     {journalTodos
                                         .filter(group => group.title && group.title.trim() !== '')
                                         .map((group, idx) => (
@@ -696,9 +695,10 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
                                                 {group.title}
                                             </Radio>
                                         ))}
+                                    <Radio value="new">{t('New group')}</Radio>
                                 </RadioGroup>
 
-                                {selectedGroup === 'new' && (
+                                {selectedGroup === 'new' ? (
                                     <Input
                                         label={t('Group title (optional)')}
                                         placeholder={t('Enter group title')}
@@ -711,6 +711,8 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
                                             }
                                         }}
                                     />
+                                ) : (
+                                    <Input label={t('Group title (optional)')} placeholder={t('Enter group title')} className="opacity-0" />
                                 )}
                             </ModalBody>
                             <ModalFooter>

@@ -182,6 +182,10 @@ export default function Chat() {
                         case EventType.EVENT_TOOL_INIT:
                             console.log(`[TOOL_INIT] Tool message initialized, messageID: ${data.messageID}`);
                             setMessages((prev: Message[]) => {
+                                if (prev.find(v => v.key === data.messageID)) {
+                                    console.log(`[TOOL_INIT] Message already exists, skipping`);
+                                    return;
+                                }
                                 prev.push({
                                     key: data.messageID,
                                     spaceID: data.spaceID || currentSelectedSpace,
@@ -235,9 +239,17 @@ export default function Chat() {
                                         return;
                                     }
 
-                                    if (todo.len && todo.len !== data.startAt) {
+                                    if (!data.startAt) {
+                                        data.startAt = 0;
+                                    }
+
+                                    if (todo.len && todo.len !== data.startAt && todo.len + 2 < data.startAt) {
                                         console.warn(`[CONTINUE] Length mismatch - expected: ${data.startAt}, actual: ${todo.len}`);
                                         return;
+                                    }
+
+                                    if (todo.len !== data.startAt) {
+                                        todo.len = data.startAt;
                                     }
 
                                     let char = messageRunes.slice(i, i + 2); // append two words at once
@@ -554,11 +566,6 @@ export default function Chat() {
 
         // 只有当 aiTyping 为 true 或者存在正在生成的消息时，才认为正在生成
         const generating = aiTyping || hasOngoingMessage;
-
-        // 调试日志：帮助排查状态不一致的问题
-        if (generating !== aiTyping && hasOngoingMessage) {
-            console.log(`[isGenerating] State mismatch - aiTyping: ${aiTyping}, hasOngoingMessage: ${hasOngoingMessage}`);
-        }
 
         return generating;
     }, [aiTyping, messages]);

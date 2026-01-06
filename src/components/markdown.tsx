@@ -133,9 +133,8 @@ const CustomLink = ({ href, children }: { href?: string; children: React.ReactNo
 
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
         if (!href) return;
-
-        // 匹配 #article-{id} 格式的链接
-        const articleMatch = href.match(/^#article-(.+)$/);
+        // 匹配 #knowledge-{id} 格式的链接
+        const articleMatch = href.match(/^#knowledge-(.+)$/);
         if (articleMatch && articleMatch[1]) {
             e.preventDefault();
             const knowledgeId = articleMatch[1];
