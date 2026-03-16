@@ -79,7 +79,8 @@ const AvatarUpload = React.forwardRef(function AvatarUpload({ src, currentSelect
                 return {
                     success: true,
                     file: {
-                        url: resp.url
+                        url: resp.url,
+                        full_path: resp.full_path
                     }
                 };
             } else {
@@ -90,7 +91,8 @@ const AvatarUpload = React.forwardRef(function AvatarUpload({ src, currentSelect
                 success: true,
                 file: {
                     type: fileKind,
-                    url: resp.url
+                    url: resp.url,
+                    full_path: resp.full_path
                 }
             };
         } catch (e: Error) {

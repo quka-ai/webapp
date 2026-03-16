@@ -83,6 +83,20 @@ interface FileUploaderProps extends React.HTMLAttributes<HTMLDivElement> {
      * @example disabled
      */
     disabled?: boolean;
+
+    /**
+     * Whether interactions should be blocked while still showing a custom prompt.
+     * @type boolean
+     * @default false
+     */
+    blocked?: boolean;
+
+    /**
+     * Function to be called when a blocked uploader is clicked or dragged over.
+     * @type () => void
+     * @default undefined
+     */
+    onBlockedInteract?: () => void;
 }
 
 export function FileUploader(props: FileUploaderProps) {
@@ -98,6 +112,8 @@ export function FileUploader(props: FileUploaderProps) {
         maxFileCount = 1,
         multiple = false,
         disabled = false,
+        blocked = false,
+        onBlockedInteract,
         className,
         ...dropzoneProps
     } = props;
@@ -108,6 +124,39 @@ export function FileUploader(props: FileUploaderProps) {
     });
 
     const { t } = useTranslation();
+
+    const acceptLabels = React.useMemo(() => {
+        const entries = Object.entries(accept ?? {});
+
+        if (entries.length === 0) {
+            return [];
+        }
+
+        return entries
+            .flatMap(([mimeType, extensions]) => {
+                if (extensions && extensions.length > 0) {
+                    return extensions.map(extension => extension.replace(/^\./, '').toLowerCase());
+                }
+
+                if (mimeType.endsWith('/*')) {
+                    return [mimeType.replace('/*', '')];
+                }
+
+                const subtype = mimeType.split('/')[1];
+                if (!subtype) {
+                    return [];
+                }
+
+                return [
+                    subtype
+                        .replace('vnd.openxmlformats-officedocument.wordprocessingml.document', 'docx')
+                        .replace('vnd.openxmlformats-officedocument.spreadsheetml.sheet', 'xlsx')
+                        .replace('plain', 'txt')
+                        .replace('markdown', 'md')
+                ];
+            })
+            .filter((label, index, list) => label && list.indexOf(label) === index);
+    }, [accept]);
 
     const onDrop = React.useCallback(
         (acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
@@ -133,7 +182,9 @@ export function FileUploader(props: FileUploaderProps) {
 
             if (rejectedFiles.length > 0) {
                 rejectedFiles.forEach(({ file, errors }) => {
-                    toast.error(t('FileRejected', { description: file.name + ':' + errors.join('\n') }));
+                    toast.error(t('FileRejected', { title: file.name }), {
+                        description: errors.map(error => error.message).join('\n')
+                    });
                 });
             }
 
@@ -175,18 +226,47 @@ export function FileUploader(props: FileUploaderProps) {
     }, []);
 
     const isDisabled = disabled || (files?.length ?? 0) >= maxFileCount;
+    const isBlocked = blocked && !isDisabled;
+
+    const handleBlockedInteract = React.useCallback(
+        (event: React.SyntheticEvent<HTMLDivElement>) => {
+            if (!isBlocked) {
+                return;
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            onBlockedInteract?.();
+        },
+        [isBlocked, onBlockedInteract]
+    );
 
     return (
         <div className="relative flex flex-col gap-6 overflow-hidden inset-0 h-[200px] rounded-xl border-small  border-default-200 hover:border-default-400 px-5 text-center transition bg-gradient-to-br from-default-400/30 to-default-400 dark:from-default-100/50 dark:to-default-50/50">
-            <Dropzone onDrop={onDrop} accept={accept} maxSize={maxSize} maxFiles={maxFileCount} multiple={maxFileCount > 1 || multiple} disabled={isDisabled}>
+            <Dropzone
+                accept={accept}
+                maxSize={maxSize}
+                maxFiles={maxFileCount}
+                multiple={maxFileCount > 1 || multiple}
+                disabled={isDisabled}
+                noClick={isBlocked}
+                noDrag={isBlocked}
+                noKeyboard={isBlocked}
+                onDrop={onDrop}
+            >
                 {({ getRootProps, getInputProps, isDragActive }) => (
                     <div
                         {...getRootProps()}
+                        onClickCapture={handleBlockedInteract}
+                        onDragEnterCapture={handleBlockedInteract}
+                        onDragOverCapture={handleBlockedInteract}
+                        onDropCapture={handleBlockedInteract}
                         className={cn(
                             'group relative grid h-[200px] w-full cursor-pointer place-items-center py-2.5',
                             'ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2',
                             isDragActive && 'border-muted-foreground/50',
                             isDisabled && 'pointer-events-none opacity-60',
+                            isBlocked && 'cursor-not-allowed',
                             className
                         )}
                         {...dropzoneProps}
@@ -205,23 +285,15 @@ export function FileUploader(props: FileUploaderProps) {
                                     <Icon icon="mdi:file-document-outline" className="size-8 text-muted-foreground" aria-hidden="true" />
                                 </div>
                                 <div className="flex flex-col gap-2 items-center">
-                                    <div className="flex flex-wrap gap-1.5 justify-center">
-                                        <Chip size="sm" radius="sm" variant="flat" className="text-xs">
-                                            docx
-                                        </Chip>
-                                        <Chip size="sm" radius="sm" variant="flat" className="text-xs">
-                                            xlsx
-                                        </Chip>
-                                        <Chip size="sm" radius="sm" variant="flat" className="text-xs">
-                                            pdf
-                                        </Chip>
-                                        <Chip size="sm" radius="sm" variant="flat" className="text-xs">
-                                            txt
-                                        </Chip>
-                                        <Chip size="sm" radius="sm" variant="flat" className="text-xs">
-                                            md
-                                        </Chip>
-                                    </div>
+                                    {acceptLabels.length > 0 && (
+                                        <div className="flex flex-wrap gap-1.5 justify-center">
+                                            {acceptLabels.map(label => (
+                                                <Chip key={label} size="sm" radius="sm" variant="flat" className="text-xs">
+                                                    {label}
+                                                </Chip>
+                                            ))}
+                                        </div>
+                                    )}
                                     <p className="text-xs text-muted-foreground/70">
                                         {t('MemoryUploadLimit', { times: maxFileCount })}
                                         {' · '}

@@ -138,7 +138,7 @@ export default memo(function Component(props: CardProps & { onChanges: () => voi
                             {!chunkFile.url && !knowledge && (
                                 <div className="mt-1 flex w-full items-center justify-center gap-2 px-1 text-sm">
                                     {t('OR')}&nbsp;
-                                    {t('UseDocs', { types: 'doc(x)、xls(x)、pdf' })}
+                                    {t('UseDocs', { types: 'doc(x)、xls(x)、pdf、md、txt' })}
                                 </div>
                             )}
 
@@ -169,7 +169,9 @@ export default memo(function Component(props: CardProps & { onChanges: () => voi
                                             accept={{
                                                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': [],
                                                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [],
-                                                'application/pdf': []
+                                                'application/pdf': [],
+                                                'text/markdown': ['.md', '.markdown'],
+                                                'text/plain': ['.txt']
                                             }}
                                             onValueChange={e => {
                                                 console.log(e);
@@ -507,55 +509,57 @@ export function TaskList({ isShow, spaceID, onClose }: TaskListProps) {
 
     return (
         <Modal isOpen={isShow} backdrop="blur" size="5xl" onClose={onClose}>
-            <ModalContent>
+            <ModalContent className="overflow-hidden">
                 {onClose => (
                     <>
                         <ModalHeader className="flex flex-col gap-1">{t('TaskList')}</ModalHeader>
-                        <ModalBody>
-                            <Table
-                                removeWrapper
-                                aria-label="Example table with custom cells, pagination and sorting"
-                                bottomContent={
-                                    hasMore && !isLoading ? (
-                                        <div className="flex w-full justify-center">
-                                            <Button
-                                                isDisabled={isLoading}
-                                                variant="flat"
-                                                onPress={async () => {
-                                                    const nextPage = page + 1;
-                                                    try {
-                                                        await loadTaskList(nextPage);
-                                                        setPage(nextPage);
-                                                    } catch (e: any) {
-                                                        console.error(e);
-                                                    }
-                                                }}
-                                            >
-                                                {isLoading && <Spinner color="white" size="sm" />}
-                                                {t('LoadMore')}
-                                            </Button>
-                                        </div>
-                                    ) : null
-                                }
-                                bottomContentPlacement="outside"
-                                checkboxesProps={{
-                                    classNames: {
-                                        wrapper: 'after:bg-foreground after:text-background text-background'
+                        <ModalBody className="overflow-hidden">
+                            <div className="w-full overflow-x-auto">
+                                <Table
+                                    removeWrapper
+                                    aria-label="Example table with custom cells, pagination and sorting"
+                                    bottomContent={
+                                        hasMore && !isLoading ? (
+                                            <div className="flex w-full justify-center">
+                                                <Button
+                                                    isDisabled={isLoading}
+                                                    variant="flat"
+                                                    onPress={async () => {
+                                                        const nextPage = page + 1;
+                                                        try {
+                                                            await loadTaskList(nextPage);
+                                                            setPage(nextPage);
+                                                        } catch (e: any) {
+                                                            console.error(e);
+                                                        }
+                                                    }}
+                                                >
+                                                    {isLoading && <Spinner color="white" size="sm" />}
+                                                    {t('LoadMore')}
+                                                </Button>
+                                            </div>
+                                        ) : null
                                     }
-                                }}
-                                classNames={classNames}
-                            >
-                                <TableHeader columns={columns}>
-                                    {column => (
-                                        <TableColumn key={column.uid} align={column.uid === 'actions' ? 'center' : 'start'}>
-                                            {column.name}
-                                        </TableColumn>
-                                    )}
-                                </TableHeader>
-                                <TableBody isLoading={isLoading} loadingContent={<Spinner></Spinner>} onLoadMore={loadTaskList} emptyContent={t('Empty')} items={taskList}>
-                                    {item => <TableRow key={item.task_id}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
-                                </TableBody>
-                            </Table>
+                                    bottomContentPlacement="outside"
+                                    checkboxesProps={{
+                                        classNames: {
+                                            wrapper: 'after:bg-foreground after:text-background text-background'
+                                        }
+                                    }}
+                                    classNames={classNames}
+                                >
+                                    <TableHeader columns={columns}>
+                                        {column => (
+                                            <TableColumn key={column.uid} align={column.uid === 'actions' ? 'center' : 'start'}>
+                                                {column.name}
+                                            </TableColumn>
+                                        )}
+                                    </TableHeader>
+                                    <TableBody isLoading={isLoading} loadingContent={<Spinner></Spinner>} onLoadMore={loadTaskList} emptyContent={t('Empty')} items={taskList}>
+                                        {item => <TableRow key={item.task_id}>{columnKey => <TableCell>{renderCell(item, columnKey)}</TableCell>}</TableRow>}
+                                    </TableBody>
+                                </Table>
+                            </div>
                         </ModalBody>
                         <ModalFooter></ModalFooter>
                     </>

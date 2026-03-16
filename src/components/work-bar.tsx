@@ -196,6 +196,7 @@ const WorkBar = memo(
                                                         variant="faded"
                                                         size="sm"
                                                         isLoading={isLoading}
+                                                        endContent={<Kbd keys={['command']}>B</Kbd>}
                                                         onPress={() => {
                                                             if (isMobile) {
                                                                 navigate(`/dashboard/${currentSelectedSpace}/knowledge/create`);
@@ -203,7 +204,6 @@ const WorkBar = memo(
                                                                 showCreate();
                                                             }
                                                         }}
-                                                        endContent={<Kbd keys={['command']}>B</Kbd>}
                                                     >
                                                         🤔 {t('OpenRichText')}
                                                     </Button>
@@ -303,7 +303,16 @@ const FileTask = memo(function FileTask() {
                         accept={{
                             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': [],
                             'application/vnd.openxmlformats-officedocument.wordprocessingml.document': [],
-                            'application/pdf': []
+                            'application/pdf': [],
+                            'text/markdown': ['.md', '.markdown'],
+                            'text/plain': ['.txt']
+                        }}
+                        blocked={!currentSelectedResource?.id}
+                        disabled={!userIsPro}
+                        onBlockedInteract={() => {
+                            toast.error(t('FileUploadMustChooseAResource'), {
+                                id: 'file-upload-resource-required'
+                            });
                         }}
                         onValueChange={e => {
                             console.log(e);
@@ -322,17 +331,15 @@ const FileTask = memo(function FileTask() {
                                 });
                             }
                         }}
-                        disabled={!userIsPro || !currentSelectedResource || !currentSelectedResource.id}
                     />
                     <div className="flex w-full items-center justify-start gap-2 p-1">
                         <p className="text-tiny text-default-300 dark:text-default-500">
-                            {!currentSelectedResource ||
-                                (!currentSelectedResource.id && (
-                                    <span className=" text-red-500">
-                                        ⚠️{t('FileUploadMustChooseAResource')}
-                                        <br />
-                                    </span>
-                                ))}
+                            {!currentSelectedResource?.id && (
+                                <span className=" text-red-500">
+                                    ⚠️{t('FileUploadMustChooseAResource')}
+                                    <br />
+                                </span>
+                            )}
 
                             {t('FileUploadSuggestToANewResource')}
                         </p>

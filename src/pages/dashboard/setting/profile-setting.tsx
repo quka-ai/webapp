@@ -56,7 +56,6 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
 
     const [avatarChanged, setAvatarChanged] = React.useState(false);
     function needToUpdateAvatar(file: File | undefined) {
-        console.log('changed?', file);
         if (file) {
             setAvatarChanged(true);
         } else {
@@ -103,6 +102,7 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
         }
 
         let avatar = userInfo.avatar;
+        let showAvatar = userInfo.avatar;
         if (avatarChanged) {
             const uploadResult = await new Promise((resolve, reject) => {
                 toast.promise((avatarUploader.current as any)?.handleSubmit, {
@@ -118,7 +118,9 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
                 });
             });
             if ((uploadResult as any).success) {
-                avatar = (uploadResult as any).file.url;
+                console.log(uploadResult);
+                avatar = (uploadResult as any).file.full_path;
+                showAvatar = (uploadResult as any).file.url;
             } else {
                 toast.error((uploadResult as any).error);
                 return;
@@ -132,7 +134,7 @@ const ProfileSetting = React.forwardRef<HTMLDivElement, ProfileSettingCardProps>
                 appid: userInfo.appid,
                 userID: userInfo.userID,
                 email: email,
-                avatar: avatar,
+                avatar: showAvatar,
                 userName: userName,
                 planID: userInfo.planID,
                 serviceMode: userInfo.serviceMode,

@@ -41,29 +41,29 @@ export default function Component() {
 
     const [currentSelectedDate, setCurrentSelectedDate] = useState<CalendarDate>(parseDate(selectDate));
 
-    const currentDate = useMemo(() => {}, [selectDate]);
-    const haveNextDay = useMemo(() => {
-        const t = today(getLocalTimeZone());
-        if (t.year !== currentSelectedDate.year) {
-            return t.year > currentSelectedDate.year; // 比较年份
-        }
-        if (t.month !== currentSelectedDate.month) {
-            return t.month > currentSelectedDate.month; // 比较月份
-        }
-        return t.day > currentSelectedDate.day; // 比较日期
-    }, [currentSelectedDate]);
+    // const currentDate = useMemo(() => {}, [selectDate]);
+    // const haveNextDay = useMemo(() => {
+    //     const t = today(getLocalTimeZone());
+    //     if (t.year !== currentSelectedDate.year) {
+    //         return t.year > currentSelectedDate.year; // 比较年份
+    //     }
+    //     if (t.month !== currentSelectedDate.month) {
+    //         return t.month > currentSelectedDate.month; // 比较月份
+    //     }
+    //     return t.day > currentSelectedDate.day; // 比较日期
+    // }, [currentSelectedDate]);
 
-    const havePreviousDay = useMemo(() => {
-        const t = today(getLocalTimeZone()).add({ days: -31 });
+    // const havePreviousDay = useMemo(() => {
+    //     const t = today(getLocalTimeZone()).add({ days: -31 });
 
-        if (t.year !== currentSelectedDate.year) {
-            return t.year < currentSelectedDate.year; // 比较年份
-        }
-        if (t.month !== currentSelectedDate.month) {
-            return t.month < currentSelectedDate.month; // 比较月份
-        }
-        return t.day < currentSelectedDate.day; // 比较日期
-    }, [currentSelectedDate]);
+    //     if (t.year !== currentSelectedDate.year) {
+    //         return t.year < currentSelectedDate.year; // 比较年份
+    //     }
+    //     if (t.month !== currentSelectedDate.month) {
+    //         return t.month < currentSelectedDate.month; // 比较月份
+    //     }
+    //     return t.day < currentSelectedDate.day; // 比较日期
+    // }, [currentSelectedDate]);
 
     const { spaces, currentSelectedSpace } = useSnapshot(spaceStore);
     const currentSpace = useMemo(() => {
@@ -202,14 +202,15 @@ export default function Component() {
             <div className="flex flex-col gap-6 overflow-y-auto pb-16">
                 <div className="mx-auto relative">
                     <Calendar
+                        showMonthAndYearPickers
                         value={currentSelectedDate}
                         firstDayOfWeek="sun"
-                        minValue={today(getLocalTimeZone()).add({ days: -32 })}
-                        maxValue={today(getLocalTimeZone()).add({ days: 7 })}
+                        // minValue={today(getLocalTimeZone()).add({ days: -70 })}
+                        // maxValue={today(getLocalTimeZone()).add({ days: 70 })}
+                        classNames={{ base: '!bg-content2 shadow-none border-none mx-auto !block', headerWrapper: 'bg-content2', gridWrapper: 'bg-content2', gridHeader: 'bg-content2 shadow-none' }}
                         onChange={v => {
                             redirectTo(v);
                         }}
-                        classNames={{ base: '!bg-content2 shadow-none border-none mx-auto !block', headerWrapper: 'bg-content2', gridWrapper: 'bg-content2', gridHeader: 'bg-content2 shadow-none' }}
                     />
                     <div className="mt-2 flex w-full flex-col gap-2 px-4 overflow-hidden text-wrap break-words">
                         {journalTodos.length > 0 && <div className="pb-2 text-zinc-500 text-sm font-bold">{t('Journal Todos')}</div>}
@@ -360,20 +361,17 @@ export default function Component() {
                 <div className="hidden w-[260px] overflow-hidden max-h-[calc(100vh*3/4)] flex-col gap-4 xl:flex sticky top-0">{controlsContent}</div>
                 {/* Chat */}
                 <div className="relative flex flex-col h-full gap-2 pt-4 sm:pt-10 w-full md:max-w-[720px] rounded-xl bg-content1 overflow-hidden">
-                    <div className="flex flex-grow w-full max-w-full flex-col box-border px-1 gap-2 relative overflow-hidden">
-                        <div className="flex sm:h-[40px] border-b-small border-divider flex-col sm:flex-row mx-4 sm:mx-[52px] flex-wrap items-center justify-center gap-2 pb-4 sm:pb-12 sm:justify-between">
+                    <div className="flex grow w-full max-w-full flex-col box-border px-1 gap-2 relative overflow-hidden">
+                        <div className="flex sm:h-10 border-b-small border-divider flex-col sm:flex-row mx-4 sm:mx-[52px] flex-wrap items-center justify-center gap-2 pb-4 sm:pb-12 sm:justify-between">
                             <p className="text-2xl font-medium">
                                 {selectDate}
                                 {!journal?.id && !isLoading && <span className=" text-sm text-zinc-400">&nbsp;(new)</span>}
                             </p>
-                        </div>
 
-                        <div className="px-4 sm:px-[52px] mb-2">
                             <ButtonGroup>
                                 <Button
                                     variant="ghost"
                                     size="sm"
-                                    isDisabled={!havePreviousDay}
                                     startContent={<Icon icon="ooui:previous-ltr" width={14} />}
                                     onPress={() => {
                                         redirectToNumber(-1);
@@ -383,7 +381,6 @@ export default function Component() {
                                 </Button>
                                 <Button
                                     variant="ghost"
-                                    isDisabled={!haveNextDay}
                                     size="sm"
                                     endContent={<Icon icon="ooui:previous-rtl" width={14} />}
                                     onPress={() => {

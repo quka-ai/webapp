@@ -597,7 +597,7 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
             <Card className={clsx('w-full dark:border-default-100 bg-content2 dark:bg-content1 shadow-sm', dateObj.isToday && 'border-small')}>
                 <div className="flex flex-col md:flex-row gap-4 p-4 bg-linear-to-br from-default-400/30 to-default-400 dark:from-default-100/30 dark:to-default-50/50">
                     {/* 日期信息 - 移动端横向显示，桌面端纵向显示 */}
-                    <div className="flex-shrink-0">
+                    <div className="shrink-0">
                         <div
                             role="button"
                             tabIndex={0}

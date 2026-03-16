@@ -1,4 +1,4 @@
-import { Button, Card, CardBody, Chip, Link, Skeleton, User } from '@heroui/react';
+import { Card, CardBody, Chip, Link, Skeleton, User } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -113,7 +113,6 @@ export default function PodcastSharePage() {
                         <h1 className="ml-2 font-medium text-lg dark:text-white text-black">{Name}</h1>
                     </Link>
                 </div>
-
             </header>
 
             <main className="flex flex-col gap-4 w-full max-w-3xl justify-center pb-8 pt-4 px-4">
@@ -233,7 +232,7 @@ export default function PodcastSharePage() {
                                 <User
                                     avatarProps={{ radius: 'full', size: 'md', src: podcast.user_avatar }}
                                     classNames={{
-                                        base: "justify-start",
+                                        base: 'justify-start',
                                         description: 'text-default-500'
                                     }}
                                     name={podcast.user_name}
@@ -272,7 +271,6 @@ export default function PodcastSharePage() {
                             <CardBody className="p-6 overflow-visible">
                                 <h2 className="text-lg font-semibold mb-3">{tPodcast('Details')}</h2>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-                                 
                                     <div>
                                         <span className="text-default-500">{tPodcast('CreatedAt')}:</span>
                                         <span className="ml-2">{new Date(podcast.podcast.created_at * 1000).toLocaleString()}</span>
