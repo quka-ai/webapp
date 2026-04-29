@@ -5,9 +5,13 @@ import Markdown from './markdown';
 import PodcastBar from './podcast-bar';
 
 import { Knowledge } from '@/apis/knowledge';
-import { Editor } from '@/components/editor/index';
+import { BlockNoteEditor } from '@/components/blocknote-editor';
 
 export default memo(function KnowledgeView({ knowledge }: { knowledge: Knowledge }) {
+    const normalizedType = knowledge.content_type?.toLowerCase();
+    const shouldUseBlockNote = Boolean(knowledge.blocks) || ['block', 'blocks', 'block_v2', 'html'].includes(normalizedType);
+    const blockNoteData = knowledge.blocks || knowledge.content;
+
     return (
         <>
             <div className="w-full flex justify-center">
@@ -32,10 +36,10 @@ export default memo(function KnowledgeView({ knowledge }: { knowledge: Knowledge
                     </div>
 
                     <div className="w-full flex-wrap pb-20">
-                        {knowledge.content ? (
-                            <Markdown className="w-full text-wrap wrap-break-words whitespace-pre-wrap">{knowledge.content}</Markdown>
+                        {shouldUseBlockNote ? (
+                            <BlockNoteEditor readOnly className="mx-0!" data={blockNoteData} dataType={knowledge.content_type} />
                         ) : (
-                            <Editor readOnly className="mx-0!" data={knowledge.blocks || knowledge.content} dataType={knowledge.content_type} />
+                            <Markdown className="w-full text-wrap wrap-break-words whitespace-pre-wrap">{typeof knowledge.content === 'string' ? knowledge.content : ''}</Markdown>
                         )}
                     </div>
                 </div>

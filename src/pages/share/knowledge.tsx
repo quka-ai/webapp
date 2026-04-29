@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
 import { GetSharedKnowledge, type SharedKnowledge } from '@/apis/share';
-import { Editor } from '@/components/editor/index';
+import { BlockNoteEditor } from '@/components/blocknote-editor';
 import ShareHeader from '@/pages/share/components/header';
 
 export default function KnowledgeSharePage() {
@@ -68,11 +68,11 @@ export default function KnowledgeSharePage() {
     }, [knowledge]);
 
     const editor = useMemo(() => {
-        if (!knowledge || !knowledge.content) {
+        if (!knowledge || (!knowledge.blocks && !knowledge.content)) {
             return <></>;
         }
 
-        return <Editor readOnly data={knowledge.content} dataType={knowledge.content_type} />;
+        return <BlockNoteEditor readOnly data={knowledge.blocks || knowledge.content} dataType={knowledge.content_type} />;
     }, [knowledge]);
     return (
         <section className="h-screen flex flex-col w-full p-4 overflow-hidden items-center bg-content2">

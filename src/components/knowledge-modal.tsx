@@ -156,7 +156,17 @@ const ViewKnowledge = memo(
 
         return (
             <>
-                <Modal hideCloseButton className="overflow-hidden" placement="top-center" size={size} isOpen={isOpen} isKeyboardDismissDisabled={!canEsc} scrollBehavior="inside" onClose={close}>
+                <Modal
+                    hideCloseButton
+                    className="overflow-hidden"
+                    placement="top-center"
+                    size={size}
+                    isOpen={isOpen}
+                    isDismissable={canEsc}
+                    isKeyboardDismissDisabled={!canEsc}
+                    scrollBehavior="inside"
+                    onClose={close}
+                >
                     {knowledge && !isLoading ? (
                         <ModalContent>
                             {onClose => (

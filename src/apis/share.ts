@@ -1,4 +1,5 @@
 import { MessageDetail } from './chat';
+import { type KnowledgeContent } from './knowledge';
 import instance from './request';
 
 export interface SharedKnowledge {
@@ -11,6 +12,7 @@ export interface SharedKnowledge {
     title: string;
     tags: string[];
     content: any;
+    blocks?: KnowledgeContent;
     content_type: string;
     created_at: number;
 }

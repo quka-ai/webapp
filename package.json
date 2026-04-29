@@ -13,6 +13,9 @@
     "package:desktop": "bash scripts/package-desktop.sh"
   },
   "dependencies": {
+    "@blocknote/core": "^0.49.0",
+    "@blocknote/mantine": "^0.49.0",
+    "@blocknote/react": "^0.49.0",
     "@coolbytes/editorjs-delimiter": "^1.0.3",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
@@ -35,6 +38,9 @@
     "@heroui/use-clipboard": "^2.1.9",
     "@holdno/editorjs-codemirror": "^0.1.3",
     "@iconify/react": "4.1.1",
+    "@mantine/core": "^8.3.18",
+    "@mantine/hooks": "^8.3.18",
+    "@mantine/utils": "^6.0.22",
     "@radix-ui/react-icons": "^1.3.0",
     "@radix-ui/react-toast": "^1.2.2",
     "@react-aria/visually-hidden": "3.8.12",

@@ -1,11 +1,14 @@
+import { type PartialBlock } from '@blocknote/core';
 import { OutputData } from '@editorjs/editorjs';
 
 import instance from './request';
 
+export type KnowledgeContent = string | OutputData | PartialBlock[];
+
 export interface Knowledge {
-    content: string;
+    content: KnowledgeContent;
     content_type: string;
-    blocks: OutputData;
+    blocks: OutputData | PartialBlock[];
     id: string;
     kind: string;
     maybe_date: string;
@@ -50,7 +53,7 @@ export async function GetKnowledge(spaceID: string, knowledgeID: string, onlyPre
     return resp.data.data;
 }
 
-export async function CreateKnowledge(spaceID: string, resource: string, content: string | OutputData, content_type: string, async: boolean = true): Promise<string> {
+export async function CreateKnowledge(spaceID: string, resource: string, content: KnowledgeContent, content_type: string, async: boolean = true): Promise<string> {
     const resp = await instance.post(`/${spaceID}/knowledge`, {
         resource,
         content,
@@ -63,7 +66,7 @@ export async function CreateKnowledge(spaceID: string, resource: string, content
 
 export interface UpdateKnowledgeArgs {
     title: string;
-    content: string | OutputData;
+    content: KnowledgeContent;
     content_type: string;
     tags: string[];
     resource: string;

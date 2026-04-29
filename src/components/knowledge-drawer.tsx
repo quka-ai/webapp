@@ -113,6 +113,7 @@ export function KnowledgeDrawer({ temporaryStorage, handleButton, isOpen, onOpen
                     base: 'data-[placement=right]:sm:m-2 data-[placement=left]:sm:m-2 w-full lg:max-w-[700px] rounded-medium'
                 }}
                 isOpen={isOpen}
+                isDismissable={false}
                 onOpenChange={onOpenChange}
             >
                 <DrawerContent>

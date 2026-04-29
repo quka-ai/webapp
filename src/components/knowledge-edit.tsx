@@ -1,14 +1,12 @@
-import { OutputData } from '@editorjs/editorjs';
 import { Button, Input, Select, SelectItem, SelectSection, Skeleton, Spacer } from '@heroui/react';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
 import { useSnapshot } from 'valtio';
 
-import { CreateKnowledge, type Knowledge, UpdateKnowledge } from '@/apis/knowledge';
-import { ListResources, Resource } from '@/apis/resource';
+import { CreateKnowledge, type Knowledge, type KnowledgeContent, UpdateKnowledge } from '@/apis/knowledge';
 import KnowledgeAITaskList from '@/components/ai-tasks-list';
-import { Editor, EditorRefObject } from '@/components/editor/index';
+import { BlockNoteEditor, type BlockNoteEditorValue, BlockNoteEditorRefObject } from '@/components/blocknote-editor';
 import { useGroupedResources } from '@/hooks/use-resource';
 import resourceStore, { loadSpaceResource } from '@/stores/resource';
 import spaceStore from '@/stores/space';
@@ -33,11 +31,19 @@ export interface KnwoledgeEditorRefObject {
     reset: () => void;
 }
 
+function getKnowledgeContent(knowledge?: Knowledge): KnowledgeContent {
+    if (!knowledge) {
+        return '';
+    }
+
+    return knowledge.blocks ? knowledge.blocks : knowledge.content;
+}
+
 export default memo(
     forwardRef(function KnowledgeEdit({ knowledge, onChange, onCancel, hideSubmit, classNames, temporaryStorage }: KnowledgeEditProps, ref: any) {
         const { t } = useTranslation();
         const [title, setTitle] = useState(knowledge ? knowledge.title : '');
-        const [content, setContent] = useState<string | OutputData>(knowledge ? (knowledge.blocks ? knowledge.blocks : knowledge.content) : '');
+        const [content, setContent] = useState<KnowledgeContent>(getKnowledgeContent(knowledge));
         const [contentType, setContentType] = useState(knowledge ? knowledge.content_type : 'markdown'); // text | blocks | jso
         const [tags, setTags] = useState(knowledge ? knowledge.tags : []);
         const [isInvalid, setInvalid] = useState(false);
@@ -48,8 +54,13 @@ export default memo(
         const { currentSelectedSpace } = useSnapshot(spaceStore);
 
         if (!knowledge?.blocks && !knowledge?.content && temporaryStorage) {
-            const cached = JSON.parse(sessionStorage.getItem(temporaryStorage) || '{}');
-            if (knowledge && cached.blocks) {
+            const cached = JSON.parse(sessionStorage.getItem(temporaryStorage) || 'null');
+            if (knowledge && Array.isArray(cached)) {
+                setContent(cached);
+                knowledge.blocks = cached;
+                knowledge.content_type = 'block_v2';
+                setContentType(knowledge.content_type);
+            } else if (knowledge && cached?.blocks) {
                 knowledge.blocks = cached;
                 setContent(knowledge.blocks);
                 knowledge.content_type = 'blocks';
@@ -88,13 +99,13 @@ export default memo(
             return 'knowledge';
         }, [currentSelectedResource, groupedResources, knowledge]);
 
-        const onKnowledgeContentChanged = useCallback((value: string | OutputData) => {
+        const onKnowledgeContentChanged = useCallback((value: BlockNoteEditorValue) => {
             if (isInvalid) {
                 setErrorMessage('');
                 setInvalid(false);
             }
             setContent(value);
-            setContentType('blocks');
+            setContentType('block_v2');
             temporaryStorage && sessionStorage.setItem(temporaryStorage, JSON.stringify(value));
         }, []);
 
@@ -139,11 +150,11 @@ export default memo(
             setLoading(false);
         }
 
-        const editor = useRef<EditorRefObject>(null);
+        const editor = useRef<BlockNoteEditorRefObject>(null);
 
         function reset() {
             if (editor.current) {
-                editor.current.reRender({ blocks: [] });
+                editor.current.reRender('');
             }
         }
 
@@ -225,15 +236,16 @@ export default memo(
                                     <Spacer y={2} />
                                     <div className="text-small font-bold">{t('knowledgeCreateContentLabel')}</div>
                                     <Spacer y={2} />
-                                    <Editor
+                                    <BlockNoteEditor
                                         ref={editor}
                                         autofocus
                                         readOnly={false}
                                         className={classNames?.editor ? classNames.editor : ''}
                                         data={(() => {
-                                            return knowledge.blocks || knowledge.content;
+                                            return content;
                                         })()}
-                                        dataType={knowledge.content_type}
+                                        dataType={contentType}
+                                        outputFormat="blocks"
                                         placeholder={t('knowledgeCreateContentLabelPlaceholder')}
                                         onValueChange={onKnowledgeContentChanged}
                                     />

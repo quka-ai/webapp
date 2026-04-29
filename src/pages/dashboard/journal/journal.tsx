@@ -12,7 +12,7 @@ import { useSnapshot } from 'valtio';
 import { GetJournal, Journal, UpsertJournal } from '@/apis/journal';
 import { GetTimeRangeLiteKnowledges, KnowledgeLite } from '@/apis/knowledge';
 import KnowledgeAITaskList from '@/components/ai-tasks-list';
-import { Editor, EditorRefObject } from '@/components/editor/index';
+import { BlockNoteEditor, BlockNoteEditorRefObject } from '@/components/blocknote-editor';
 import KnowledgeDrawer from '@/components/knowledge-drawer';
 import KnowledgeModal from '@/components/knowledge-modal';
 import PodcastBar from '@/components/podcast-bar';
@@ -35,7 +35,7 @@ export default function Component() {
     const navigate = useNavigate();
 
     const [journal, setJournal] = useState<Journal>();
-    const [blocks, setBlocks] = useState<OutputData>();
+    const [blocks, setBlocks] = useState<OutputData | string>();
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
 
@@ -112,8 +112,8 @@ export default function Component() {
     const [journalTodos, setJournalTodos] = useState<TodoList[]>([]);
 
     const updateJournal = useCallback(
-        (blocks: any) => {
-            if (!blocks.blocks || !selectDate) {
+        (blocks: OutputData | string | undefined) => {
+            if (!blocks || !selectDate) {
                 return;
             }
 
@@ -145,14 +145,11 @@ export default function Component() {
 
     const [isChanged, setIsChanged] = useState(false);
     const canAutoUpdate = useRef(true);
-    const updateJournalDebounce = useRef<number>();
+    const updateJournalDebounce = useRef<ReturnType<typeof setTimeout>>();
 
     const onBlocksChanged = useCallback(
-        (blocks: OutputData, needToUpdate = true) => {
+        (blocks: OutputData | string, needToUpdate = true) => {
             setBlocks(blocks);
-            if (!blocks.blocks) {
-                return;
-            }
 
             if (updateJournalDebounce.current) {
                 clearTimeout(updateJournalDebounce.current);
@@ -171,9 +168,12 @@ export default function Component() {
                 }, 10000);
             }
 
-            // patch todo list
-            const todos = extractTodosFromBlocks(blocks);
-            setJournalTodos(todos);
+            if (typeof blocks === 'string' || !blocks.blocks) {
+                setJournalTodos([]);
+                return;
+            }
+
+            setJournalTodos(extractTodosFromBlocks(blocks));
         },
         [selectDate, currentSelectedSpace]
     );
@@ -265,9 +265,13 @@ export default function Component() {
         [viewKnowledge]
     );
 
-    const editor = useRef<EditorRefObject>();
+    const editor = useRef<BlockNoteEditorRefObject>(null);
 
-    function onJournalTodoChanged(data: OutputData, targetId: string, index: number[]) {
+    function onJournalTodoChanged(data: OutputData | string | undefined, targetId: string, index: number[]) {
+        if (!data || typeof data === 'string') {
+            return;
+        }
+
         const updatedData = updateChecklistItemInBlocks(data, targetId, index);
         if (!updatedData) {
             return;
@@ -315,7 +319,22 @@ export default function Component() {
     }
 
     const editorRender = useMemo(() => {
-        return <>{isLoading || <Editor ref={editor} autofocus data={blocks} dataType="blocks" placeholder={t('knowledgeCreateContentLabelPlaceholder')} onValueChange={onBlocksChanged} />}</>;
+        return (
+            <>
+                {isLoading || (
+                    <BlockNoteEditor
+                        ref={editor}
+                        autofocus
+                        readOnly={false}
+                        data={blocks}
+                        dataType="blocks"
+                        outputFormat="markdown"
+                        placeholder={t('knowledgeCreateContentLabelPlaceholder')}
+                        onValueChange={value => onBlocksChanged(value as string)}
+                    />
+                )}
+            </>
+        );
     }, [isLoading]);
 
     return (

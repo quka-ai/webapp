@@ -1,0 +1,114 @@
+.blocknote-editor,
+.blocknote-editor-portal.bn-root {
+    --bn-colors-editor-text: hsl(var(--heroui-foreground));
+    --bn-colors-editor-background: transparent;
+    --bn-colors-menu-text: hsl(var(--heroui-foreground));
+    --bn-colors-menu-background: hsl(var(--heroui-content1));
+    --bn-colors-tooltip-text: hsl(var(--heroui-foreground));
+    --bn-colors-tooltip-background: hsl(var(--heroui-content2));
+    --bn-colors-hovered-text: hsl(var(--heroui-foreground));
+    --bn-colors-hovered-background: hsl(var(--heroui-content2));
+    --bn-colors-selected-text: hsl(var(--heroui-primary-foreground));
+    --bn-colors-selected-background: hsl(var(--heroui-primary));
+    --bn-colors-disabled-text: hsl(var(--heroui-default-400));
+    --bn-colors-disabled-background: hsl(var(--heroui-default-100));
+    --bn-colors-side-menu: hsl(var(--heroui-default-500));
+    --bn-colors-border: hsl(var(--heroui-divider));
+    --bn-colors-shadow: rgb(0 0 0 / 0.22);
+    color: hsl(var(--heroui-foreground));
+    overflow: visible;
+}
+
+.blocknote-editor .bn-root {
+    --bn-colors-side-menu: hsl(var(--heroui-default-500));
+    --bn-colors-border: hsl(var(--heroui-divider));
+}
+
+.blocknote-editor-portal {
+    position: relative;
+    z-index: 1000000;
+}
+
+.blocknote-editor-portal .bn-side-menu {
+    filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.18));
+}
+
+.blocknote-editor .bn-container {
+    background: transparent;
+    margin-left: -54px;
+    width: calc(100% + 54px);
+    overflow: visible;
+}
+
+.blocknote-editor .bn-editor {
+    background: transparent;
+    min-height: 360px;
+    padding-left: 54px;
+    padding-right: 0;
+}
+
+.blocknote-editor .bn-block-content {
+    max-width: 100%;
+}
+
+.blocknote-editor--readonly .bn-editor {
+    min-height: auto;
+    padding-inline: 0;
+}
+
+.blocknote-editor--readonly .bn-container {
+    margin-left: 0;
+    width: 100%;
+}
+
+.blocknote-editor--readonly .bn-block-outer {
+    margin-block: 0.25rem;
+}
+
+:root.dark .blocknote-editor,
+:root.dark .blocknote-editor .bn-root,
+:root.dark .blocknote-editor-portal.bn-root {
+    --bn-colors-menu-background: #18181b;
+    --bn-colors-tooltip-background: #1f1f23;
+    --bn-colors-hovered-background: #27272a;
+    --bn-colors-disabled-background: #18181b;
+    --bn-colors-border: #3f3f46;
+    --bn-colors-side-menu: #d4d4d8;
+    --bn-colors-shadow: rgb(0 0 0 / 0.45);
+    --bn-border: 1px solid var(--bn-colors-border);
+}
+
+:root.dark .blocknote-editor-portal .bn-form-popover,
+:root.dark .blocknote-editor-portal .bn-panel,
+:root.dark .blocknote-editor-portal .mantine-Menu-dropdown,
+:root.dark .blocknote-editor-portal .bn-menu-dropdown,
+:root.dark .blocknote-editor-portal .bn-drag-handle-menu {
+    background-color: #18181b;
+    border-color: #3f3f46;
+    box-shadow: 0 12px 30px rgb(0 0 0 / 0.36);
+}
+
+:root.dark .blocknote-editor-portal .mantine-ActionIcon-root,
+:root.dark .blocknote-editor-portal .mantine-Button-root {
+    color: #e4e4e7;
+}
+
+@media (max-width: 640px) {
+    .blocknote-editor .bn-editor {
+        padding-left: 42px;
+    }
+
+    .blocknote-editor .bn-container {
+        margin-left: -42px;
+        width: calc(100% + 42px);
+    }
+
+    .blocknote-editor--readonly .bn-editor {
+        padding-inline: 0;
+    }
+
+    .blocknote-editor--readonly .bn-container {
+        margin-left: 0;
+        width: 100%;
+    }
+}
