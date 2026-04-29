@@ -1,4 +1,5 @@
 import { OutputData } from '@editorjs/editorjs';
+import type { PartialBlock } from '@blocknote/core';
 
 import instance from './request';
 
@@ -7,7 +8,7 @@ export interface Journal {
     title: string;
     space_id: string;
     user_id: string;
-    content: OutputData;
+    content: OutputData | PartialBlock[];
     date: string;
     created_at: number;
     updated_at: number;

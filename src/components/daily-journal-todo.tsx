@@ -1,7 +1,6 @@
 import { DndContext, DragEndEvent, DragOverlay, DragStartEvent, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import type { OutputData } from '@editorjs/editorjs';
 import { Button, Card, Checkbox, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Radio, RadioGroup, Skeleton, useDisclosure } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { getLocalTimeZone, today } from '@internationalized/date';
@@ -12,7 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 
 import { GetJournal, Journal, UpsertJournal } from '@/apis/journal';
-import { extractTodosFromBlocks, type TodoList, type TodoListItem, updateChecklistItemInBlocks } from '@/lib/journal-todos';
+import { addChecklistItemToBlocks, deleteChecklistItemInBlocks, extractTodosFromBlocks, type JournalTodoContent, moveChecklistItemInBlocks, type TodoList, type TodoListItem, updateChecklistItemInBlocks } from '@/lib/journal-todos';
 import spaceStore from '@/stores/space';
 
 // 可拖拽的 TODO 项组件
@@ -146,8 +145,8 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
     }, [journalData, loadJournal]);
 
     const updateJournalContent = useCallback(
-        async (updatedBlocks: OutputData) => {
-            if (!currentSelectedSpace || !updatedBlocks.blocks) {
+        async (updatedBlocks: Exclude<JournalTodoContent, string | null | undefined>) => {
+            if (!currentSelectedSpace) {
                 return;
             }
 
@@ -167,7 +166,7 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
 
     const onTodoToggle = useCallback(
         (targetId: string, index: number[]) => {
-            if (!journal || !journal.content || !journal.content.blocks) {
+            if (!journal || !journal.content) {
                 return;
             }
 
@@ -186,46 +185,14 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
 
     const onTodoDelete = useCallback(
         async (targetId: string, index: number[]) => {
-            if (!journal || !journal.content || !journal.content.blocks) {
+            if (!journal || !journal.content) {
                 return;
             }
 
-            // 深拷贝 content
-            const updatedContent = JSON.parse(JSON.stringify(journal.content)) as OutputData;
-            const block = updatedContent.blocks.find(block => block.id === targetId);
-
-            if (!block) {
-                console.error('Target block not found.');
+            const updatedContent = deleteChecklistItemInBlocks(journal.content, targetId, index);
+            if (!updatedContent) {
                 return;
             }
-
-            // 删除指定的 todo item
-            if (index.length === 1) {
-                // 直接从 block.data.items 中删除
-                block.data.items.splice(index[0], 1);
-
-                // 如果 block 的 items 为空，删除整个 block
-                if (block.data.items.length === 0) {
-                    const blockIndex = updatedContent.blocks.findIndex(b => b.id === targetId);
-                    if (blockIndex >= 0) {
-                        updatedContent.blocks.splice(blockIndex, 1);
-                    }
-                }
-            } else {
-                // 嵌套 item，需要递归找到并删除
-                let currentItem = block.data.items;
-                for (let i = 0; i < index.length - 1; i++) {
-                    if (!currentItem || !currentItem[index[i]]) {
-                        console.error('Invalid index path.');
-                        return;
-                    }
-                    currentItem = currentItem[index[i]].items;
-                }
-                if (currentItem && currentItem[index[index.length - 1]]) {
-                    currentItem.splice(index[index.length - 1], 1);
-                }
-            }
-
             // 更新本地状态
             setJournal({ ...journal, content: updatedContent });
             // 提交到后端
@@ -239,102 +206,7 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
             return;
         }
 
-        const currentContent = journal?.content || { blocks: [] };
-        let updatedBlocks = [...(currentContent.blocks || [])];
-
-        if (selectedGroup === 'new') {
-            // 创建新的 checklist block
-            const checklistBlock = {
-                id: `todo-${Date.now()}`,
-                type: 'listv2',
-                data: {
-                    style: 'checklist',
-                    items: [
-                        {
-                            content: newTodoText.trim(),
-                            items: [],
-                            meta: {
-                                checked: false
-                            }
-                        }
-                    ]
-                }
-            };
-
-            // 如果填写了标题，先添加 header block
-            if (newGroupTitle.trim()) {
-                const headerBlock = {
-                    id: `header-${Date.now()}`,
-                    type: 'header',
-                    data: {
-                        text: newGroupTitle.trim(),
-                        level: 2
-                    }
-                };
-                updatedBlocks.push(headerBlock, checklistBlock);
-            } else {
-                // 不填写标题，直接添加 checklist block
-                updatedBlocks.push(checklistBlock);
-            }
-        } else {
-            // 添加到现有标题下
-            // 找到选中标题对应的最后一个 checklist block 的位置
-            let targetIndex = -1;
-            let foundHeader = false;
-
-            for (let i = 0; i < updatedBlocks.length; i++) {
-                const block = updatedBlocks[i];
-
-                // 找到目标标题
-                if (block.type === 'header' && block.data.text === selectedGroup) {
-                    foundHeader = true;
-                    continue;
-                }
-
-                // 找到该标题下的最后一个 checklist
-                if (foundHeader && block.type === 'listv2' && block.data.style === 'checklist') {
-                    targetIndex = i;
-                } else if (foundHeader && block.type === 'header') {
-                    // 遇到下一个标题，停止搜索
-                    break;
-                }
-            }
-
-            // 创建新的 todo item
-            const newTodoItem = {
-                content: newTodoText.trim(),
-                items: [],
-                meta: {
-                    checked: false
-                }
-            };
-
-            if (targetIndex >= 0) {
-                // 在找到的 checklist block 中添加新 item
-                const targetBlock = { ...updatedBlocks[targetIndex] };
-                targetBlock.data = {
-                    ...targetBlock.data,
-                    items: [...targetBlock.data.items, newTodoItem]
-                };
-                updatedBlocks[targetIndex] = targetBlock;
-            } else {
-                // 没找到现有的 checklist，创建新的
-                const checklistBlock = {
-                    id: `todo-${Date.now()}`,
-                    type: 'listv2',
-                    data: {
-                        style: 'checklist',
-                        items: [newTodoItem]
-                    }
-                };
-                updatedBlocks.push(checklistBlock);
-            }
-        }
-
-        const updatedContent: OutputData = {
-            ...currentContent,
-            blocks: updatedBlocks
-        };
+        const updatedContent = addChecklistItemToBlocks(journal?.content || [], newTodoText.trim(), selectedGroup, newGroupTitle);
 
         setIsUpdating(true);
         try {
@@ -455,7 +327,7 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
             const { active, over } = event;
             setActiveDragId(null);
 
-            if (!over || !journal || !journal.content || !journal.content.blocks) {
+            if (!over || !journal || !journal.content) {
                 return;
             }
 
@@ -467,117 +339,9 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
                 return;
             }
 
-            // 深拷贝 content
-            const updatedContent = JSON.parse(JSON.stringify(journal.content)) as OutputData;
-
-            // 解析 activeId 和 overId
-            const [activeBlockId, activeIndexStr] = activeId.split('-index-');
-            const [overBlockId, overIndexStr] = overId.split('-index-');
-
-            if (!activeBlockId || !activeIndexStr) {
+            const updatedContent = moveChecklistItemInBlocks(journal.content, activeId, overId);
+            if (!updatedContent) {
                 return;
-            }
-
-            const activeIndex = activeIndexStr.split('-').map(Number);
-            const overIndex = overIndexStr ? overIndexStr.split('-').map(Number) : [];
-
-            // 找到源 block
-            const sourceBlock = updatedContent.blocks.find(b => b.id === activeBlockId);
-            if (!sourceBlock || activeIndex.length !== 1) {
-                // 只支持顶层拖拽
-                return;
-            }
-
-            // 获取要移动的 item（包括所有子项）
-            const itemToMove = sourceBlock.data.items[activeIndex[0]];
-            if (!itemToMove) {
-                return;
-            }
-
-            // 处理同一 block 内的排序
-            if (activeBlockId === overBlockId && overIndex.length === 1) {
-                const oldIndex = activeIndex[0];
-                const newIndex = overIndex[0];
-
-                // 同一个 block 内移动
-                sourceBlock.data.items.splice(oldIndex, 1);
-                sourceBlock.data.items.splice(newIndex, 0, itemToMove);
-            } else {
-                // 跨 block 移动
-                // 从源位置删除
-                sourceBlock.data.items.splice(activeIndex[0], 1);
-
-                // 如果源 block 为空，删除它
-                if (sourceBlock.data.items.length === 0) {
-                    const blockIndex = updatedContent.blocks.findIndex(b => b.id === activeBlockId);
-                    if (blockIndex >= 0) {
-                        updatedContent.blocks.splice(blockIndex, 1);
-                    }
-                }
-
-                // 找到目标位置并插入
-                if (overBlockId && overIndex.length === 1) {
-                    // 拖到另一个 TODO 项上
-                    const targetBlock = updatedContent.blocks.find(b => b.id === overBlockId);
-                    if (targetBlock) {
-                        // 插入到目标位置
-                        targetBlock.data.items.splice(overIndex[0], 0, itemToMove);
-                    }
-                } else if (overBlockId === 'drop-zone') {
-                    // 拖到某个分组的 drop zone
-                    const groupTitle = over.data.current?.groupTitle;
-
-                    if (groupTitle) {
-                        // 找到该标题下的最后一个 checklist block
-                        let targetIndex = -1;
-                        let foundHeader = false;
-
-                        for (let i = 0; i < updatedContent.blocks.length; i++) {
-                            const block = updatedContent.blocks[i];
-                            if (block.type === 'header' && block.data.text === groupTitle) {
-                                foundHeader = true;
-                                continue;
-                            }
-                            if (foundHeader && block.type === 'listv2' && block.data.style === 'checklist') {
-                                targetIndex = i;
-                            } else if (foundHeader && block.type === 'header') {
-                                break;
-                            }
-                        }
-
-                        if (targetIndex >= 0) {
-                            // 添加到现有 checklist
-                            updatedContent.blocks[targetIndex].data.items.push(itemToMove);
-                        } else {
-                            // 创建新的 checklist block
-                            const newChecklistBlock = {
-                                id: `todo-${Date.now()}`,
-                                type: 'listv2',
-                                data: {
-                                    style: 'checklist',
-                                    items: [itemToMove]
-                                }
-                            };
-
-                            // 找到 header 的位置，插入到其后
-                            const headerIndex = updatedContent.blocks.findIndex(b => b.type === 'header' && b.data.text === groupTitle);
-                            if (headerIndex >= 0) {
-                                updatedContent.blocks.splice(headerIndex + 1, 0, newChecklistBlock);
-                            }
-                        }
-                    } else {
-                        // 拖到"无标题"区域，创建独立的 checklist block
-                        const newChecklistBlock = {
-                            id: `todo-${Date.now()}`,
-                            type: 'listv2',
-                            data: {
-                                style: 'checklist',
-                                items: [itemToMove]
-                            }
-                        };
-                        updatedContent.blocks.push(newChecklistBlock);
-                    }
-                }
             }
 
             // 更新状态和后端

@@ -1,35 +1,46 @@
-import type { BlockToolData, OutputData } from '@editorjs/editorjs';
-import { BlockNoteSchema, blockHasType, createCodeBlockSpec, defaultBlockSpecs, type PartialBlock } from '@blocknote/core';
+import { blockHasType, BlockNoteSchema, createCodeBlockSpec, defaultBlockSpecs, type PartialBlock } from '@blocknote/core';
+import { filterSuggestionItems } from '@blocknote/core/extensions';
+import '@blocknote/core/fonts/inter.css';
 import { en } from '@blocknote/core/locales';
 import { ja } from '@blocknote/core/locales';
 import { zh } from '@blocknote/core/locales';
-import { filterSuggestionItems } from '@blocknote/core/extensions';
-import { DefaultReactSuggestionItem, FormattingToolbar, FormattingToolbarController, getDefaultReactSlashMenuItems, getFormattingToolbarItems, SuggestionMenuController, useBlockNoteEditor, useComponentsContext, useCreateBlockNote, useEditorState, type FormattingToolbarProps } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
+import '@blocknote/mantine/style.css';
+import {
+    DefaultReactSuggestionItem,
+    FormattingToolbar,
+    FormattingToolbarController,
+    type FormattingToolbarProps,
+    getDefaultReactSlashMenuItems,
+    getFormattingToolbarItems,
+    SuggestionMenuController,
+    useBlockNoteEditor,
+    useComponentsContext,
+    useCreateBlockNote,
+    useEditorState
+} from '@blocknote/react';
+import type { BlockToolData, OutputData } from '@editorjs/editorjs';
 import { TextSelection } from '@tiptap/pm/state';
 import { AxiosError } from 'axios';
 import { EyeOff, Sparkles } from 'lucide-react';
 import { forwardRef, memo, Ref, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
-import { Controlled as ControlledZoom } from 'react-medium-image-zoom';
 import { useTranslation } from 'react-i18next';
+import { Controlled as ControlledZoom } from 'react-medium-image-zoom';
+import 'react-medium-image-zoom/dist/styles.css';
 import showdown from 'showdown';
 import { toast as sonnerToast } from 'sonner';
 import { useSnapshot } from 'valtio';
 
-import '@blocknote/core/fonts/inter.css';
-import '@blocknote/mantine/style.css';
-import 'react-medium-image-zoom/dist/styles.css';
+import { qukaCodeBlockOptions } from './code-block';
 import './style.css';
 
 import { DescribeImage } from '@/apis/tools';
 import { CreateUploadKey, UploadFileToKey } from '@/apis/upload';
-import { useToast } from '@/hooks/use-toast';
 import { useTheme } from '@/hooks/use-theme';
+import { useToast } from '@/hooks/use-toast';
 import { compressImage, CompressResult } from '@/lib/compress';
 import { cn } from '@/lib/utils';
 import spaceStore from '@/stores/space';
-
-import { qukaCodeBlockOptions } from './code-block';
 
 export type BlockNoteEditorValue = string | PartialBlock[];
 type BlockNoteEditorData = string | OutputData | PartialBlock[];
@@ -115,9 +126,7 @@ function editorJSBlocksToMarkdown(data: OutputData): string {
                         return '';
                     }
 
-                    return blockData.content
-                        .map((row: string[]) => `| ${row.join(' | ')} |`)
-                        .join('\n');
+                    return blockData.content.map((row: string[]) => `| ${row.join(' | ')} |`).join('\n');
                 case 'image':
                     return `![${blockData.caption || ''}](${blockData.file?.url || blockData.url || ''})`;
                 case 'video':
@@ -270,9 +279,7 @@ function findReadonlyImageFromEventTarget(target: EventTarget | null) {
         return directImage;
     }
 
-    return target
-        .closest<HTMLElement>('[data-file-block], .bn-file-block-content-wrapper, .bn-visual-media-wrapper')
-        ?.querySelector<HTMLImageElement>('img.bn-visual-media') || null;
+    return target.closest<HTMLElement>('[data-file-block], .bn-file-block-content-wrapper, .bn-visual-media-wrapper')?.querySelector<HTMLImageElement>('img.bn-visual-media') || null;
 }
 
 function dispatchBlockNoteImageZoomChange(isZoomed: boolean) {
@@ -593,11 +600,11 @@ export const BlockNoteEditor = memo(
             reRender: (nextData, nextDataType = dataType) => {
                 renderData(nextData, nextDataType);
             },
-            update: id => {
+            update: (id, nextData) => {
                 const block = editor.getBlock(id);
 
                 if (block) {
-                    editor.updateBlock(block, block);
+                    editor.updateBlock(block, nextData as PartialBlock);
                 }
             }
         }));

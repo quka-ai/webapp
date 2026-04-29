@@ -1,10 +1,10 @@
-import type { OutputData } from '@editorjs/editorjs';
-import type { CalendarDate, Selection } from '@heroui/react';
+import type { PartialBlock } from '@blocknote/core';
+import type { CalendarDate } from '@heroui/react';
 import { BreadcrumbItem, Breadcrumbs, Button, ButtonGroup, Checkbox, Listbox, ListboxItem, ListboxSection, Popover, PopoverContent, PopoverTrigger, Progress } from '@heroui/react';
 import { Calendar } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { getLocalTimeZone, parseDate, today } from '@internationalized/date';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
@@ -15,19 +15,9 @@ import KnowledgeAITaskList from '@/components/ai-tasks-list';
 import { BlockNoteEditor, BlockNoteEditorRefObject } from '@/components/blocknote-editor';
 import KnowledgeDrawer from '@/components/knowledge-drawer';
 import KnowledgeModal from '@/components/knowledge-modal';
-import PodcastBar from '@/components/podcast-bar';
 import { toast } from '@/hooks/use-toast';
-import { extractTodosFromBlocks, type TodoList, type TodoListItem, updateChecklistItemInBlocks } from '@/lib/journal-todos';
+import { extractTodosFromBlocks, type JournalTodoContent, type TodoList, type TodoListItem, updateChecklistItemInBlocks } from '@/lib/journal-todos';
 import spaceStore, { setCurrentSelectedSpace } from '@/stores/space';
-
-function parseDateParamsToDate(dateStr: string) {
-    const res = dateStr.split('-');
-    return {
-        year: Number(res[0]),
-        month: Number(res[1]),
-        day: Number(res[2])
-    };
-}
 
 export default function Component() {
     const { t } = useTranslation();
@@ -35,11 +25,11 @@ export default function Component() {
     const navigate = useNavigate();
 
     const [journal, setJournal] = useState<Journal>();
-    const [blocks, setBlocks] = useState<OutputData | string>();
+    const [blocks, setBlocks] = useState<JournalTodoContent>();
     const [isLoading, setIsLoading] = useState(true);
     const [isUpdating, setIsUpdating] = useState(false);
 
-    const [currentSelectedDate, setCurrentSelectedDate] = useState<CalendarDate>(parseDate(selectDate));
+    const [currentSelectedDate, setCurrentSelectedDate] = useState<CalendarDate>(parseDate(selectDate || today(getLocalTimeZone()).toString()));
 
     // const currentDate = useMemo(() => {}, [selectDate]);
     // const haveNextDay = useMemo(() => {
@@ -112,7 +102,7 @@ export default function Component() {
     const [journalTodos, setJournalTodos] = useState<TodoList[]>([]);
 
     const updateJournal = useCallback(
-        (blocks: OutputData | string | undefined) => {
+        (blocks: JournalTodoContent) => {
             if (!blocks || !selectDate) {
                 return;
             }
@@ -124,7 +114,7 @@ export default function Component() {
             setIsChanged(false);
             setIsUpdating(true);
             UpsertJournal(currentSelectedSpace, selectDate, blocks)
-                .then(res => {
+                .then(() => {
                     if (!journal) {
                         GetJournal(currentSelectedSpace, selectDate);
                     }
@@ -148,7 +138,7 @@ export default function Component() {
     const updateJournalDebounce = useRef<ReturnType<typeof setTimeout>>();
 
     const onBlocksChanged = useCallback(
-        (blocks: OutputData | string, needToUpdate = true) => {
+        (blocks: JournalTodoContent, needToUpdate = true) => {
             setBlocks(blocks);
 
             if (updateJournalDebounce.current) {
@@ -166,11 +156,6 @@ export default function Component() {
                 updateJournalDebounce.current = setTimeout(() => {
                     updateJournal(blocks);
                 }, 10000);
-            }
-
-            if (typeof blocks === 'string' || !blocks.blocks) {
-                setJournalTodos([]);
-                return;
             }
 
             setJournalTodos(extractTodosFromBlocks(blocks));
@@ -267,7 +252,7 @@ export default function Component() {
 
     const editor = useRef<BlockNoteEditorRefObject>(null);
 
-    function onJournalTodoChanged(data: OutputData | string | undefined, targetId: string, index: number[]) {
+    function onJournalTodoChanged(data: JournalTodoContent, targetId: string, index: number[]) {
         if (!data || typeof data === 'string') {
             return;
         }
@@ -277,18 +262,13 @@ export default function Component() {
             return;
         }
 
-        const block = updatedData.blocks.find(block => block.id === targetId);
-        if (!block) {
-            return;
-        }
-
         onBlocksChanged(updatedData);
         if (editor.current) {
-            editor.current.update(block.id, block.data);
+            editor.current.reRender(updatedData, Array.isArray(updatedData) ? 'blocks_v2' : 'blocks');
         }
     }
 
-    function renderTodoListItem(isChild: boolean, list: TodoListItem[]) {
+    function renderTodoListItem(_isChild: boolean, list: TodoListItem[]) {
         if (!list || list.length === 0) {
             return;
         }
@@ -303,7 +283,7 @@ export default function Component() {
                                     value={v.content}
                                     isSelected={v.checked}
                                     radius="sm"
-                                    onChange={e => {
+                                    onChange={() => {
                                         onJournalTodoChanged(blocks, v.id, v.index);
                                     }}
                                 >
@@ -326,11 +306,11 @@ export default function Component() {
                         ref={editor}
                         autofocus
                         readOnly={false}
-                        data={blocks}
-                        dataType="blocks"
-                        outputFormat="markdown"
+                        data={blocks ?? undefined}
+                        dataType={Array.isArray(blocks) ? 'blocks_v2' : 'blocks'}
+                        outputFormat="blocks"
                         placeholder={t('knowledgeCreateContentLabelPlaceholder')}
-                        onValueChange={value => onBlocksChanged(value as string)}
+                        onValueChange={value => onBlocksChanged(value as PartialBlock[])}
                     />
                 )}
             </>
