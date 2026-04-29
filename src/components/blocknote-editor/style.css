@@ -51,6 +51,68 @@
     max-width: 100%;
 }
 
+.blocknote-editor .bn-block-content[data-content-type='codeBlock'] {
+    background: hsl(var(--heroui-content2));
+    border: 1px solid hsl(var(--heroui-default-300));
+    border-radius: 8px;
+    color: var(--prosemirror-highlight, hsl(var(--heroui-foreground)));
+    display: block;
+    overflow: hidden;
+}
+
+.blocknote-editor .bn-block-content[data-content-type='codeBlock'] > div {
+    outline: none;
+}
+
+.blocknote-editor .bn-block-content[data-content-type='codeBlock'] select {
+    appearance: none;
+    background: rgb(24 24 27 / 0.72);
+    border: 0;
+    border-radius: 4px;
+    color: hsl(var(--heroui-foreground));
+    cursor: pointer;
+    font-size: 0.75rem;
+    height: 1.625rem;
+    left: 0.75rem;
+    max-width: 8rem;
+    opacity: 0.78;
+    outline: none;
+    padding: 0 1.25rem 0 0.5rem;
+    position: absolute;
+    top: 0.625rem;
+    transition: opacity 0.18s ease;
+    z-index: 1;
+}
+
+.blocknote-editor .bn-block-content[data-content-type='codeBlock']:hover select,
+.blocknote-editor .bn-block-content[data-content-type='codeBlock'] select:focus {
+    opacity: 1;
+}
+
+.blocknote-editor .bn-block-content[data-content-type='codeBlock'] select option {
+    background: hsl(var(--heroui-content1));
+    color: hsl(var(--heroui-foreground));
+}
+
+.blocknote-editor .bn-block-content[data-content-type='codeBlock'] pre {
+    background-color: var(--prosemirror-highlight-bg, hsl(var(--heroui-content2)));
+    color: var(--prosemirror-highlight, hsl(var(--heroui-foreground)));
+    font-size: 0.875rem;
+    line-height: 1.65;
+    margin: 0;
+    overflow-x: auto;
+    padding: 2.75rem 1rem 1rem;
+    tab-size: 2;
+    width: 100%;
+    white-space: pre;
+}
+
+.blocknote-editor .bn-block-content[data-content-type='codeBlock'] code {
+    color: inherit;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    white-space: pre;
+}
+
 .blocknote-editor--readonly .bn-editor {
     min-height: auto;
     padding-inline: 0;
@@ -76,6 +138,15 @@
     --bn-colors-side-menu: #d4d4d8;
     --bn-colors-shadow: rgb(0 0 0 / 0.45);
     --bn-border: 1px solid var(--bn-colors-border);
+}
+
+:root.dark .blocknote-editor .bn-block-content[data-content-type='codeBlock'] {
+    border-color: #3a3a40;
+}
+
+:root.dark .blocknote-editor .bn-block-content[data-content-type='codeBlock'] select {
+    background: #202024;
+    color: #d4d4d8;
 }
 
 :root.dark .blocknote-editor-portal .bn-form-popover,

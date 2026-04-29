@@ -9,7 +9,7 @@ import { BlockNoteEditor } from '@/components/blocknote-editor';
 
 export default memo(function KnowledgeView({ knowledge }: { knowledge: Knowledge }) {
     const normalizedType = knowledge.content_type?.toLowerCase();
-    const shouldUseBlockNote = Boolean(knowledge.blocks) || ['block', 'blocks', 'block_v2', 'html'].includes(normalizedType);
+    const shouldUseBlockNote = Boolean(knowledge.blocks) || ['block', 'blocks', 'blocks_v2', 'block_v2', 'html'].includes(normalizedType);
     const blockNoteData = knowledge.blocks || knowledge.content;
 
     return (

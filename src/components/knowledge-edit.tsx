@@ -58,7 +58,7 @@ export default memo(
             if (knowledge && Array.isArray(cached)) {
                 setContent(cached);
                 knowledge.blocks = cached;
-                knowledge.content_type = 'block_v2';
+                knowledge.content_type = 'blocks_v2';
                 setContentType(knowledge.content_type);
             } else if (knowledge && cached?.blocks) {
                 knowledge.blocks = cached;
@@ -105,7 +105,7 @@ export default memo(
                 setInvalid(false);
             }
             setContent(value);
-            setContentType('block_v2');
+            setContentType('blocks_v2');
             temporaryStorage && sessionStorage.setItem(temporaryStorage, JSON.stringify(value));
         }, []);
 
