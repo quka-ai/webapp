@@ -127,6 +127,20 @@
     margin-block: 0.25rem;
 }
 
+.blocknote-editor--readonly .bn-file-block-content-wrapper,
+.blocknote-editor--readonly .bn-visual-media-wrapper,
+.blocknote-editor--readonly .bn-visual-media {
+    cursor: zoom-in;
+    pointer-events: auto;
+}
+
+.blocknote-editor__zoom-source {
+    opacity: 0;
+    pointer-events: none;
+    position: fixed;
+    z-index: 1;
+}
+
 :root.dark .blocknote-editor,
 :root.dark .blocknote-editor .bn-root,
 :root.dark .blocknote-editor-portal.bn-root {

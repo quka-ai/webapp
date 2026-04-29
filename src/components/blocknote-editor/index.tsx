@@ -3,11 +3,14 @@ import { BlockNoteSchema, blockHasType, createCodeBlockSpec, defaultBlockSpecs, 
 import { en } from '@blocknote/core/locales';
 import { ja } from '@blocknote/core/locales';
 import { zh } from '@blocknote/core/locales';
-import { FormattingToolbar, FormattingToolbarController, getFormattingToolbarItems, useBlockNoteEditor, useComponentsContext, useCreateBlockNote, useEditorState, type FormattingToolbarProps } from '@blocknote/react';
+import { filterSuggestionItems } from '@blocknote/core/extensions';
+import { DefaultReactSuggestionItem, FormattingToolbar, FormattingToolbarController, getDefaultReactSlashMenuItems, getFormattingToolbarItems, SuggestionMenuController, useBlockNoteEditor, useComponentsContext, useCreateBlockNote, useEditorState, type FormattingToolbarProps } from '@blocknote/react';
 import { BlockNoteView } from '@blocknote/mantine';
+import { TextSelection } from '@tiptap/pm/state';
 import { AxiosError } from 'axios';
-import { Sparkles } from 'lucide-react';
-import { forwardRef, memo, Ref, useCallback, useEffect, useImperativeHandle, useMemo, useRef } from 'react';
+import { EyeOff, Sparkles } from 'lucide-react';
+import { forwardRef, memo, Ref, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { Controlled as ControlledZoom } from 'react-medium-image-zoom';
 import { useTranslation } from 'react-i18next';
 import showdown from 'showdown';
 import { toast as sonnerToast } from 'sonner';
@@ -15,6 +18,7 @@ import { useSnapshot } from 'valtio';
 
 import '@blocknote/core/fonts/inter.css';
 import '@blocknote/mantine/style.css';
+import 'react-medium-image-zoom/dist/styles.css';
 import './style.css';
 
 import { DescribeImage } from '@/apis/tools';
@@ -29,9 +33,16 @@ import { qukaCodeBlockOptions } from './code-block';
 
 export type BlockNoteEditorValue = string | PartialBlock[];
 type BlockNoteEditorData = string | OutputData | PartialBlock[];
+type ZoomedImage = {
+    src: string;
+    alt: string;
+    rect: DOMRect;
+    isZoomed: boolean;
+};
 
 const generatingImageDescriptions = new Map<string, boolean>();
 const DEFAULT_CODE_BLOCK_LANGUAGE = 'shellscript';
+const BLOCKNOTE_IMAGE_ZOOM_CHANGE_EVENT = 'quka:blocknote-image-zoom-change';
 const PLAIN_CODE_BLOCK_LANGUAGES = new Set(['', 'text', 'txt', 'plain', 'plaintext', 'none']);
 const blockNoteSchema = BlockNoteSchema.create({
     blockSpecs: {
@@ -249,6 +260,29 @@ function ensureEmptyCodeBlocksUseShell(editor: ReturnType<typeof useCreateBlockN
     return emptyCodeBlocks.length > 0;
 }
 
+function findReadonlyImageFromEventTarget(target: EventTarget | null) {
+    if (!(target instanceof HTMLElement)) {
+        return null;
+    }
+
+    const directImage = target.closest<HTMLImageElement>('img.bn-visual-media');
+    if (directImage) {
+        return directImage;
+    }
+
+    return target
+        .closest<HTMLElement>('[data-file-block], .bn-file-block-content-wrapper, .bn-visual-media-wrapper')
+        ?.querySelector<HTMLImageElement>('img.bn-visual-media') || null;
+}
+
+function dispatchBlockNoteImageZoomChange(isZoomed: boolean) {
+    window.dispatchEvent(
+        new CustomEvent(BLOCKNOTE_IMAGE_ZOOM_CHANGE_EVENT, {
+            detail: { isZoomed }
+        })
+    );
+}
+
 async function parseInput(editor: ReturnType<typeof useCreateBlockNote>, data?: string | OutputData | PartialBlock[], dataType = '') {
     if (Array.isArray(data)) {
         return normalizeEmptyCodeBlockLanguages(data);
@@ -439,6 +473,20 @@ function BlockNoteFormattingToolbar(props: FormattingToolbarProps) {
     );
 }
 
+function insertHiddenSyntax(editor: ReturnType<typeof useCreateBlockNote>) {
+    const syntax = '$hidden[]';
+
+    editor.transact(tr => {
+        const { from, $from } = tr.selection;
+        const textBeforeCursor = $from.parent.textBetween(0, $from.parentOffset, undefined, '\ufffc');
+        const slashIndex = textBeforeCursor.lastIndexOf('/');
+        const replaceFrom = slashIndex >= 0 ? from - (textBeforeCursor.length - slashIndex) : from;
+
+        tr.insertText(syntax, replaceFrom, from);
+        tr.setSelection(TextSelection.create(tr.doc, replaceFrom + '$hidden['.length));
+    });
+}
+
 export const BlockNoteEditor = memo(
     forwardRef(({ data, dataType = '', outputFormat = 'blocks', autofocus = false, placeholder, readOnly, className, onValueChange }: BlockNoteEditorProps, ref: Ref<BlockNoteEditorRefObject>) => {
         const { t, i18n } = useTranslation();
@@ -446,8 +494,11 @@ export const BlockNoteEditor = memo(
         const { theme } = useTheme();
         const { currentSelectedSpace } = useSnapshot(spaceStore);
         const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+        const zoomCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+        const zoomOpenTimeoutRef = useRef<NodeJS.Timeout | null>(null);
         const renderingRef = useRef(false);
         const lastEmittedValueRef = useRef<BlockNoteEditorValue | null>(null);
+        const [zoomedImage, setZoomedImage] = useState<ZoomedImage | null>(null);
 
         const dictionary = useMemo(() => {
             if (i18n.language.startsWith('zh')) {
@@ -472,9 +523,43 @@ export const BlockNoteEditor = memo(
             [readOnly, autofocus, currentSelectedSpace, dictionary, placeholder]
         );
 
+        const getSlashMenuItems = useCallback(
+            async (query: string) => {
+                const hiddenSyntaxItem: DefaultReactSuggestionItem = {
+                    title: t('Hidden Content'),
+                    subtext: '$hidden[]',
+                    aliases: ['hidden', 'secret', 'mask', 'desensitize', '脱敏', '隐藏', '敏感'],
+                    group: t('Quka'),
+                    icon: <EyeOff size={18} />,
+                    onItemClick: () => insertHiddenSyntax(editor)
+                };
+
+                return filterSuggestionItems([hiddenSyntaxItem, ...getDefaultReactSlashMenuItems(editor)], query);
+            },
+            [editor, t]
+        );
+
         useEffect(() => {
             editor.portalElement.classList.add('blocknote-editor-portal');
         }, [editor]);
+
+        useEffect(() => {
+            return () => {
+                if (zoomCloseTimeoutRef.current) {
+                    clearTimeout(zoomCloseTimeoutRef.current);
+                }
+
+                if (zoomOpenTimeoutRef.current) {
+                    clearTimeout(zoomOpenTimeoutRef.current);
+                }
+
+                dispatchBlockNoteImageZoomChange(false);
+            };
+        }, []);
+
+        useEffect(() => {
+            dispatchBlockNoteImageZoomChange(Boolean(zoomedImage?.isZoomed));
+        }, [zoomedImage?.isZoomed]);
 
         const renderData = useCallback(
             async (nextData?: string | OutputData | PartialBlock[], nextDataType = dataType) => {
@@ -517,12 +602,62 @@ export const BlockNoteEditor = memo(
             }
         }));
 
+        const handleReadonlyImageClick = useCallback(
+            (event: React.MouseEvent<HTMLDivElement>) => {
+                if (!readOnly) {
+                    return;
+                }
+
+                const image = findReadonlyImageFromEventTarget(event.target);
+                if (!image?.src) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                if (zoomCloseTimeoutRef.current) {
+                    clearTimeout(zoomCloseTimeoutRef.current);
+                }
+
+                if (zoomOpenTimeoutRef.current) {
+                    clearTimeout(zoomOpenTimeoutRef.current);
+                }
+
+                setZoomedImage({
+                    src: image.currentSrc || image.src,
+                    alt: image.alt || '',
+                    rect: image.getBoundingClientRect(),
+                    isZoomed: false
+                });
+
+                zoomOpenTimeoutRef.current = setTimeout(() => {
+                    setZoomedImage(current => (current ? { ...current, isZoomed: true } : current));
+                }, 50);
+            },
+            [readOnly]
+        );
+
+        const handleZoomChange = useCallback((isZoomed: boolean) => {
+            if (isZoomed) {
+                setZoomedImage(current => (current ? { ...current, isZoomed: true } : current));
+
+                return;
+            }
+
+            setZoomedImage(current => (current ? { ...current, isZoomed: false } : current));
+            zoomCloseTimeoutRef.current = setTimeout(() => {
+                setZoomedImage(null);
+            }, 300);
+        }, []);
+
         return (
-            <div className={cn('blocknote-editor sm:mx-[60px]', readOnly && 'blocknote-editor--readonly', className)}>
+            <div className={cn('blocknote-editor sm:mx-[60px]', readOnly && 'blocknote-editor--readonly', className)} onClickCapture={handleReadonlyImageClick}>
                 <BlockNoteView
                     editor={editor}
                     editable={!readOnly}
                     formattingToolbar={false}
+                    slashMenu={false}
                     theme={theme}
                     onChange={async currentEditor => {
                         if (!renderingRef.current && ensureEmptyCodeBlocksUseShell(currentEditor)) {
@@ -545,8 +680,31 @@ export const BlockNoteEditor = memo(
                         }, 500);
                     }}
                 >
+                    {!readOnly && <SuggestionMenuController triggerCharacter="/" getItems={getSlashMenuItems} />}
                     {!readOnly && <FormattingToolbarController formattingToolbar={BlockNoteFormattingToolbar} />}
                 </BlockNoteView>
+                {zoomedImage && (
+                    <ControlledZoom
+                        isZoomed={zoomedImage.isZoomed}
+                        onZoomChange={handleZoomChange}
+                        zoomImg={{
+                            src: zoomedImage.src,
+                            alt: zoomedImage.alt
+                        }}
+                    >
+                        <img
+                            src={zoomedImage.src}
+                            alt={zoomedImage.alt}
+                            className="blocknote-editor__zoom-source"
+                            style={{
+                                height: zoomedImage.rect.height,
+                                left: zoomedImage.rect.left,
+                                top: zoomedImage.rect.top,
+                                width: zoomedImage.rect.width
+                            }}
+                        />
+                    </ControlledZoom>
+                )}
             </div>
         );
     })

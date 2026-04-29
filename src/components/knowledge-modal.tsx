@@ -30,6 +30,7 @@ const ViewKnowledge = memo(
         const [isEdit, setIsEdit] = useState(false);
         const { isMobile } = useMedia();
         const [canEsc, setCanEsc] = useState(true);
+        const [isBlockNoteImageZoomed, setIsBlockNoteImageZoomed] = useState(false);
         const { isSpaceViewer } = useSpaceRole();
 
         const { onChange, onDelete } = props;
@@ -55,6 +56,18 @@ const ViewKnowledge = memo(
                 setSize('full');
             }
         }, [isMobile]);
+
+        useEffect(() => {
+            const handleBlockNoteImageZoomChange = (event: Event) => {
+                setIsBlockNoteImageZoomed(Boolean((event as CustomEvent<{ isZoomed?: boolean }>).detail?.isZoomed));
+            };
+
+            window.addEventListener('quka:blocknote-image-zoom-change', handleBlockNoteImageZoomChange);
+
+            return () => {
+                window.removeEventListener('quka:blocknote-image-zoom-change', handleBlockNoteImageZoomChange);
+            };
+        }, []);
 
         const [isLoading, setIsLoading] = useState(false);
 
@@ -162,8 +175,8 @@ const ViewKnowledge = memo(
                     placement="top-center"
                     size={size}
                     isOpen={isOpen}
-                    isDismissable={canEsc}
-                    isKeyboardDismissDisabled={!canEsc}
+                    isDismissable={canEsc && !isBlockNoteImageZoomed}
+                    isKeyboardDismissDisabled={!canEsc || isBlockNoteImageZoomed}
                     scrollBehavior="inside"
                     onClose={close}
                 >
