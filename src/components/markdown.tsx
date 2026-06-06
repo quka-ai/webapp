@@ -2,7 +2,7 @@ import 'katex/dist/katex.min.css';
 import { common } from 'lowlight';
 import { memo, useMemo, useState } from 'react';
 // https://github.com/remarkjs/react-markdown
-import Markdown, { type Components, type ExtraProps, type Options } from 'react-markdown';
+import Markdown, { defaultUrlTransform, type Components, type Options } from 'react-markdown';
 import Zoom from 'react-medium-image-zoom';
 import 'react-medium-image-zoom/dist/styles.css';
 import { useNavigate } from 'react-router-dom';
@@ -61,7 +61,7 @@ const preprocessMathContent = (content: string): string => {
 };
 
 export default memo(function MarkdownComponent(props: Options & { isLight?: boolean; className?: string }) {
-    const { children, isLight, className, ...rest } = props;
+    const { children, isLight, className, urlTransform, ...rest } = props;
     const { isDark } = useTheme();
 
     // 预处理内容
@@ -115,7 +115,13 @@ export default memo(function MarkdownComponent(props: Options & { isLight?: bool
     return (
         <>
             <div className={markdownClassName}>
-                <Markdown {...rest} rehypePlugins={rehypePlugins as any} remarkPlugins={[[remarkGfm, { stringLength: stringWidth }], [remarkMath]] as any} components={cps}>
+                <Markdown
+                    {...rest}
+                    rehypePlugins={rehypePlugins as any}
+                    remarkPlugins={[[remarkGfm, { stringLength: stringWidth }], [remarkMath]] as any}
+                    components={cps}
+                    urlTransform={createMarkdownURLTransform(urlTransform)}
+                >
                     {processedContent as string}
                 </Markdown>
             </div>
@@ -126,6 +132,24 @@ export default memo(function MarkdownComponent(props: Options & { isLight?: bool
 const LightLink = ({ children }: { children: React.ReactNode }) => {
     return <span>{children}</span>;
 };
+
+function createMarkdownURLTransform(customTransform?: Options['urlTransform']): NonNullable<Options['urlTransform']> {
+    return (value, key, node) => {
+        if (key === 'href' && isLocalFileURL(value)) {
+            return value;
+        }
+        return customTransform ? customTransform(value, key, node) : defaultUrlTransform(value);
+    };
+}
+
+function isLocalFileURL(value: string): boolean {
+    try {
+        const url = new URL(value);
+        return url.protocol === 'file:' && (!url.host || url.host === 'localhost');
+    } catch {
+        return false;
+    }
+}
 
 const CustomLink = ({ href, children }: { href?: string; children: React.ReactNode }) => {
     const navigate = useNavigate();
@@ -172,7 +196,7 @@ const Img = ({ src, alt, ...rest }: { src?: string; alt?: string; [key: string]:
     );
 };
 
-const Think = ({ children, ...props }: any) => {
+const Think = ({ children }: any) => {
     const [isExpanded, setIsExpanded] = useState(true);
     const { isDark } = useTheme();
 

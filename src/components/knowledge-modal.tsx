@@ -1,6 +1,7 @@
 import { BreadcrumbItem, Breadcrumbs, Button, ButtonGroup, Kbd, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Skeleton, Spacer, useDisclosure } from '@heroui/react';
 import { forwardRef, memo, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 
 import { GetKnowledge, type Knowledge } from '@/apis/knowledge';
@@ -24,6 +25,7 @@ export interface ViewKnowledgeProps {
 const ViewKnowledge = memo(
     forwardRef((props: ViewKnowledgeProps, ref: any) => {
         const { t } = useTranslation();
+        const navigate = useNavigate();
         const { isOpen, onOpen, onClose } = useDisclosure();
         const [knowledge, setKnowledge] = useState<Knowledge>();
         const [size, setSize] = useState<Size>('md');
@@ -103,13 +105,6 @@ const ViewKnowledge = memo(
             return target?.title;
         }, [spaces, currentSelectedSpace]);
 
-        const changeEditable = useCallback(() => {
-            const newState = !isEdit;
-
-            setIsEdit(newState);
-            setCanEsc(!newState);
-        }, [isEdit]);
-
         const close = useCallback(function () {
             setIsEdit(false);
             setCanEsc(true);
@@ -118,6 +113,19 @@ const ViewKnowledge = memo(
             }
             onClose();
         }, []);
+
+        const changeEditable = useCallback(() => {
+            if (!isEdit && knowledge) {
+                close();
+                navigate(`/dashboard/${knowledge.space_id}/knowledge/${knowledge.id}/editor`);
+                return;
+            }
+
+            const newState = !isEdit;
+
+            setIsEdit(newState);
+            setCanEsc(!newState);
+        }, [close, isEdit, knowledge, navigate]);
 
         const { currentSpaceResources } = useSnapshot(resourceStore);
         const reloadSpaceResource = useCallback(async (spaceID: string) => {
@@ -206,11 +214,7 @@ const ViewKnowledge = memo(
                                         )}
                                     </ModalHeader>
                                     <ModalBody className="w-full flex flex-col items-center px-6 overflow-y-auto">
-                                        {isEdit ? (
-                                            <KnowledgeEdit ref={editor} hideSubmit classNames={{ base: '', editor: '!mx-0' }} knowledge={knowledge} onChange={onChangeFunc} />
-                                        ) : (
-                                            <KnowledgeView knowledge={knowledge} />
-                                        )}
+                                        {isEdit ? <KnowledgeEdit ref={editor} hideSubmit knowledge={knowledge} onChange={onChangeFunc} /> : <KnowledgeView knowledge={knowledge} />}
                                     </ModalBody>
                                     <ModalFooter className="flex justify-center">
                                         {isSpaceViewer ? (

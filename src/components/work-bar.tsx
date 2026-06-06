@@ -154,16 +154,19 @@ const WorkBar = memo(
 
         return (
             <div className="w-full flex flex-col gap-2 py-6">
-                <div className="flex md:flex-row flex-col px-6 mb-2 w-full items-center gap-4">
+                <div className="flex md:flex-row flex-col md:px-6 px-3 mb-2 w-full md:items-center items-start gap-4">
                     <div className="text-2xl font-bold leading-9 text-default-foreground">🤯 {t('WorkSpace')}</div>
-                    <Code className="text-sm text-default-500">{t('CurrentResourceType', { type: createToResource.title })}</Code>
+                    <Code className="text-sm bg-default-100 text-default-600 dark:bg-default-100/20 dark:text-default-400">{t('CurrentResourceType', { type: createToResource.title })}</Code>
                 </div>
                 <div className="flex lg:flex-row flex-col gap-4 md:px-6 px-3">
                     <div className="flex flex-col flex-1 lg:max-w-[33.333%] w-full">
                         <Textarea
                             isClearable
                             variant="bordered"
-                            classNames={{ inputWrapper: '!h-[200px] border-small bg-gradient-to-br from-default-400/30 to-default-400 dark:from-default-100/50 dark:to-default-50/50' }}
+                            classNames={{
+                                inputWrapper:
+                                    '!h-[200px] border border-default-200 bg-content1 shadow-none data-[hover=true]:border-default-300 dark:border-default-100 dark:bg-gradient-to-br dark:from-default-100/50 dark:to-default-50/50'
+                            }}
                             placeholder={t('TypeKnowledgeByYourSelf')}
                             value={knowledgeContent}
                             startContent={
@@ -347,7 +350,7 @@ const FileTask = memo(function FileTask() {
                 </>
             ) : (
                 <>
-                    <span className="text-white my-2">{t('AIAutoChunkDescription')}</span>
+                    <span className="my-2 text-default-600 dark:text-white">{t('AIAutoChunkDescription')}</span>
                     <FilePreview
                         file={chunkFile.file as File & { preview: string }}
                         onRemove={() => {
@@ -480,7 +483,6 @@ const CreateKnowledgeModal = memo(
                                     <KnowledgeEdit
                                         ref={editor}
                                         hideSubmit
-                                        classNames={{ editor: '!mx-0', base: '' }}
                                         // @ts-ignore
                                         knowledge={{
                                             ...knowledge,

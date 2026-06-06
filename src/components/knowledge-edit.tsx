@@ -6,8 +6,9 @@ import { useSnapshot } from 'valtio';
 
 import { CreateKnowledge, type Knowledge, type KnowledgeContent, UpdateKnowledge } from '@/apis/knowledge';
 import KnowledgeAITaskList from '@/components/ai-tasks-list';
-import { BlockNoteEditor, type BlockNoteEditorValue, BlockNoteEditorRefObject } from '@/components/blocknote-editor';
+import { BlockNoteEditor, BlockNoteEditorRefObject, type BlockNoteEditorValue } from '@/components/blocknote-editor';
 import { useGroupedResources } from '@/hooks/use-resource';
+import { cn } from '@/lib/utils';
 import resourceStore, { loadSpaceResource } from '@/stores/resource';
 import spaceStore from '@/stores/space';
 
@@ -22,8 +23,9 @@ export interface KnowledgeEditProps {
 }
 
 export interface ClassNames {
-    base: string;
-    editor: string;
+    base?: string;
+    editor?: string;
+    editorWrapper?: string;
 }
 
 export interface KnwoledgeEditorRefObject {
@@ -39,34 +41,50 @@ function getKnowledgeContent(knowledge?: Knowledge): KnowledgeContent {
     return knowledge.blocks ? knowledge.blocks : knowledge.content;
 }
 
+function getKnowledgeEditorState(knowledge?: Knowledge, temporaryStorage?: string) {
+    const state = {
+        content: getKnowledgeContent(knowledge),
+        contentType: knowledge ? knowledge.content_type : 'markdown'
+    };
+
+    if (!knowledge?.blocks && !knowledge?.content && temporaryStorage) {
+        const cached = JSON.parse(sessionStorage.getItem(temporaryStorage) || 'null');
+
+        if (Array.isArray(cached)) {
+            return {
+                content: cached,
+                contentType: 'blocks_v2'
+            };
+        }
+
+        if (cached?.blocks) {
+            return {
+                content: cached,
+                contentType: 'blocks'
+            };
+        }
+    }
+
+    return state;
+}
+
 export default memo(
     forwardRef(function KnowledgeEdit({ knowledge, onChange, onCancel, hideSubmit, classNames, temporaryStorage }: KnowledgeEditProps, ref: any) {
         const { t } = useTranslation();
+        const initialEditorState = useMemo(() => getKnowledgeEditorState(knowledge, temporaryStorage), [knowledge?.id, temporaryStorage]);
         const [title, setTitle] = useState(knowledge ? knowledge.title : '');
-        const [content, setContent] = useState<KnowledgeContent>(getKnowledgeContent(knowledge));
-        const [contentType, setContentType] = useState(knowledge ? knowledge.content_type : 'markdown'); // text | blocks | jso
         const [tags, setTags] = useState(knowledge ? knowledge.tags : []);
         const [isInvalid, setInvalid] = useState(false);
-        const [errorMessage, setErrorMessage] = useState('');
+        const [, setErrorMessage] = useState('');
         const [isLoading, setLoading] = useState(false);
+        const [isEditorLoading, setEditorLoading] = useState(true);
         const [resource, setResource] = useState(knowledge ? knowledge.resource : '');
+        const [blocks, setBlocks] = useState<KnowledgeContent>(initialEditorState.content);
+        const [blocksType, setBlocksType] = useState(initialEditorState.contentType);
+        const blocksRef = useRef<KnowledgeContent>(initialEditorState.content);
+        const blocksTypeRef = useRef(initialEditorState.contentType); // text | blocks | json
         const { currentSelectedResource } = useSnapshot(resourceStore);
         const { currentSelectedSpace } = useSnapshot(spaceStore);
-
-        if (!knowledge?.blocks && !knowledge?.content && temporaryStorage) {
-            const cached = JSON.parse(sessionStorage.getItem(temporaryStorage) || 'null');
-            if (knowledge && Array.isArray(cached)) {
-                setContent(cached);
-                knowledge.blocks = cached;
-                knowledge.content_type = 'blocks_v2';
-                setContentType(knowledge.content_type);
-            } else if (knowledge && cached?.blocks) {
-                knowledge.blocks = cached;
-                setContent(knowledge.blocks);
-                knowledge.content_type = 'blocks';
-                setContentType(knowledge.content_type);
-            }
-        }
 
         // const reloadSpaceResource = useCallback(async (spaceID: string) => {
         //     try {
@@ -99,21 +117,64 @@ export default memo(
             return 'knowledge';
         }, [currentSelectedResource, groupedResources, knowledge]);
 
-        const onKnowledgeContentChanged = useCallback((value: BlockNoteEditorValue) => {
+        const editor = useRef<BlockNoteEditorRefObject>(null);
+
+        useEffect(() => {
+            const nextEditorState = getKnowledgeEditorState(knowledge, temporaryStorage);
+
+            setEditorLoading(true);
+            blocksRef.current = nextEditorState.content;
+            blocksTypeRef.current = nextEditorState.contentType;
+            setBlocks(nextEditorState.content);
+            setBlocksType(nextEditorState.contentType);
+
+            if (editor.current) {
+                editor.current.reRender(nextEditorState.content, nextEditorState.contentType);
+            }
+
+            setEditorLoading(false);
+        }, [knowledge?.id, temporaryStorage]);
+
+        const onBlocksChanged = useCallback((value: BlockNoteEditorValue) => {
             if (isInvalid) {
                 setErrorMessage('');
                 setInvalid(false);
             }
-            setContent(value);
-            setContentType('blocks_v2');
+
+            blocksRef.current = value;
+            blocksTypeRef.current = 'blocks_v2';
+            setBlocks(value);
+            setBlocksType('blocks_v2');
             temporaryStorage && sessionStorage.setItem(temporaryStorage, JSON.stringify(value));
         }, []);
+
+        const editorRender = useMemo(() => {
+            return (
+                <>
+                    {isEditorLoading || (
+                        <BlockNoteEditor
+                            ref={editor}
+                            autofocus
+                            readOnly={false}
+                            data={blocks ?? undefined}
+                            dataType={Array.isArray(blocks) ? 'blocks_v2' : blocksType}
+                            outputFormat="blocks"
+                            placeholder={t('knowledgeCreateContentLabelPlaceholder')}
+                            className={classNames?.editor}
+                            onValueChange={value => onBlocksChanged(value)}
+                        />
+                    )}
+                </>
+            );
+        }, [classNames?.editor, isEditorLoading]);
 
         const setStringTags = useCallback((strTags: string) => {
             setTags(strTags.split('|'));
         }, []);
 
         async function submit() {
+            const content = blocksRef.current;
+
             if (content === '') {
                 setErrorMessage('knowledge content is empty');
                 setInvalid(true);
@@ -132,11 +193,11 @@ export default memo(
                         resource: resource || defaultResource,
                         title: title,
                         content: content,
-                        content_type: contentType,
+                        content_type: blocksTypeRef.current,
                         tags: tags
                     });
                 } else {
-                    await CreateKnowledge(knowledge.space_id, resource || defaultResource, content, contentType);
+                    await CreateKnowledge(knowledge.space_id, resource || defaultResource, content, blocksTypeRef.current);
                 }
 
                 toast.success(t('Success'));
@@ -150,12 +211,14 @@ export default memo(
             setLoading(false);
         }
 
-        const editor = useRef<BlockNoteEditorRefObject>(null);
-
         function reset() {
             if (editor.current) {
                 editor.current.reRender('');
             }
+            blocksRef.current = '';
+            blocksTypeRef.current = 'markdown';
+            setBlocks('');
+            setBlocksType('markdown');
         }
 
         useImperativeHandle(ref, () => {
@@ -171,7 +234,7 @@ export default memo(
                     <>
                         {/* <ScrollShadow hideScrollBar isEnabled={enableScrollShadow} className="w-full flex-grow box-border  flex justify-center"> */}
                         <KnowledgeAITaskList />
-                        <div className="w-full h-full md:max-w-[650px]">
+                        <div className={cn('w-full h-full md:max-w-[650px]', classNames?.base)}>
                             {knowledge.id && (
                                 <>
                                     <div className="w-full mt-10 mb-5 dark:text-gray-100 text-gray-800 text-lg overflow-hidden">
@@ -232,23 +295,11 @@ export default memo(
                                     )}
                                 </Skeleton>
 
-                                <div className="w-full relative mt-2">
+                                <div className={cn('w-full relative mt-2', classNames?.editorWrapper)}>
                                     <Spacer y={2} />
                                     <div className="text-small font-bold">{t('knowledgeCreateContentLabel')}</div>
                                     <Spacer y={2} />
-                                    <BlockNoteEditor
-                                        ref={editor}
-                                        autofocus
-                                        readOnly={false}
-                                        className={classNames?.editor ? classNames.editor : ''}
-                                        data={(() => {
-                                            return content;
-                                        })()}
-                                        dataType={contentType}
-                                        outputFormat="blocks"
-                                        placeholder={t('knowledgeCreateContentLabelPlaceholder')}
-                                        onValueChange={onKnowledgeContentChanged}
-                                    />
+                                    {editorRender}
                                     {/* <Textarea
                                     minRows={12}
                                     maxRows={100}

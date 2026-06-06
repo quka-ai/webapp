@@ -33,6 +33,175 @@
     filter: drop-shadow(0 2px 6px rgb(0 0 0 / 0.18));
 }
 
+.blocknote-editor-side-menu--mobile {
+    height: 36px;
+    max-height: 36px;
+    overflow: visible;
+    width: max-content;
+}
+
+.blocknote-editor-side-menu--mobile .bn-side-menu {
+    align-items: center;
+    background: hsl(var(--heroui-content1));
+    border: 1px solid hsl(var(--heroui-default-200) / 0.55);
+    border-radius: 6px;
+    box-shadow: 0 8px 20px rgb(0 0 0 / 0.18);
+    display: flex;
+    gap: 6px;
+    height: 36px;
+    max-height: 36px;
+    overflow: visible;
+    padding: 2px;
+    position: relative;
+    width: max-content;
+}
+
+.blocknote-editor-side-menu--mobile .bn-side-menu > * {
+    flex: 0 0 auto;
+}
+
+.blocknote-editor-side-menu--mobile .bn-side-menu .mantine-Menu-root {
+    height: 30px;
+    position: static;
+}
+
+.blocknote-editor-side-menu--mobile .bn-side-menu .mantine-Menu-dropdown,
+.blocknote-editor-side-menu--mobile .bn-side-menu .bn-drag-handle-menu {
+    bottom: auto !important;
+    left: calc(100% + 8px) !important;
+    position: absolute !important;
+    right: auto !important;
+    top: 0 !important;
+    transform: none !important;
+}
+
+.blocknote-editor-mobile-side-menu {
+    align-items: center;
+    isolation: isolate;
+}
+
+.blocknote-editor-mobile-side-menu__button {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 5px;
+    color: hsl(var(--heroui-default-600));
+    display: inline-flex;
+    flex: 0 0 30px;
+    height: 30px;
+    justify-content: center;
+    padding: 0;
+    touch-action: manipulation;
+    width: 30px;
+}
+
+.blocknote-editor-mobile-side-menu__button:active,
+.blocknote-editor-mobile-side-menu__button:hover {
+    background: hsl(var(--heroui-content2));
+    color: hsl(var(--heroui-foreground));
+}
+
+.blocknote-editor-mobile-side-menu__dropdown {
+    background: hsl(var(--heroui-content1));
+    border: 1px solid hsl(var(--heroui-default-200) / 0.55);
+    border-radius: 8px;
+    box-shadow: 0 12px 28px rgb(0 0 0 / 0.2);
+    color: hsl(var(--heroui-foreground));
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    left: calc(100% + 8px);
+    min-width: 172px;
+    padding: 6px;
+    position: absolute;
+    top: 0;
+    z-index: 2;
+}
+
+.blocknote-editor-mobile-side-menu__item {
+    align-items: center;
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    color: inherit;
+    display: flex;
+    font-size: 0.875rem;
+    gap: 8px;
+    height: 34px;
+    padding: 0 8px;
+    text-align: left;
+    width: 100%;
+}
+
+.blocknote-editor-mobile-side-menu__item:active,
+.blocknote-editor-mobile-side-menu__item:hover {
+    background: hsl(var(--heroui-content2));
+}
+
+.blocknote-editor-mobile-side-menu__colors {
+    border-top: 1px solid hsl(var(--heroui-divider));
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 7px 2px 2px;
+}
+
+.blocknote-editor-mobile-side-menu__label {
+    align-items: center;
+    color: hsl(var(--heroui-default-500));
+    display: flex;
+    font-size: 0.75rem;
+    gap: 6px;
+    padding: 0 4px;
+}
+
+.blocknote-editor-mobile-side-menu__swatches {
+    display: grid;
+    gap: 5px;
+    grid-template-columns: repeat(8, 1fr);
+    padding: 0 3px;
+}
+
+.blocknote-editor-mobile-side-menu__swatch {
+    border: 1px solid hsl(var(--heroui-divider));
+    border-radius: 999px;
+    height: 16px;
+    padding: 0;
+    width: 16px;
+}
+
+.blocknote-editor-mobile-side-menu__swatch[data-color='default'] {
+    background: linear-gradient(135deg, transparent 43%, #ef4444 45%, #ef4444 55%, transparent 57%), hsl(var(--heroui-content2));
+}
+
+.blocknote-editor-mobile-side-menu__swatch[data-color='gray'] {
+    background: #9ca3af;
+}
+
+.blocknote-editor-mobile-side-menu__swatch[data-color='red'] {
+    background: #ef4444;
+}
+
+.blocknote-editor-mobile-side-menu__swatch[data-color='orange'] {
+    background: #f97316;
+}
+
+.blocknote-editor-mobile-side-menu__swatch[data-color='yellow'] {
+    background: #eab308;
+}
+
+.blocknote-editor-mobile-side-menu__swatch[data-color='green'] {
+    background: #22c55e;
+}
+
+.blocknote-editor-mobile-side-menu__swatch[data-color='blue'] {
+    background: #3b82f6;
+}
+
+.blocknote-editor-mobile-side-menu__swatch[data-color='purple'] {
+    background: #a855f7;
+}
+
 .blocknote-editor .bn-container {
     background: transparent;
     margin-left: -54px;
@@ -49,6 +218,19 @@
 
 .blocknote-editor .bn-block-content {
     max-width: 100%;
+}
+
+.blocknote-editor .bn-editor a[href] {
+    color: hsl(var(--heroui-primary));
+    cursor: text;
+    font-weight: 500;
+    text-decoration-line: underline;
+    text-decoration-thickness: 1.5px;
+    text-underline-offset: 0.18em;
+}
+
+.blocknote-editor .bn-editor a[href]:hover {
+    color: hsl(var(--heroui-primary-600));
 }
 
 .blocknote-editor .bn-block-content[data-content-type='codeBlock'] {
@@ -127,6 +309,10 @@
     margin-block: 0.25rem;
 }
 
+.blocknote-editor--readonly .bn-editor a[href] {
+    cursor: pointer;
+}
+
 .blocknote-editor--readonly .bn-file-block-content-wrapper,
 .blocknote-editor--readonly .bn-visual-media-wrapper,
 .blocknote-editor--readonly .bn-visual-media {
@@ -163,6 +349,39 @@
     color: #d4d4d8;
 }
 
+:root.dark .blocknote-editor .bn-editor a[href] {
+    color: #8bbcff;
+}
+
+:root.dark .blocknote-editor .bn-editor a[href]:hover {
+    color: #adcfff;
+}
+
+:root.dark .blocknote-editor-side-menu--mobile .bn-side-menu {
+    border-color: #2f2f34;
+}
+
+:root.dark .blocknote-editor-mobile-side-menu__button {
+    color: #d4d4d8;
+}
+
+:root.dark .blocknote-editor-mobile-side-menu__button:active,
+:root.dark .blocknote-editor-mobile-side-menu__button:hover,
+:root.dark .blocknote-editor-mobile-side-menu__item:active,
+:root.dark .blocknote-editor-mobile-side-menu__item:hover {
+    background: #27272a;
+}
+
+:root.dark .blocknote-editor-mobile-side-menu__dropdown {
+    background: #18181b;
+    border-color: #2f2f34;
+    box-shadow: 0 12px 30px rgb(0 0 0 / 0.36);
+}
+
+:root.dark .blocknote-editor-mobile-side-menu__colors {
+    border-color: #2f2f34;
+}
+
 :root.dark .blocknote-editor-portal .bn-form-popover,
 :root.dark .blocknote-editor-portal .bn-panel,
 :root.dark .blocknote-editor-portal .mantine-Menu-dropdown,
@@ -179,17 +398,23 @@
 }
 
 @media (max-width: 640px) {
+    .blocknote-editor {
+        overflow-x: clip;
+    }
+
     .blocknote-editor .bn-editor {
-        padding-left: 42px;
+        padding-left: 0;
+        padding-bottom: calc(96px + env(safe-area-inset-bottom));
     }
 
     .blocknote-editor .bn-container {
-        margin-left: -42px;
-        width: calc(100% + 42px);
+        margin-left: 0;
+        width: 100%;
     }
 
     .blocknote-editor--readonly .bn-editor {
         padding-inline: 0;
+        padding-bottom: 0;
     }
 
     .blocknote-editor--readonly .bn-container {

@@ -242,7 +242,7 @@ export function FileUploader(props: FileUploaderProps) {
     );
 
     return (
-        <div className="relative flex flex-col gap-6 overflow-hidden inset-0 h-[200px] rounded-xl border-small  border-default-200 hover:border-default-400 px-5 text-center transition bg-gradient-to-br from-default-400/30 to-default-400 dark:from-default-100/50 dark:to-default-50/50">
+        <div className="relative flex flex-col gap-6 overflow-hidden inset-0 h-[200px] rounded-xl border border-default-200 bg-content1 px-5 text-center shadow-none transition hover:border-default-300 dark:border-default-100 dark:bg-gradient-to-br dark:from-default-100/50 dark:to-default-50/50">
             <Dropzone
                 accept={accept}
                 maxSize={maxSize}

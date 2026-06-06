@@ -358,14 +358,14 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
 
     return (
         <div className="w-full md:px-6 px-3 mb-6">
-            <Card className={clsx('w-full dark:border-default-100 bg-content2 dark:bg-content1 shadow-sm', dateObj.isToday && 'border-small')}>
-                <div className="flex flex-col md:flex-row gap-4 p-4 bg-linear-to-br from-default-400/30 to-default-400 dark:from-default-100/30 dark:to-default-50/50">
+            <Card className={clsx('w-full border border-default-200 bg-content1 shadow-none dark:border-default-100 dark:bg-content1', dateObj.isToday && 'border-primary/30 dark:border-default-100')}>
+                <div className="flex flex-col md:flex-row gap-4 p-4 bg-content1 dark:bg-gradient-to-br dark:from-default-100/30 dark:to-default-50/50">
                     {/* 日期信息 - 移动端横向显示，桌面端纵向显示 */}
-                    <div className="shrink-0">
+                    <div className="shrink-0 md:w-[116px]">
                         <div
                             role="button"
                             tabIndex={0}
-                            className="flex md:flex-col flex-row items-center justify-between md:justify-center bg-primary dark:bg-primary/90 rounded-xl md:px-6 px-4 md:py-4 py-3 md:min-w-[100px] md:min-h-40 w-full cursor-pointer hover:bg-primary/90 dark:hover:bg-primary transition-colors"
+                            className="flex md:flex-col flex-row items-center justify-between md:justify-center bg-primary dark:bg-primary/90 rounded-xl md:px-6 px-4 md:py-4 py-3 md:w-[116px] md:min-h-40 w-full cursor-pointer hover:bg-primary/90 dark:hover:bg-primary transition-colors"
                             onClick={handleDateClick}
                             onKeyDown={e => {
                                 if (e.key === 'Enter' || e.key === ' ') {
@@ -374,7 +374,7 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
                             }}
                         >
                             {/* 左侧：月份和日期 */}
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 md:flex-col md:gap-0">
                                 <div className="text-lg font-bold text-white">
                                     {dateObj.month} {dateObj.day}
                                 </div>
@@ -383,7 +383,7 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
 
                             {/* 中间：星期（桌面端）或状态信息（移动端） */}
                             <div className="flex items-center gap-2">
-                                <div className="text-xs text-white/70 hidden md:block md:mt-0.5">{dateObj.weekday}</div>
+                                <div className="text-xs text-white/70 hidden md:block md:mt-0.5 max-w-full text-center break-words">{dateObj.weekday}</div>
                                 {!isLoading && journalTodos.length > 0 && (
                                     <div className="text-xs text-white/80 md:hidden">{uncompletedCount > 0 ? `${uncompletedCount} ${t('pending')}` : t('All completed')}</div>
                                 )}
@@ -418,7 +418,7 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
                                     </div>
                                     <DragOverlay>
                                         {activeDragId ? (
-                                            <div className="bg-content1 border border-default-200 rounded-lg p-2 shadow-lg">
+                                            <div className="bg-content1 border border-default-200 rounded-lg p-2 shadow-none">
                                                 <Icon icon="solar:hamburger-menu-linear" width={16} className="text-default-400 inline mr-2" />
                                                 <span className="text-sm">Dragging...</span>
                                             </div>
@@ -426,7 +426,7 @@ export default memo(function DailyJournalTodo({ journalData, customDate }: Daily
                                     </DragOverlay>
                                 </DndContext>
                             ) : (
-                                <div className="text-sm text-default-400 py-4">{t('No todos for this day')}</div>
+                                <div className="text-sm text-default-500 py-4">{t('No todos for this day')}</div>
                             )}
                         </Skeleton>
 

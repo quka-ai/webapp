@@ -1,14 +1,13 @@
 /**
  * Wails 全局外部链接处理器
  *
- * 自动拦截页面中的外部链接点击、触摸和键盘操作，使用 window.runtime.BrowserOpenURL 打开
- * 支持 http/https/mailto/tel 协议
+ * 自动拦截页面中的外部链接点击、触摸和键盘操作。
+ * http/https/mailto/tel 使用 window.runtime.BrowserOpenURL 打开。
+ * file:// 使用 Wails App.OpenLocalPath 打开，避免 WebView 直接处理本地文件协议。
  * 兼容 heroui 的 onPress 事件系统以及原生 DOM 事件
  *
  * 支持的事件类型：
  * - 鼠标点击 (click)
- * - 触摸/指针事件 (pointerdown) - heroui onPress 的底层事件
- * - 键盘操作 (keydown) - 回车键/空格键
  *
  * 使用方法：在应用入口引入此文件即可生效
  * import '@/utils/wails-external-links';
@@ -18,8 +17,17 @@ interface WailsRuntime {
     BrowserOpenURL: (url: string) => void;
 }
 
+interface WailsAppBridge {
+    OpenLocalPath?: (req: { url: string }) => Promise<void> | void;
+}
+
 interface ExtendedWindow extends Window {
     runtime?: WailsRuntime;
+    go?: {
+        main?: {
+            App?: WailsAppBridge;
+        };
+    };
 }
 
 // 确保代码在全局执行
@@ -27,7 +35,8 @@ const initializeExternalLinksHandler = () => {
     console.log('[Wails Handler] Checking runtime availability...', {
         hasWindow: typeof window !== 'undefined',
         hasRuntime: !!(window as ExtendedWindow).runtime,
-        hasBrowserOpenURL: !!(window as ExtendedWindow).runtime?.BrowserOpenURL
+        hasBrowserOpenURL: !!(window as ExtendedWindow).runtime?.BrowserOpenURL,
+        hasOpenLocalPath: !!(window as ExtendedWindow).go?.main?.App?.OpenLocalPath
     });
 
     // 检测是否在 Wails 环境中
@@ -36,8 +45,8 @@ const initializeExternalLinksHandler = () => {
         return false;
     }
 
-    if (!(window as ExtendedWindow).runtime || !(window as ExtendedWindow).runtime?.BrowserOpenURL) {
-        console.warn('[Wails Handler] window.runtime.BrowserOpenURL not available - this is normal in development mode');
+    if (!(window as ExtendedWindow).runtime?.BrowserOpenURL && !(window as ExtendedWindow).go?.main?.App?.OpenLocalPath) {
+        console.warn('[Wails Handler] Wails link APIs are not available - this is normal in development mode');
         return false;
     }
 
@@ -58,17 +67,34 @@ const initializeExternalLinksHandler = () => {
             return;
         }
 
-        // 只处理以下协议的链接
-        const allowedProtocols = ['http:', 'https:', 'mailto:', 'tel:'];
+        if (url.protocol === 'file:') {
+            const openLocalPath = (window as ExtendedWindow).go?.main?.App?.OpenLocalPath;
+            if (!openLocalPath) {
+                console.warn('[Wails Handler] OpenLocalPath is not available for file URL:', url.href);
+                return;
+            }
+            console.log(`[Wails Handler] Intercepting local file link: ${url.href}`);
+            Promise.resolve(openLocalPath({ url: url.href }))
+                .then(() => console.log(`[Wails Handler] ✓ Opened local path: ${url.href}`))
+                .catch(error => console.error('[Wails Handler] Failed to open local path:', error));
+            return;
+        }
 
+        const allowedProtocols = ['http:', 'https:', 'mailto:', 'tel:'];
         if (!allowedProtocols.includes(url.protocol)) {
+            return;
+        }
+
+        const browserOpenURL = (window as ExtendedWindow).runtime?.BrowserOpenURL;
+        if (!browserOpenURL) {
+            console.warn('[Wails Handler] BrowserOpenURL is not available for external URL:', url.href);
             return;
         }
 
         console.log(`[Wails Handler] Intercepting link: ${url.href}`);
         // 调用 Wails 的 BrowserOpenURL 方法
         try {
-            (window as ExtendedWindow).runtime!.BrowserOpenURL(url.href);
+            browserOpenURL(url.href);
             console.log(`[Wails Handler] ✓ Opened URL via BrowserOpenURL: ${url.href}`);
         } catch (error) {
             console.error('[Wails Handler] Failed to open external URL:', error);
@@ -92,6 +118,12 @@ const initializeExternalLinksHandler = () => {
         return null;
     };
 
+    const isInsideEditableBlockNote = (link: HTMLAnchorElement): boolean => {
+        const editor = link.closest('.blocknote-editor');
+
+        return Boolean(editor && !editor.classList.contains('blocknote-editor--readonly'));
+    };
+
     // 鼠标点击事件处理器
     const clickHandler = (e: MouseEvent) => {
         console.log('[Wails Handler] Click event detected', e);
@@ -99,39 +131,18 @@ const initializeExternalLinksHandler = () => {
         // - 已经 preventDefault 的事件
         // - 非左键点击 (button !== 0)
         // - 按下了 metaKey (⌘/Cmd) 或 altKey 或 ctrlKey 或 shiftKey
-        if (0 !== e.button || e.metaKey || e.altKey || e.ctrlKey || e.shiftKey) return;
+        if (e.defaultPrevented || 0 !== e.button || e.metaKey || e.altKey || e.ctrlKey || e.shiftKey) return;
 
         // 从事件目标向上遍历查找 A 标签
         const link = findLinkInAncestors(e.target as Node);
         if (link) {
-            e.preventDefault();
-            handleExternalLink(link);
-        }
-    };
+            if (isInsideEditableBlockNote(link)) {
+                e.preventDefault();
+                e.stopPropagation();
 
-    // Pointer 事件处理器（兼容 herui onPress 等自定义事件系统）
-    const pointerHandler = (e: PointerEvent) => {
-        // 只处理主按钮（通常是左键）
-        if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.altKey || e.ctrlKey || e.shiftKey) return;
+                return;
+            }
 
-        // 从事件目标向上遍历查找 A 标签
-        const link = findLinkInAncestors(e.target as Node);
-        if (link) {
-            e.preventDefault();
-            handleExternalLink(link);
-        }
-    };
-
-    // 键盘事件处理器（处理回车键和空格键）
-    const keydownHandler = (e: KeyboardEvent) => {
-        // 处理回车键和空格键
-        if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
-        if (e.defaultPrevented || e.metaKey || e.altKey || e.ctrlKey) return;
-
-        // 获取当前聚焦的元素，并向上遍历查找 A 标签
-        const activeElement = document.activeElement;
-        const link = findLinkInAncestors(activeElement as Node);
-        if (link) {
             e.preventDefault();
             handleExternalLink(link);
         }
@@ -140,9 +151,7 @@ const initializeExternalLinksHandler = () => {
     // 在 document 上使用捕获阶段监听事件，确保在 herui 事件处理器之前捕获
     // 这允许我们阻止事件并使用 BrowserOpenURL
     document.addEventListener('click', clickHandler, true); // 使用捕获阶段
-    // document.addEventListener('pointerdown', pointerHandler, true); // herui onPress 基于此
-    // document.addEventListener('keydown', keydownHandler, true); // 键盘导航支持
-    console.log('[Wails Handler] ✓ Initialized successfully - click, pointer, and keyboard events are being monitored');
+    console.log('[Wails Handler] ✓ Initialized successfully - click events are being monitored');
 
     return true;
 };

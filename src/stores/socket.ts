@@ -14,6 +14,24 @@ const socketStore = proxy<SocketStore>({
 var centrifugeManager: CentrifugeManager;
 var isBuilding = false; // 防止重复调用
 
+function isHermesDesktopRuntime(): boolean {
+    if (typeof window === 'undefined') {
+        return false;
+    }
+
+    return Boolean(
+        (
+            window as Window & {
+                go?: { main?: { App?: { ConfigureHermesAgent?: unknown } } };
+            }
+        ).go?.main?.App?.ConfigureHermesAgent
+    );
+}
+
+function isRemoteChatTopic(topic: string): boolean {
+    return topic.startsWith('/chat_session/');
+}
+
 export function closeSocket() {
     centrifugeManager?.disconnect();
     isBuilding = false;
@@ -55,6 +73,16 @@ export function buildTower(userId: string, appid: string, token: string, tokenTy
 
             // 设置订阅函数
             socketStore.subscribe = (topics: string[], callback: (msg: FireTowerMsg) => void): (() => void) => {
+                const subscribeTopics = isHermesDesktopRuntime() ? topics.filter(topic => !isRemoteChatTopic(topic)) : topics;
+
+                if (subscribeTopics.length !== topics.length) {
+                    console.warn('Remote chat websocket subscription skipped in desktop Hermes mode:', topics.filter(isRemoteChatTopic));
+                }
+
+                if (subscribeTopics.length === 0) {
+                    return () => {};
+                }
+
                 // 将消息从 Centrifuge 格式转换为 FireTower 格式
                 const centrifugeCallback = (centrifugeMsg: CentrifugeMessage) => {
                     // 转换消息格式以保持兼容性
@@ -75,7 +103,7 @@ export function buildTower(userId: string, appid: string, token: string, tokenTy
                 };
 
                 // 使用 Centrifuge 管理器订阅
-                const unsubscribe = centrifugeManager.subscribe(topics, centrifugeCallback);
+                const unsubscribe = centrifugeManager.subscribe(subscribeTopics, centrifugeCallback);
                 return unsubscribe;
             };
 

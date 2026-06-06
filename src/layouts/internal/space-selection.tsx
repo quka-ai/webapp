@@ -152,7 +152,7 @@ export default function Component() {
                     className="px-1"
                     classNames={{
                         trigger:
-                            'min-h-14 bg-transparent border-small border-default-200 dark:border-default-200 data-[hover=true]:border-default-500 dark:data-[hover=true]:border-default-300 data-[hover=true]:bg-transparent',
+                            'min-h-14 border border-default-200 bg-content1 shadow-none data-[hover=true]:border-default-300 data-[hover=true]:bg-default-50 dark:border-white/10 dark:bg-transparent dark:data-[hover=true]:bg-default-200/10 dark:data-[hover=true]:border-white/15',
                         listbox: 'z-0',
                         popoverContent: 'border-1 border-default-200'
                     }}
@@ -169,8 +169,8 @@ export default function Component() {
                     placeholder="Select workspace"
                     selectorIcon={<Icon color="hsl(var(--heroui-default-500))" icon="lucide:chevrons-up-down" />}
                     startContent={
-                        <div className="relative h-10 w-10 flex-none rounded-full border-small border-default-300">
-                            <Icon className="ml-2 mt-2 text-default-500" icon="solar:users-group-rounded-linear" width={24} />
+                        <div className="relative h-10 w-10 flex-none rounded-full border border-default-200 bg-default-50 dark:border-white/10 dark:bg-default-200/10">
+                            <Icon className="ml-2 mt-2 text-default-500 dark:text-default-400" icon="solar:users-group-rounded-linear" width={24} />
                         </div>
                     }
                     renderValue={items => {

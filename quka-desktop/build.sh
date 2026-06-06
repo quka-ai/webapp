@@ -33,6 +33,9 @@ done
 
 echo "🎯 目标平台: $PLATFORM"
 
+# 0. 构建前端项目
+npm run build-beta
+
 # 1. 复制前端资源
 echo "📦 复制前端资源..."
 ./copy-assets.sh
@@ -40,13 +43,19 @@ echo "📦 复制前端资源..."
 # 2. 构建应用
 echo "🔨 构建应用..."
 export PATH="$HOME/go/bin:$PATH"
+rm -rf build/bin
 wails build -clean -platform "$PLATFORM"
 
 # 3. 检查构建是否成功
 if [ $? -eq 0 ]; then
     echo "✅ 构建成功！"
 
-    # 4. 更新应用图标
+    # 4. 打包 Hermes Agent runtime
+    echo "🤖 打包 Hermes Agent runtime..."
+    chmod +x bundle-hermes.sh 2>/dev/null
+    ./bundle-hermes.sh "build/bin/QukaAI.app"
+
+    # 5. 更新应用图标
     echo "🎨 更新应用图标..."
 
     # 确保图标文件存在

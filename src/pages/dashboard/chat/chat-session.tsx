@@ -1,4 +1,5 @@
-import { Accordion, AccordionItem, Avatar, Listbox, ListboxItem, ScrollShadow } from '@heroui/react';
+import { Accordion, AccordionItem, Avatar, Button, Listbox, ListboxItem, Modal, ModalBody, ModalContent, ModalHeader, ScrollShadow, useDisclosure } from '@heroui/react';
+import { Icon } from '@iconify/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
@@ -7,12 +8,17 @@ import { useImmer } from 'use-immer';
 import { useSnapshot } from 'valtio';
 
 import { GenChatMessageID, GetChatSessionHistory, GetMessageExt, MessageDetail, NamedChatSession, SendMessage, StopChatStream } from '@/apis/chat';
+import { ensureHermesAgentConfigured, HasHermesProviderConfigured, isHermesDesktopAvailable, SubscribeHermesChatStreamEvent } from '@/apis/hermes-desktop';
 import KnowledgeModal from '@/components/knowledge-modal';
 import { LogoIcon } from '@/components/logo';
+import AnimatedShinyText from '@/components/shiny-text';
 import { useMedia } from '@/hooks/use-media';
 import useUserAvatar from '@/hooks/use-user-avatar';
+import HermesStatusIndicator from '@/pages/dashboard/chat/hermes-status-indicator';
 import MessageCard, { type MessageExt } from '@/pages/dashboard/chat/message-card';
 import PromptInputWithEnclosedActions from '@/pages/dashboard/chat/prompt-input-with-enclosed-actions';
+import HermesProviderSetting from '@/pages/dashboard/setting/hermes-provider-setting';
+import HermesSkillsSetting from '@/pages/dashboard/setting/hermes-skills-setting';
 import { notifySessionNamedEvent, notifySessionReload } from '@/stores/session';
 import socketStore, { CONNECTION_OK } from '@/stores/socket';
 import spaceStore from '@/stores/space';
@@ -47,6 +53,7 @@ function delay(ms: number) {
 }
 
 const messageDaemon: Map<string, NodeJS.Timeout> = new Map();
+const AUTO_SCROLL_BOTTOM_THRESHOLD = 180;
 
 function setMessageDaemon(messageID: string, callback: () => void) {
     const existInterval = messageDaemon.get(messageID);
@@ -75,21 +82,100 @@ export default function Chat() {
     const userAvatar = useUserAvatar();
     const { sessionID } = useParams();
     const pageSize: number = 100;
-    const [page, setPage] = useState<number>(1);
+    const [, setPage] = useState<number>(1);
     // const [onEvent, setEvent] = useState<FireTowerMsg | null>();
     const { subscribe, connectionStatus } = useSnapshot(socketStore);
     const [hasMore, setHasMore] = useState<boolean>(true);
+    const desktopMode = isHermesDesktopAvailable();
+    const [providerConfigured, setProviderConfigured] = useState<boolean>(() => !isHermesDesktopAvailable());
+    const [hermesTurnActive, setHermesTurnActive] = useState<boolean>(false);
+    const [hermesAssistantStreaming, setHermesAssistantStreaming] = useState<boolean>(false);
+    const { isOpen: isHermesSettingOpen, onOpen: openHermesSetting, onClose: closeHermesSetting, onOpenChange: onHermesSettingOpenChange } = useDisclosure();
+    const { isOpen: isHermesSkillsOpen, onOpen: openHermesSkills, onClose: closeHermesSkills, onOpenChange: onHermesSkillsOpenChange } = useDisclosure();
 
     const ssDom = useRef<HTMLElement>(null);
+    const autoScrollRef = useRef(true);
+    const hermesTurnActiveRef = useRef(false);
+    const hermesAssistantStreamingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const getScrollBottom = useScrollBottom(ssDom);
 
+    useEffect(() => {
+        if (!desktopMode) {
+            setProviderConfigured(true);
+            return;
+        }
+
+        HasHermesProviderConfigured()
+            .then(setProviderConfigured)
+            .catch(error => {
+                console.error('Failed to check Hermes provider configuration:', error);
+                setProviderConfigured(false);
+            });
+    }, [desktopMode]);
+
+    useEffect(() => {
+        if (!currentSelectedSpace || !desktopMode || !providerConfigured) {
+            return;
+        }
+
+        ensureHermesAgentConfigured(currentSelectedSpace).catch(error => {
+            console.error('Failed to start Hermes Agent:', error);
+        });
+    }, [currentSelectedSpace, desktopMode, providerConfigured]);
+
+    const handleMessageScroll = useCallback(() => {
+        autoScrollRef.current = getScrollBottom() <= AUTO_SCROLL_BOTTOM_THRESHOLD;
+    }, [getScrollBottom]);
+
     function goToBottom() {
-        if (ssDom) {
-            // @ts-ignore
-            ssDom.current.scrollTop = 9999999;
+        if (ssDom.current) {
+            ssDom.current.scrollTop = ssDom.current.scrollHeight;
+            autoScrollRef.current = true;
         }
     }
+
+    function followStreamToBottom() {
+        if (autoScrollRef.current || getScrollBottom() <= AUTO_SCROLL_BOTTOM_THRESHOLD) {
+            goToBottom();
+        }
+    }
+
+    const setHermesTurnRunning = useCallback((running: boolean) => {
+        hermesTurnActiveRef.current = running;
+        setHermesTurnActive(running);
+    }, []);
+
+    const markHermesAssistantStreaming = useCallback((streaming: boolean, settleDelay = 0) => {
+        if (hermesAssistantStreamingTimerRef.current) {
+            clearTimeout(hermesAssistantStreamingTimerRef.current);
+            hermesAssistantStreamingTimerRef.current = null;
+        }
+
+        if (streaming) {
+            setHermesAssistantStreaming(true);
+            return;
+        }
+
+        if (settleDelay > 0) {
+            hermesAssistantStreamingTimerRef.current = setTimeout(() => {
+                hermesAssistantStreamingTimerRef.current = null;
+                setHermesAssistantStreaming(false);
+            }, settleDelay);
+            return;
+        }
+
+        setHermesAssistantStreaming(false);
+    }, []);
+
+    useEffect(() => {
+        return () => {
+            if (hermesAssistantStreamingTimerRef.current) {
+                clearTimeout(hermesAssistantStreamingTimerRef.current);
+                hermesAssistantStreamingTimerRef.current = null;
+            }
+        };
+    }, []);
 
     const loadMessageExt = useCallback(
         async (messageID: string) => {
@@ -131,11 +217,11 @@ export default function Chat() {
             setMessages((prev: Message[]) => {
                 if (prev.length > 0) {
                     const hasOngoingMessage = prev.some(msg => msg.status === 'continue');
-                    if (!hasOngoingMessage) {
+                    if (!hasOngoingMessage && (!desktopMode || !hermesTurnActiveRef.current)) {
                         console.log('[reloadFunc] No ongoing messages found, setting aiTyping to false');
                         setAiTyping(false);
                     }
-                } else {
+                } else if (!desktopMode || !hermesTurnActiveRef.current) {
                     // 如果没有消息，也重置 aiTyping
                     setAiTyping(false);
                 }
@@ -144,7 +230,11 @@ export default function Chat() {
             onChatSessionMessageListReload = false;
         };
 
-        if (connectionStatus !== CONNECTION_OK || !sessionID || !subscribe) {
+        if (desktopMode && !providerConfigured) {
+            return;
+        }
+
+        if (!desktopMode && (connectionStatus !== CONNECTION_OK || !sessionID || !subscribe)) {
             if (messages.length > 0) {
                 reloadFunc();
             }
@@ -179,6 +269,20 @@ export default function Chat() {
                     }
 
                     switch (data.type) {
+                        case EventType.EVENT_TURN_START:
+                            if (desktopMode) {
+                                markHermesAssistantStreaming(false);
+                                setHermesTurnRunning(true);
+                                setAiTyping(true);
+                            }
+                            break;
+                        case EventType.EVENT_TURN_DONE:
+                            if (desktopMode) {
+                                markHermesAssistantStreaming(false);
+                                setHermesTurnRunning(false);
+                                setAiTyping(false);
+                            }
+                            break;
                         case EventType.EVENT_TOOL_INIT:
                             console.log(`[TOOL_INIT] Tool message initialized, messageID: ${data.messageID}`);
                             setMessages((prev: Message[]) => {
@@ -202,7 +306,9 @@ export default function Chat() {
                             break;
                         case EventType.EVENT_ASSISTANT_INIT:
                             console.log(`[INIT] Assistant message initialized, messageID: ${data.messageID}`);
-                            setAiTyping(false);
+                            if (!desktopMode) {
+                                setAiTyping(false);
+                            }
                             if (messages.find(v => v.key === data.messageID)) {
                                 console.log(`[INIT] Message already exists, skipping`);
                                 break;
@@ -226,6 +332,9 @@ export default function Chat() {
                             break;
                         case EventType.EVENT_ASSISTANT_CONTINUE:
                             const messageRunes = runes(data.message);
+                            if (desktopMode && messageRunes.length > 0) {
+                                markHermesAssistantStreaming(true);
+                            }
                             // 只在消息开始时和较长的消息时记录日志，避免日志过多
                             if (data.startAt === 0 || messageRunes.length > 100) {
                                 console.log(`[CONTINUE] messageID: ${data.messageID}, startAt: ${data.startAt}, length: ${messageRunes.length}`);
@@ -266,19 +375,25 @@ export default function Chat() {
                                 });
 
                                 if (i % 26 === 0) {
-                                    if (getScrollBottom() < 150) {
-                                        goToBottom();
-                                    }
+                                    followStreamToBottom();
                                 }
 
                                 await delay(30);
+                            }
+                            if (desktopMode && messageRunes.length > 0) {
+                                markHermesAssistantStreaming(false, 900);
                             }
                             setMessageDaemon(data.messageID, reloadFunc);
 
                             break;
                         case EventType.EVENT_ASSISTANT_DONE:
                             console.log(`[DONE] messageID: ${data.messageID}, startAt: ${data.startAt}`);
-                            setAiTyping(false);
+                            if (desktopMode) {
+                                markHermesAssistantStreaming(false);
+                            }
+                            if (!desktopMode) {
+                                setAiTyping(false);
+                            }
                             removeMessageDaemon(data.messageID);
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
@@ -311,77 +426,115 @@ export default function Chat() {
                                     return;
                                 }
 
-                                todo.toolTips.forEach(toolTip => {
-                                    toolTip.status = ToolStatus.TOOL_STATUS_SUCCESS;
-                                });
+                                if (data.toolTips?.length) {
+                                    todo.toolTips = data.toolTips;
+                                } else {
+                                    todo.toolTips.forEach(toolTip => {
+                                        toolTip.status = ToolStatus.TOOL_STATUS_SUCCESS;
+                                    });
+                                }
 
                                 // 标记 tool 消息为完成状态
                                 todo.status = 'success';
                             });
-                            // Tool 完成后也需要检查是否还有其他正在进行的消息
-                            // 如果没有，则重置 aiTyping
-                            setMessages((prev: Message[]) => {
-                                const hasOngoingMessage = prev.some(msg => msg.status === 'continue');
-                                if (!hasOngoingMessage) {
-                                    console.log('[TOOL_DONE] No ongoing messages, setting aiTyping to false');
-                                    setAiTyping(false);
-                                }
-                                return prev;
-                            });
+                            if (!desktopMode) {
+                                // Tool 完成后也需要检查是否还有其他正在进行的消息
+                                // 如果没有，则重置 aiTyping
+                                setMessages((prev: Message[]) => {
+                                    const hasOngoingMessage = prev.some(msg => msg.status === 'continue');
+                                    if (!hasOngoingMessage) {
+                                        console.log('[TOOL_DONE] No ongoing messages, setting aiTyping to false');
+                                        setAiTyping(false);
+                                    }
+                                    return prev;
+                                });
+                            }
                             break;
                         case EventType.EVENT_TOOL_FAILED:
                             console.log(`[TOOL_FAILED] Tool execution failed, messageID: ${data.messageID}`);
                             removeMessageDaemon(data.messageID);
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
-                                if (!todo || !todo.toolTips) {
-                                    console.log(`[TOOL_FAILED] Message or toolTips not found, triggering reload`);
-                                    reloadFunc();
+                                if (!todo) {
+                                    prev.push({
+                                        key: data.messageID,
+                                        spaceID: data.spaceID || currentSelectedSpace,
+                                        message: '',
+                                        role: 'tool',
+                                        status: 'failed',
+                                        sequence: data.sequence || 0,
+                                        len: 0,
+                                        toolTips: data.toolTips,
+                                        ext: {}
+                                    });
                                     return;
                                 }
 
-                                todo.toolTips.forEach(toolTip => {
-                                    toolTip.status = ToolStatus.TOOL_STATUS_FAILED;
-                                });
+                                if (!todo.toolTips) {
+                                    todo.toolTips = data.toolTips || [];
+                                }
+
+                                if (data.toolTips?.length) {
+                                    todo.toolTips = data.toolTips;
+                                } else {
+                                    todo.toolTips.forEach(toolTip => {
+                                        toolTip.status = ToolStatus.TOOL_STATUS_FAILED;
+                                    });
+                                }
 
                                 // 标记 tool 消息为失败状态
                                 todo.status = 'failed';
                             });
-                            // Tool 失败后也需要检查是否还有其他正在进行的消息
-                            // 如果没有，则重置 aiTyping
-                            setMessages((prev: Message[]) => {
-                                const hasOngoingMessage = prev.some(msg => msg.status === 'continue');
-                                if (!hasOngoingMessage) {
-                                    console.log('[TOOL_FAILED] No ongoing messages, setting aiTyping to false');
-                                    setAiTyping(false);
-                                }
-                                return prev;
-                            });
+                            if (!desktopMode) {
+                                // Tool 失败后也需要检查是否还有其他正在进行的消息
+                                // 如果没有，则重置 aiTyping
+                                setMessages((prev: Message[]) => {
+                                    const hasOngoingMessage = prev.some(msg => msg.status === 'continue');
+                                    if (!hasOngoingMessage) {
+                                        console.log('[TOOL_FAILED] No ongoing messages, setting aiTyping to false');
+                                        setAiTyping(false);
+                                    }
+                                    return prev;
+                                });
+                            }
                             break;
                         case EventType.EVENT_ASSISTANT_FAILED:
                             console.log(`[FAILED] Assistant message failed, messageID: ${data.messageID}`);
+                            if (desktopMode) {
+                                markHermesAssistantStreaming(false);
+                            }
                             setMessages((prev: Message[]) => {
                                 const todo = prev.find(todo => todo.key === data.messageID);
                                 if (!todo) {
-                                    console.log(`[FAILED] Message not found, triggering reload`);
-                                    reloadFunc();
+                                    prev.push({
+                                        key: data.messageID,
+                                        spaceID: data.spaceID || currentSelectedSpace,
+                                        message: data.message || t('SystemError'),
+                                        role: 'assistant',
+                                        status: 'failed',
+                                        sequence: data.sequence || 0,
+                                        len: runes(data.message || '').length,
+                                        ext: {}
+                                    });
                                     return;
                                 }
-                                if (todo) {
-                                    todo.status = 'failed';
+                                if (!todo.message && data.message) {
+                                    todo.message = data.message;
+                                    todo.len = runes(data.message).length;
                                 }
+                                todo.status = 'failed';
                             });
                             removeMessageDaemon(data.messageID);
                             // 消息失败时也应该重置 aiTyping
-                            setAiTyping(false);
+                            if (!desktopMode) {
+                                setAiTyping(false);
+                            }
                             break;
 
                         default:
                     }
 
-                    if (getScrollBottom() < 150) {
-                        goToBottom();
-                    }
+                    followStreamToBottom();
                 }
                 interval();
             }, 200);
@@ -391,26 +544,20 @@ export default function Chat() {
             interval();
         });
 
-        // data : {\"subject\":\"stage_changed\",\"version\":\"v1\",\"data\":{\"knowledge_id\":\"n9qU71qKbqhHak6weNrH7UpCzU4yNiBv\",\"stage\":\"Done\"}}"
-        const unSubscribe = subscribe(['/chat_session/' + currentSelectedSpace + '/' + sessionID], (msg: FireTowerMsg) => {
-            if (msg.data.subject !== 'on_message' && msg.data.subject !== 'on_message_init') {
-                return;
-            }
-
-            const { type, data } = msg.data;
-            const streamData = data as StreamMessage;
-
+        const enqueueStreamEvent = (eventType: EventType | string | number, streamData: StreamMessage & { sequence?: number; space_id?: string }, data: any = streamData) => {
             // 处理 Centrifuge 字符串类型的 EventType
-            const eventType = typeof type === 'string' ? parseInt(type) : type;
+            eventType = typeof eventType === 'string' ? parseInt(eventType) : eventType;
             switch (eventType) {
                 case EventType.EVENT_ASSISTANT_INIT:
                 case EventType.EVENT_TOOL_INIT:
+                case EventType.EVENT_TURN_START:
+                case EventType.EVENT_TURN_DONE:
                     queue.push({
                         messageID: streamData.message_id,
                         type: eventType,
                         startAt: 0,
-                        sequence: data.sequence, // sequence不在StreamMessage中，保持使用data
-                        spaceID: data.space_id, // space_id不在StreamMessage中，保持使用data
+                        sequence: data.sequence,
+                        spaceID: data.space_id,
                         sessionID: streamData.session_id,
                         message: ''
                     });
@@ -432,6 +579,9 @@ export default function Chat() {
                         });
                         // 可以在这里处理tool tips相关逻辑
                     } else {
+                        if (desktopMode && eventType === EventType.EVENT_ASSISTANT_CONTINUE && streamData.message) {
+                            markHermesAssistantStreaming(true);
+                        }
                         queue.push({
                             messageID: streamData.message_id,
                             type: eventType,
@@ -445,14 +595,13 @@ export default function Chat() {
                         messageID: streamData.message_id,
                         type: eventType,
                         startAt: streamData.start_at,
-                        message: ''
+                        message: streamData.message || ''
                     });
                     // todo load this message exts
                     break;
                 case EventType.EVENT_TOOL_DONE:
                     const newToolTips: ToolTips[] = [];
                     if (streamData.tool_tips) {
-                        streamData.tool_tips.content = '';
                         streamData.tool_tips.status = ToolStatus.TOOL_STATUS_SUCCESS;
                         newToolTips.push(streamData.tool_tips);
                     }
@@ -468,21 +617,51 @@ export default function Chat() {
                     break;
                 case EventType.EVENT_ASSISTANT_FAILED:
                 case EventType.EVENT_TOOL_FAILED:
+                    const failedToolTips: ToolTips[] = [];
+                    if (streamData.tool_tips) {
+                        streamData.tool_tips.status = ToolStatus.TOOL_STATUS_FAILED;
+                        failedToolTips.push(streamData.tool_tips);
+                    }
                     queue.push({
                         messageID: streamData.message_id,
                         type: eventType,
-                        startAt: 0,
-                        message: ''
+                        startAt: streamData.start_at,
+                        sequence: data.sequence,
+                        spaceID: data.space_id,
+                        sessionID: streamData.session_id,
+                        toolTips: failedToolTips,
+                        message: streamData.message || streamData.tool_tips?.content || ''
                     });
                     break;
             }
+        };
+
+        if (desktopMode) {
+            const unSubscribe = SubscribeHermesChatStreamEvent(currentSelectedSpace, sessionID, enqueueStreamEvent);
+
+            return () => {
+                isExist = true;
+                unSubscribe();
+            };
+        }
+
+        // data : {\"subject\":\"stage_changed\",\"version\":\"v1\",\"data\":{\"knowledge_id\":\"n9qU71qKbqhHak6weNrH7UpCzU4yNiBv\",\"stage\":\"Done\"}}"
+        const unSubscribe = subscribe!(['/chat_session/' + currentSelectedSpace + '/' + sessionID], (msg: FireTowerMsg) => {
+            if (msg.data.subject !== 'on_message' && msg.data.subject !== 'on_message_init') {
+                return;
+            }
+
+            const { type, data } = msg.data;
+            const streamData = data as StreamMessage;
+
+            enqueueStreamEvent(typeof type === 'string' ? parseInt(type) : type, streamData, data);
         });
 
         return () => {
             isExist = true;
             unSubscribe();
         };
-    }, [connectionStatus, currentSelectedSpace, sessionID]);
+    }, [connectionStatus, currentSelectedSpace, sessionID, desktopMode, providerConfigured, markHermesAssistantStreaming, setHermesTurnRunning]);
 
     const loadData = useCallback(
         async (page: number): Promise<number | void> => {
@@ -529,7 +708,8 @@ export default function Chat() {
                                 relDocs: v.ext?.rel_docs,
                                 toolName: v.ext?.tool_name,
                                 toolArgs: v.ext?.tool_args
-                            }
+                            },
+                            toolTips: v.ext?.tool_tips
                         };
                     });
 
@@ -540,7 +720,9 @@ export default function Chat() {
                 }
 
                 setTimeout(() => {
-                    goToBottom();
+                    if (page === 1) {
+                        goToBottom();
+                    }
                 }, 500);
 
                 return resp.total;
@@ -555,24 +737,43 @@ export default function Chat() {
     const urlParams = new URLSearchParams(window.location.search);
     const isNew = urlParams.get('isNew');
 
+    const hasOngoingMessage = useMemo<boolean>(() => messages.some(msg => msg.status === 'continue'), [messages]);
+    const hasActiveAssistantPlaceholder = useMemo<boolean>(() => messages.some(msg => msg.role === 'assistant' && msg.status === 'continue' && !msg.message.trim()), [messages]);
+    const hasRunningToolMessage = useMemo<boolean>(() => messages.some(msg => msg.role === 'tool' && msg.status === 'continue'), [messages]);
+
     const isGenerating = useMemo<boolean>(() => {
-        if (!messages || messages.length === 0) {
-            // 如果没有消息，只依赖 aiTyping 状态
-            return aiTyping;
+        if (desktopMode) {
+            return hermesTurnActive || aiTyping || hasOngoingMessage;
         }
+        return aiTyping || hasOngoingMessage;
+    }, [aiTyping, desktopMode, hasOngoingMessage, hermesTurnActive]);
 
-        // 检查是否有任何消息处于 continue 状态（正在生成中）
-        const hasOngoingMessage = messages[messages.length - 1].status === 'continue';
+    const showHermesThinkingIndicator = useMemo<boolean>(() => {
+        if (!desktopMode || (!hermesTurnActive && !aiTyping)) {
+            return false;
+        }
+        return !hermesAssistantStreaming && !hasActiveAssistantPlaceholder && !hasRunningToolMessage;
+    }, [aiTyping, desktopMode, hasActiveAssistantPlaceholder, hasRunningToolMessage, hermesAssistantStreaming, hermesTurnActive]);
 
-        // 只有当 aiTyping 为 true 或者存在正在生成的消息时，才认为正在生成
-        const generating = aiTyping || hasOngoingMessage;
-
-        return generating;
-    }, [aiTyping, messages]);
+    const showTypingIndicator = desktopMode ? showHermesThinkingIndicator : aiTyping;
 
     const query = useCallback(
         async (message: string, agent: string, args: ChatArgs, files?: Attach[]) => {
+            console.info('[hermes] chat session query invoked', {
+                spaceID: currentSelectedSpace,
+                sessionID,
+                messageLength: message.length,
+                args
+            });
             if (!currentSelectedSpace || !sessionID) {
+                console.warn('[hermes] chat session query skipped: missing space or session', {
+                    spaceID: currentSelectedSpace,
+                    sessionID
+                });
+                return;
+            }
+            if (desktopMode && !providerConfigured) {
+                openHermesSetting();
                 return;
             }
 
@@ -580,6 +781,7 @@ export default function Chat() {
 
             try {
                 const msgID = await GenChatMessageID(currentSelectedSpace, sessionID);
+                console.info('[hermes] chat session generated message id', { msgID });
                 const resp = await SendMessage(currentSelectedSpace, sessionID, {
                     messageID: msgID,
                     message: message,
@@ -589,6 +791,7 @@ export default function Chat() {
                     enableKnowledge: args.enableKnowledge,
                     files: files
                 });
+                console.info('[hermes] chat session send returned', resp);
 
                 setMessages((prev: Message[]) => {
                     prev.push({
@@ -604,15 +807,22 @@ export default function Chat() {
                 });
 
                 // waiting ws response
+                if (desktopMode) {
+                    markHermesAssistantStreaming(false);
+                }
                 setAiTyping(true);
 
-                // 在消息守护进程中清除这个超时
-                setMessageDaemon(resp.answer_id, () => {
-                    console.warn('未收到 MESSAGE INIT 事件，触发重载');
-                    setAiTyping(false);
-                    // 重新加载数据以获取最新状态
-                    loadData(1);
-                });
+                if (desktopMode) {
+                    setHermesTurnRunning(true);
+                } else {
+                    // 在消息守护进程中清除这个超时
+                    setMessageDaemon(resp.answer_id, () => {
+                        console.warn('未收到 MESSAGE INIT 事件，触发重载');
+                        setAiTyping(false);
+                        // 重新加载数据以获取最新状态
+                        loadData(1);
+                    });
+                }
 
                 sessionID && notifySessionReload(sessionID);
 
@@ -620,11 +830,17 @@ export default function Chat() {
                     goToBottom();
                 }, 500);
             } catch (e: any) {
+                console.error('[hermes] chat session query failed', e);
+                if (desktopMode) {
+                    markHermesAssistantStreaming(false);
+                    setHermesTurnRunning(false);
+                }
+                setAiTyping(false);
                 console.error(e);
                 throw e;
             }
         },
-        [currentSelectedSpace, messages]
+        [currentSelectedSpace, sessionID, loadData, desktopMode, providerConfigured, openHermesSetting, setHermesTurnRunning, markHermesAssistantStreaming]
     );
 
     async function NamedSession(firstMessage: string) {
@@ -652,22 +868,38 @@ export default function Chat() {
     useEffect(() => {
         async function load() {
             setMessages([]);
+            markHermesAssistantStreaming(false);
             setAiTyping(true);
             const total = await loadData(1);
             if (isNew && total === 0) {
                 if (location.state && location.state.messages && location.state.messages.length === 1) {
-                    NamedSession(location.state.messages[0].message);
-                    setSelectedUseMemory(location.state.enableKnowledge);
-                    setSelectedEnableThinking(location.state.args.enableThinking);
-                    setSelectedEnableSearch(location.state.args.enableSearch);
-                    await query(location.state.messages[0].message, location.state.agent, location.state.args, location.state.files);
-                    location.state.messages = undefined;
-                    return;
+                    console.info('[hermes] new chat session auto-send begin', location.state);
+                    try {
+                        NamedSession(location.state.messages[0].message);
+                        setSelectedUseMemory(Boolean(location.state.args?.enableKnowledge));
+                        setSelectedEnableThinking(Boolean(location.state.args?.enableThinking));
+                        setSelectedEnableSearch(Boolean(location.state.args?.enableSearch));
+                        await query(location.state.messages[0].message, location.state.agent, location.state.args, location.state.files);
+                        location.state.messages = undefined;
+                        return;
+                    } catch (error) {
+                        console.error('[hermes] new chat session auto-send failed', error);
+                        markHermesAssistantStreaming(false);
+                        setHermesTurnRunning(false);
+                        setAiTyping(false);
+                    }
                 }
             }
             setAiTyping(false);
         }
         if (currentSelectedSpace) {
+            if (desktopMode && !providerConfigured) {
+                setMessages([]);
+                markHermesAssistantStreaming(false);
+                setHermesTurnRunning(false);
+                setAiTyping(false);
+                return;
+            }
             if (!sessionID || (messages && messages.length > 0 && messages[0].spaceID !== currentSelectedSpace)) {
                 navigate(`/dashboard/${currentSelectedSpace}/chat`);
 
@@ -675,7 +907,7 @@ export default function Chat() {
             }
             load();
         }
-    }, [currentSelectedSpace, sessionID]);
+    }, [currentSelectedSpace, sessionID, desktopMode, providerConfigured, setHermesTurnRunning, markHermesAssistantStreaming]);
 
     const viewKnowledge = useRef(null);
 
@@ -695,14 +927,98 @@ export default function Chat() {
         if (!currentSelectedSpace || !sessionID) {
             return;
         }
-        await StopChatStream(currentSelectedSpace, sessionID);
-    }, [currentSelectedSpace, sessionID]);
+        try {
+            await StopChatStream(currentSelectedSpace, sessionID);
+        } catch (error) {
+            console.error('[hermes] stop chat stream failed', error);
+        } finally {
+            if (desktopMode) {
+                markHermesAssistantStreaming(false);
+                setHermesTurnRunning(false);
+            }
+            setAiTyping(false);
+            setMessages((prev: Message[]) => {
+                prev.forEach(message => {
+                    if (message.status !== 'continue') {
+                        return;
+                    }
+                    removeMessageDaemon(message.key);
+                    message.status = 'success';
+                    if (message.role === 'assistant' && !message.message.trim()) {
+                        message.message = t('Generation stopped');
+                        message.len = runes(message.message).length;
+                    }
+                    message.toolTips?.forEach(toolTip => {
+                        if (toolTip.status === ToolStatus.TOOL_STATUS_RUNNING) {
+                            toolTip.status = ToolStatus.TOOL_STATUS_SUCCESS;
+                        }
+                    });
+                });
+            });
+        }
+    }, [currentSelectedSpace, sessionID, setMessages, t, desktopMode, setHermesTurnRunning, markHermesAssistantStreaming]);
+
+    const handleProviderConfigured = useCallback(() => {
+        setProviderConfigured(true);
+        closeHermesSetting();
+        if (currentSelectedSpace) {
+            ensureHermesAgentConfigured(currentSelectedSpace).catch(error => {
+                console.error('Failed to start Hermes Agent:', error);
+            });
+        }
+    }, [closeHermesSetting, currentSelectedSpace]);
+
+    if (desktopMode && !providerConfigured) {
+        return (
+            <div className="overflow-hidden w-full h-full flex justify-center relative">
+                <div className="absolute right-4 top-4 z-10">
+                    <HermesStatusIndicator />
+                </div>
+                <div className="flex w-full h-full flex-col px-4 sm:max-w-[620px] justify-center">
+                    <HermesProviderSetting
+                        className="rounded-large border border-default-200 bg-content1 p-4 shadow-sm"
+                        description={t('Configure Hermes before chatting')}
+                        onConfigured={handleProviderConfigured}
+                    />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <>
             <div className="overflow-hidden w-full h-full flex flex-col relative px-3">
+                {desktopMode && (
+                    <>
+                        <div className="pointer-events-none absolute right-4 top-4 z-50 flex items-center gap-2">
+                            <HermesStatusIndicator className="pointer-events-auto" />
+                            <Button isIconOnly className="pointer-events-auto" variant="light" aria-label={t('Hermes Skills')} onClick={openHermesSkills} onPress={openHermesSkills}>
+                                <Icon icon="material-symbols:extension-rounded" width={22} />
+                            </Button>
+                            <Button isIconOnly className="pointer-events-auto" variant="light" aria-label={t('Hermes Settings')} onClick={openHermesSetting} onPress={openHermesSetting}>
+                                <Icon icon="material-symbols:settings-rounded" width={22} />
+                            </Button>
+                        </div>
+                        <Modal backdrop="blur" isOpen={isHermesSettingOpen} placement="center" scrollBehavior="inside" onClose={closeHermesSetting} onOpenChange={onHermesSettingOpenChange}>
+                            <ModalContent>
+                                <ModalHeader>{t('Hermes Settings')}</ModalHeader>
+                                <ModalBody className="pb-6">
+                                    <HermesProviderSetting onConfigured={handleProviderConfigured} />
+                                </ModalBody>
+                            </ModalContent>
+                        </Modal>
+                        <Modal backdrop="blur" isOpen={isHermesSkillsOpen} size="3xl" placement="center" scrollBehavior="inside" onClose={closeHermesSkills} onOpenChange={onHermesSkillsOpenChange}>
+                            <ModalContent>
+                                <ModalHeader>{t('Hermes Skills')}</ModalHeader>
+                                <ModalBody className="pb-6">
+                                    <HermesSkillsSetting />
+                                </ModalBody>
+                            </ModalContent>
+                        </Modal>
+                    </>
+                )}
                 <main className="h-full w-full relative gap-4 py-3 flex flex-col justify-center items-center">
-                    <ScrollShadow ref={ssDom} hideScrollBar className="w-full py-6 flex-grow items-center">
+                    <ScrollShadow ref={ssDom} hideScrollBar className="w-full py-6 flex-grow items-center" onScroll={handleMessageScroll}>
                         <div className="w-full m-auto max-w-[760px] overflow-hidden relative flex flex-col">
                             {messages.map(({ key, role, message, attach, status, ext, toolTips }, index) => {
                                 const prevRole = index > 0 ? messages[index - 1].role : null;
@@ -724,8 +1040,10 @@ export default function Chat() {
                                         toolTips={toolTips}
                                         extContent={
                                             role === 'assistant' &&
+                                            !desktopMode &&
                                             ext &&
-                                            ext.relDocs && (
+                                            ext.relDocs &&
+                                            ext.relDocs.length > 0 && (
                                                 <div className="mx-2 w-auto overflow-hidden">
                                                     <Accordion isCompact variant="bordered">
                                                         <AccordionItem
@@ -765,17 +1083,20 @@ export default function Chat() {
                                     />
                                 );
                             })}
-                            {aiTyping && (
-                                <MessageCard
-                                    key="aiTyping"
-                                    isLoading
-                                    className={messages.length > 0 && messages[messages.length - 1].role === 'user' ? 'mt-4' : 'mt-1'}
-                                    messageClassName="w-full"
-                                    attempts={1}
-                                    currentAttempt={1}
-                                    message={''}
-                                />
-                            )}
+                            {showTypingIndicator &&
+                                (showHermesThinkingIndicator ? (
+                                    <HermesThinkingIndicator className={messages.length > 0 && messages[messages.length - 1].role === 'user' ? 'mt-4' : 'mt-1'} />
+                                ) : (
+                                    <MessageCard
+                                        key="aiTyping"
+                                        isLoading
+                                        className={messages.length > 0 && messages[messages.length - 1].role === 'user' ? 'mt-4' : 'mt-1'}
+                                        messageClassName="w-full"
+                                        attempts={1}
+                                        currentAttempt={1}
+                                        message={''}
+                                    />
+                                ))}
                         </div>
                         <div className="pb-40" />
                     </ScrollShadow>
@@ -783,6 +1104,8 @@ export default function Chat() {
                     <div className="mt-auto flex flex-col gap-2 max-w-[760px] w-full">
                         <PromptInputWithEnclosedActions
                             allowAttach={true}
+                            disableAgentMention={desktopMode}
+                            hideFeatureControls={desktopMode}
                             isLoading={isGenerating}
                             classNames={{
                                 button: 'bg-default-foreground opacity-100 w-[30px] h-[30px] !min-w-[30px] self-center',
@@ -814,4 +1137,21 @@ function useScrollBottom(ref: React.RefObject<HTMLElement>) {
     };
 
     return getScrollBottom;
+}
+
+function HermesThinkingIndicator({ className }: { className?: string }) {
+    const { t } = useTranslation();
+
+    return (
+        <div className={`flex flex-col md:flex-row md:gap-2 ${className || ''}`}>
+            <div className="relative flex-none md:py-1">
+                <div className="w-10" />
+            </div>
+            <div className="flex min-h-7 flex-1 items-center overflow-hidden px-1">
+                <div className="flex items-center gap-2.5">
+                    <AnimatedShinyText>{t('Hermes is thinking...')}</AnimatedShinyText>
+                </div>
+            </div>
+        </div>
+    );
 }

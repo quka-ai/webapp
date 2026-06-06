@@ -1,5 +1,5 @@
 import { blockHasType, BlockNoteSchema, createCodeBlockSpec, defaultBlockSpecs, type PartialBlock } from '@blocknote/core';
-import { filterSuggestionItems } from '@blocknote/core/extensions';
+import { filterSuggestionItems, SideMenuExtension, SuggestionMenu } from '@blocknote/core/extensions';
 import '@blocknote/core/fonts/inter.css';
 import { en } from '@blocknote/core/locales';
 import { ja } from '@blocknote/core/locales';
@@ -7,22 +7,28 @@ import { zh } from '@blocknote/core/locales';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
 import {
+    BlockPopover,
     DefaultReactSuggestionItem,
+    type FloatingUIOptions,
     FormattingToolbar,
     FormattingToolbarController,
     type FormattingToolbarProps,
     getDefaultReactSlashMenuItems,
     getFormattingToolbarItems,
+    SideMenuController,
     SuggestionMenuController,
     useBlockNoteEditor,
     useComponentsContext,
     useCreateBlockNote,
-    useEditorState
+    useEditorState,
+    useExtension,
+    useExtensionState
 } from '@blocknote/react';
 import type { BlockToolData, OutputData } from '@editorjs/editorjs';
-import { TextSelection } from '@tiptap/pm/state';
+import { autoUpdate, offset, ReferenceElement } from '@floating-ui/react';
+import { TextSelection, type Transaction } from '@tiptap/pm/state';
 import { AxiosError } from 'axios';
-import { EyeOff, Sparkles } from 'lucide-react';
+import { ArrowDown, ArrowUp, EyeOff, GripVertical, Palette, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { forwardRef, memo, Ref, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Controlled as ControlledZoom } from 'react-medium-image-zoom';
@@ -36,6 +42,7 @@ import './style.css';
 
 import { DescribeImage } from '@/apis/tools';
 import { CreateUploadKey, UploadFileToKey } from '@/apis/upload';
+import { useMedia } from '@/hooks/use-media';
 import { useTheme } from '@/hooks/use-theme';
 import { useToast } from '@/hooks/use-toast';
 import { compressImage, CompressResult } from '@/lib/compress';
@@ -236,23 +243,29 @@ function shouldUseDefaultCodeBlockLanguage(block: any): boolean {
     return PLAIN_CODE_BLOCK_LANGUAGES.has(language);
 }
 
-function normalizeEmptyCodeBlockLanguages(blocks: PartialBlock[]) {
-    return blocks.map((block: any) => {
-        const children = Array.isArray(block.children) ? normalizeEmptyCodeBlockLanguages(block.children) : block.children;
+function normalizeBlockNoteBlocks(blocks: PartialBlock[], usedIds = new Set<string>()): PartialBlock[] {
+    return blocks.map((block: PartialBlock): PartialBlock => {
+        const children: PartialBlock[] | undefined = Array.isArray(block.children) ? normalizeBlockNoteBlocks(block.children, usedIds) : block.children;
+        const blockId = typeof block.id === 'string' ? block.id.trim() : block.id == null ? '' : String(block.id);
+        const shouldRegenerateId = !blockId || usedIds.has(blockId);
+        const normalizedBlock = shouldRegenerateId ? { ...block, id: undefined, children } : { ...block, id: blockId, children };
 
-        if (!shouldUseDefaultCodeBlockLanguage(block)) {
-            return children === block.children ? block : { ...block, children };
+        if (!shouldRegenerateId) {
+            usedIds.add(blockId);
+        }
+
+        if (!shouldUseDefaultCodeBlockLanguage(normalizedBlock)) {
+            return normalizedBlock;
         }
 
         return {
-            ...block,
-            children,
+            ...normalizedBlock,
             props: {
-                ...block.props,
+                ...normalizedBlock.props,
                 language: DEFAULT_CODE_BLOCK_LANGUAGE
             }
-        };
-    }) as PartialBlock[];
+        } as PartialBlock;
+    });
 }
 
 function ensureEmptyCodeBlocksUseShell(editor: ReturnType<typeof useCreateBlockNote>) {
@@ -292,7 +305,7 @@ function dispatchBlockNoteImageZoomChange(isZoomed: boolean) {
 
 async function parseInput(editor: ReturnType<typeof useCreateBlockNote>, data?: string | OutputData | PartialBlock[], dataType = '') {
     if (Array.isArray(data)) {
-        return normalizeEmptyCodeBlockLanguages(data);
+        return normalizeBlockNoteBlocks(data);
     }
 
     const normalizedType = dataType.toLowerCase();
@@ -306,7 +319,7 @@ async function parseInput(editor: ReturnType<typeof useCreateBlockNote>, data?: 
     if (typeof data !== 'string') {
         const markdown = editorJSBlocksToMarkdown(data);
 
-        return markdown ? normalizeEmptyCodeBlockLanguages(await editor.tryParseMarkdownToBlocks(markdown)) : fallback;
+        return markdown ? normalizeBlockNoteBlocks(await editor.tryParseMarkdownToBlocks(markdown)) : fallback;
     }
 
     if (!data.trim()) {
@@ -317,15 +330,15 @@ async function parseInput(editor: ReturnType<typeof useCreateBlockNote>, data?: 
         const parsedBlocks = parseBlockNoteJSON(data);
 
         if (parsedBlocks) {
-            return normalizeEmptyCodeBlockLanguages(parsedBlocks);
+            return normalizeBlockNoteBlocks(parsedBlocks);
         }
     }
 
     if (normalizedType === 'html') {
-        return normalizeEmptyCodeBlockLanguages(await editor.tryParseHTMLToBlocks(data));
+        return normalizeBlockNoteBlocks(await editor.tryParseHTMLToBlocks(data));
     }
 
-    return normalizeEmptyCodeBlockLanguages(await markdownToBlocks(editor, data));
+    return normalizeBlockNoteBlocks(await markdownToBlocks(editor, data));
 }
 
 function getUploader(toast: ReturnType<typeof useToast>['toast'], t: (d: string) => string, currentSelectedSpace: string) {
@@ -483,7 +496,7 @@ function BlockNoteFormattingToolbar(props: FormattingToolbarProps) {
 function insertHiddenSyntax(editor: ReturnType<typeof useCreateBlockNote>) {
     const syntax = '$hidden[]';
 
-    editor.transact(tr => {
+    editor.transact((tr: Transaction) => {
         const { from, $from } = tr.selection;
         const textBeforeCursor = $from.parent.textBetween(0, $from.parentOffset, undefined, '\ufffc');
         const slashIndex = textBeforeCursor.lastIndexOf('/');
@@ -494,15 +507,319 @@ function insertHiddenSyntax(editor: ReturnType<typeof useCreateBlockNote>) {
     });
 }
 
+const MOBILE_SIDE_MENU_COLORS = ['default', 'gray', 'red', 'orange', 'yellow', 'green', 'blue', 'purple'] as const;
+function MobileSideMenu({ blockId, onLockBlock, onUnlockBlock }: { blockId: string; onLockBlock: () => void; onUnlockBlock: () => void }) {
+    const { t } = useTranslation();
+    const editor = useBlockNoteEditor<any, any, any>();
+    const suggestionMenu = useExtension(SuggestionMenu);
+    const sideMenu = useExtension(SideMenuExtension);
+    const menuRef = useRef<HTMLDivElement | null>(null);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const block = editor.getBlock(blockId) as any;
+
+    const closeMenu = useCallback(() => {
+        setIsMenuOpen(false);
+        sideMenu.unfreezeMenu();
+        onUnlockBlock();
+    }, [onUnlockBlock, sideMenu]);
+
+    useEffect(() => {
+        if (!isMenuOpen) {
+            return;
+        }
+
+        const handlePointerDown = (event: PointerEvent) => {
+            if (menuRef.current?.contains(event.target as Node)) {
+                return;
+            }
+
+            closeMenu();
+        };
+
+        document.addEventListener('pointerdown', handlePointerDown, true);
+
+        return () => {
+            document.removeEventListener('pointerdown', handlePointerDown, true);
+        };
+    }, [closeMenu, isMenuOpen]);
+
+    useEffect(() => {
+        return () => {
+            sideMenu.unfreezeMenu();
+        };
+    }, [sideMenu]);
+
+    const preventMouseFocus = useCallback((event: { preventDefault: () => void; stopPropagation: () => void }) => {
+        event.preventDefault();
+        event.stopPropagation();
+    }, []);
+
+    const stopPointerPropagation = useCallback((event: { stopPropagation: () => void }) => {
+        event.stopPropagation();
+    }, []);
+
+    const handleAddBlock = useCallback(() => {
+        if (!block) {
+            return;
+        }
+
+        closeMenu();
+
+        const blockContent = block.content;
+        const isBlockEmpty = blockContent !== undefined && Array.isArray(blockContent) && blockContent.length === 0;
+
+        if (isBlockEmpty) {
+            editor.setTextCursorPosition(block);
+            suggestionMenu.openSuggestionMenu('/');
+
+            return;
+        }
+
+        const insertedBlock = editor.insertBlocks([{ type: 'paragraph' }], block, 'after')[0];
+        editor.setTextCursorPosition(insertedBlock);
+        suggestionMenu.openSuggestionMenu('/');
+    }, [block, closeMenu, editor, suggestionMenu]);
+
+    const handleToggleMenu = useCallback(() => {
+        if (isMenuOpen) {
+            closeMenu();
+
+            return;
+        }
+
+        onLockBlock();
+        sideMenu.freezeMenu();
+        setIsMenuOpen(true);
+    }, [closeMenu, isMenuOpen, onLockBlock, sideMenu]);
+
+    const handleRemoveBlock = useCallback(() => {
+        if (!block) {
+            return;
+        }
+
+        editor.removeBlocks([block]);
+        closeMenu();
+    }, [block, closeMenu, editor]);
+
+    const handleMoveBlock = useCallback(
+        (direction: 'up' | 'down') => {
+            if (!block) {
+                return;
+            }
+
+            editor.setTextCursorPosition(block);
+            if (direction === 'up') {
+                editor.moveBlocksUp();
+            } else {
+                editor.moveBlocksDown();
+            }
+            closeMenu();
+        },
+        [block, closeMenu, editor]
+    );
+
+    const setBlockColor = useCallback(
+        (styleType: 'textColor' | 'backgroundColor', color: string) => {
+            if (!block) {
+                return;
+            }
+
+            editor.updateBlock(block, {
+                props: {
+                    [styleType]: color
+                }
+            });
+        },
+        [block, editor]
+    );
+
+    if (!block) {
+        return null;
+    }
+
+    return (
+        <div ref={menuRef} className="bn-side-menu blocknote-editor-mobile-side-menu" data-block-type={block.type} onPointerDown={event => event.stopPropagation()}>
+            <button
+                type="button"
+                className="blocknote-editor-mobile-side-menu__button"
+                aria-label={t('Add block')}
+                onMouseDown={preventMouseFocus}
+                onPointerDown={stopPointerPropagation}
+                onClick={handleAddBlock}
+            >
+                <Plus size={18} />
+            </button>
+            <button
+                draggable
+                type="button"
+                className="blocknote-editor-mobile-side-menu__button"
+                aria-label={t('Block actions')}
+                onMouseDown={preventMouseFocus}
+                onPointerDown={event => {
+                    stopPointerPropagation(event);
+                    onLockBlock();
+                }}
+                onDragStart={event => sideMenu.blockDragStart(event, block)}
+                onDragEnd={sideMenu.blockDragEnd}
+                onClick={handleToggleMenu}
+            >
+                <GripVertical size={18} />
+            </button>
+            {isMenuOpen && (
+                <div className="blocknote-editor-mobile-side-menu__dropdown" onMouseDown={preventMouseFocus} onPointerDown={stopPointerPropagation}>
+                    <button type="button" className="blocknote-editor-mobile-side-menu__item" onClick={() => handleMoveBlock('up')}>
+                        <ArrowUp size={16} />
+                        <span>{t('Move up')}</span>
+                    </button>
+                    <button type="button" className="blocknote-editor-mobile-side-menu__item" onClick={() => handleMoveBlock('down')}>
+                        <ArrowDown size={16} />
+                        <span>{t('Move down')}</span>
+                    </button>
+                    <button type="button" className="blocknote-editor-mobile-side-menu__item" onClick={handleRemoveBlock}>
+                        <Trash2 size={16} />
+                        <span>{t('Delete')}</span>
+                    </button>
+                    <div className="blocknote-editor-mobile-side-menu__colors">
+                        <div className="blocknote-editor-mobile-side-menu__label">
+                            <Palette size={15} />
+                            <span>{t('Text Color')}</span>
+                        </div>
+                        <div className="blocknote-editor-mobile-side-menu__swatches">
+                            {MOBILE_SIDE_MENU_COLORS.map(color => (
+                                <button
+                                    key={`text-${color}`}
+                                    type="button"
+                                    className="blocknote-editor-mobile-side-menu__swatch"
+                                    data-color={color}
+                                    aria-label={`${t('Text Color')} ${color}`}
+                                    onClick={() => setBlockColor('textColor', color)}
+                                />
+                            ))}
+                        </div>
+                        <div className="blocknote-editor-mobile-side-menu__label">
+                            <Palette size={15} />
+                            <span>{t('Background Color')}</span>
+                        </div>
+                        <div className="blocknote-editor-mobile-side-menu__swatches">
+                            {MOBILE_SIDE_MENU_COLORS.map(color => (
+                                <button
+                                    key={`background-${color}`}
+                                    type="button"
+                                    className="blocknote-editor-mobile-side-menu__swatch"
+                                    data-color={color}
+                                    aria-label={`${t('Background Color')} ${color}`}
+                                    onClick={() => setBlockColor('backgroundColor', color)}
+                                />
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function MobileSideMenuController({ floatingUIOptions }: { floatingUIOptions: Partial<FloatingUIOptions> }) {
+    const editor = useBlockNoteEditor();
+    const state = useExtensionState(SideMenuExtension, {
+        selector: state => {
+            if (!state) {
+                return undefined;
+            }
+
+            return {
+                show: state.show,
+                block: state.block
+            };
+        }
+    }) as { show?: boolean; block?: { id: string } } | undefined;
+    const [lockedBlockId, setLockedBlockId] = useState<string | null>(null);
+    const activeBlockId = lockedBlockId || state?.block?.id;
+
+    const whileElementsMounted = useCallback(
+        (reference: ReferenceElement, floating: HTMLElement, update: () => void) => {
+            let initialized = false;
+
+            return autoUpdate(
+                reference,
+                floating,
+                () => {
+                    update();
+
+                    if (!initialized) {
+                        initialized = true;
+
+                        return;
+                    }
+
+                    editor.getExtension(SideMenuExtension)?.hideMenuIfNotFrozen();
+                },
+                {
+                    ancestorScroll: true,
+                    ancestorResize: false,
+                    elementResize: false,
+                    layoutShift: false
+                }
+            );
+        },
+        [editor]
+    );
+
+    const mergedFloatingUIOptions = useMemo<FloatingUIOptions>(
+        () => ({
+            ...floatingUIOptions,
+            useFloatingOptions: {
+                open: state?.show,
+                whileElementsMounted,
+                ...floatingUIOptions.useFloatingOptions
+            },
+            useDismissProps: {
+                enabled: false,
+                ...floatingUIOptions.useDismissProps
+            },
+            focusManagerProps: {
+                disabled: true,
+                ...floatingUIOptions.focusManagerProps
+            },
+            elementProps: {
+                ...floatingUIOptions.elementProps,
+                style: {
+                    zIndex: 20,
+                    ...floatingUIOptions.elementProps?.style
+                }
+            }
+        }),
+        [floatingUIOptions, state?.show, whileElementsMounted]
+    );
+
+    useEffect(() => {
+        if (!state?.show) {
+            setLockedBlockId(null);
+        }
+    }, [state?.show]);
+
+    if (!state?.show || !activeBlockId) {
+        return null;
+    }
+
+    return (
+        <BlockPopover blockId={activeBlockId} {...mergedFloatingUIOptions}>
+            <MobileSideMenu blockId={activeBlockId} onLockBlock={() => setLockedBlockId(activeBlockId)} onUnlockBlock={() => setLockedBlockId(null)} />
+        </BlockPopover>
+    );
+}
+
 export const BlockNoteEditor = memo(
     forwardRef(({ data, dataType = '', outputFormat = 'blocks', autofocus = false, placeholder, readOnly, className, onValueChange }: BlockNoteEditorProps, ref: Ref<BlockNoteEditorRefObject>) => {
         const { t, i18n } = useTranslation();
         const { toast } = useToast();
         const { theme } = useTheme();
+        const { isMobile, isCoarsePointer } = useMedia();
+        const useMobileSideMenu = isMobile && isCoarsePointer;
         const { currentSelectedSpace } = useSnapshot(spaceStore);
-        const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-        const zoomCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-        const zoomOpenTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+        const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+        const zoomCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+        const zoomOpenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
         const renderingRef = useRef(false);
         const lastEmittedValueRef = useRef<BlockNoteEditorValue | null>(null);
         const [zoomedImage, setZoomedImage] = useState<ZoomedImage | null>(null);
@@ -525,6 +842,13 @@ export const BlockNoteEditor = memo(
                 initialContent: [{ type: 'paragraph', content: '' }],
                 placeholders: placeholder ? { default: placeholder } : undefined,
                 schema: blockNoteSchema,
+                links: {
+                    onClick: event => {
+                        event.preventDefault();
+
+                        return true;
+                    }
+                },
                 uploadFile: readOnly || !currentSelectedSpace ? undefined : getUploader(toast, t, currentSelectedSpace)
             },
             [readOnly, autofocus, currentSelectedSpace, dictionary, placeholder]
@@ -546,9 +870,22 @@ export const BlockNoteEditor = memo(
             [editor, t]
         );
 
+        const sideMenuFloatingOptions = useMemo(
+            () => ({
+                useFloatingOptions: {
+                    placement: useMobileSideMenu ? ('bottom-start' as const) : ('left-start' as const),
+                    middleware: useMobileSideMenu ? [offset(2)] : undefined
+                },
+                elementProps: {
+                    className: cn('blocknote-editor-side-menu', useMobileSideMenu && 'blocknote-editor-side-menu--mobile')
+                }
+            }),
+            [useMobileSideMenu]
+        );
+
         useEffect(() => {
             editor.portalElement.classList.add('blocknote-editor-portal');
-        }, [editor]);
+        }, [className, editor, theme]);
 
         useEffect(() => {
             return () => {
@@ -609,8 +946,22 @@ export const BlockNoteEditor = memo(
             }
         }));
 
-        const handleReadonlyImageClick = useCallback(
+        const handleEditableLinkInteractionCapture = useCallback(
+            (event: React.SyntheticEvent<HTMLDivElement>) => {
+                const link = (event.target as HTMLElement | null)?.closest('a[href]');
+
+                if (!readOnly && link) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+            },
+            [readOnly]
+        );
+
+        const handleEditorClickCapture = useCallback(
             (event: React.MouseEvent<HTMLDivElement>) => {
+                handleEditableLinkInteractionCapture(event);
+
                 if (!readOnly) {
                     return;
                 }
@@ -642,7 +993,7 @@ export const BlockNoteEditor = memo(
                     setZoomedImage(current => (current ? { ...current, isZoomed: true } : current));
                 }, 50);
             },
-            [readOnly]
+            [handleEditableLinkInteractionCapture, readOnly]
         );
 
         const handleZoomChange = useCallback((isZoomed: boolean) => {
@@ -659,11 +1010,12 @@ export const BlockNoteEditor = memo(
         }, []);
 
         return (
-            <div className={cn('blocknote-editor sm:mx-[60px]', readOnly && 'blocknote-editor--readonly', className)} onClickCapture={handleReadonlyImageClick}>
+            <div className={cn('blocknote-editor sm:mx-[60px]', readOnly && 'blocknote-editor--readonly', className)} onClickCapture={handleEditorClickCapture}>
                 <BlockNoteView
                     editor={editor}
                     editable={!readOnly}
                     formattingToolbar={false}
+                    sideMenu={false}
                     slashMenu={false}
                     theme={theme}
                     onChange={async currentEditor => {
@@ -687,17 +1039,18 @@ export const BlockNoteEditor = memo(
                         }, 500);
                     }}
                 >
+                    {!readOnly && (useMobileSideMenu ? <MobileSideMenuController floatingUIOptions={sideMenuFloatingOptions} /> : <SideMenuController floatingUIOptions={sideMenuFloatingOptions} />)}
                     {!readOnly && <SuggestionMenuController triggerCharacter="/" getItems={getSlashMenuItems} />}
                     {!readOnly && <FormattingToolbarController formattingToolbar={BlockNoteFormattingToolbar} />}
                 </BlockNoteView>
                 {zoomedImage && (
                     <ControlledZoom
                         isZoomed={zoomedImage.isZoomed}
-                        onZoomChange={handleZoomChange}
                         zoomImg={{
                             src: zoomedImage.src,
                             alt: zoomedImage.alt
                         }}
+                        onZoomChange={handleZoomChange}
                     >
                         <img
                             src={zoomedImage.src}

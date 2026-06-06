@@ -3,9 +3,56 @@ import { proxy } from 'valtio';
 import { ChangeBaseURL } from '@/apis/request';
 import { closeSocket } from '@/stores/socket';
 
+const ACCESS_TOKEN_STORAGE_KEY = 'access_token';
+const LOGIN_TOKEN_STORAGE_KEY = 'login_token';
+const LEGACY_ACCESS_TOKEN_STORAGE_KEY = 'accessToken';
+const LEGACY_LOGIN_TOKEN_STORAGE_KEY = 'loginToken';
+
+function removeStoredAccessToken() {
+    localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_ACCESS_TOKEN_STORAGE_KEY);
+}
+
+function removeStoredLoginToken() {
+    localStorage.removeItem(LOGIN_TOKEN_STORAGE_KEY);
+    localStorage.removeItem(LEGACY_LOGIN_TOKEN_STORAGE_KEY);
+}
+
+function readInitialTokens(): Pick<UserStore, 'accessToken' | 'loginToken'> {
+    const accessToken = localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY) || localStorage.getItem(LEGACY_ACCESS_TOKEN_STORAGE_KEY) || '';
+    const loginToken = localStorage.getItem(LOGIN_TOKEN_STORAGE_KEY) || localStorage.getItem(LEGACY_LOGIN_TOKEN_STORAGE_KEY) || '';
+
+    if (accessToken) {
+        localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, accessToken);
+        removeStoredLoginToken();
+        return {
+            accessToken,
+            loginToken: ''
+        };
+    }
+
+    if (loginToken) {
+        localStorage.setItem(LOGIN_TOKEN_STORAGE_KEY, loginToken);
+        removeStoredAccessToken();
+        return {
+            accessToken: '',
+            loginToken
+        };
+    }
+
+    removeStoredAccessToken();
+    removeStoredLoginToken();
+    return {
+        accessToken: '',
+        loginToken: ''
+    };
+}
+
+const initialTokens = readInitialTokens();
+
 const userStore = proxy<UserStore>({
-    accessToken: localStorage.getItem('access_token'),
-    loginToken: localStorage.getItem('login_token'),
+    accessToken: initialTokens.accessToken,
+    loginToken: initialTokens.loginToken,
     userInfo: {
         userID: '',
         userName: '',
@@ -31,18 +78,22 @@ export const logout = () => {
     userStore.loginToken = '';
     //@ts-ignore
     userStore.userInfo = {};
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('login_token');
+    removeStoredAccessToken();
+    removeStoredLoginToken();
 };
 
 export const setUserAccessToken = (token: string) => {
     userStore.accessToken = token;
-    localStorage.setItem('access_token', token);
+    userStore.loginToken = '';
+    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, token);
+    removeStoredLoginToken();
 };
 
 export const setUserLoginToken = (token: string) => {
+    userStore.accessToken = '';
     userStore.loginToken = token;
-    localStorage.setItem('login_token', token);
+    removeStoredAccessToken();
+    localStorage.setItem(LOGIN_TOKEN_STORAGE_KEY, token);
 };
 
 export const setUserInfo = (userInfo?: UserInfo) => {

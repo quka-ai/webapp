@@ -7,7 +7,6 @@ import { subscribeKey } from 'valtio/utils';
 
 import { GetKnowledge, type Knowledge, ListKnowledge } from '@/apis/knowledge';
 import GoTop from '@/components/go-top';
-import KnowledgeModal from '@/components/knowledge-modal';
 import MainQuery from '@/components/main-query';
 import Markdown from '@/components/markdown';
 import MultiDayJournalTodos from '@/components/multi-day-journal-todos';
@@ -24,7 +23,7 @@ export default memo(function Component() {
     const { currentSelectedSpace } = useSnapshot(spaceStore);
     const { currentSelectedResource } = useSnapshot(resourceStore);
     const [page, setPage] = useState(1);
-    const [pageSize, _] = useState(isMobile ? 10 : 30);
+    const [pageSize] = useState(isMobile ? 10 : 30);
     let [dataList, setDataList] = useState<Knowledge[]>([]);
     const [total, setTotal] = useState(0);
     const [hasMore, setHasMore] = useState(true);
@@ -124,37 +123,26 @@ export default memo(function Component() {
         }, 500);
     }
 
-    // show / edit / create knowledge detail
-    const viewKnowledge = useRef<{ show: (id: string) => void }>(null);
-
     const showKnowledge = useCallback(
         (knowledge: Knowledge) => {
-            if (isMobile) {
-                navigate(`/dashboard/${knowledge.space_id}/knowledge/${knowledge.id}/editor`);
-                return;
-            }
-            if (viewKnowledge && viewKnowledge.current) {
-                viewKnowledge.current.show(knowledge.id);
-            }
+            navigate(`/dashboard/${knowledge.space_id}/knowledge/${knowledge.id}/editor`);
         },
-        [viewKnowledge]
+        [navigate]
     );
+
+    const showKnowledgeCreate = useCallback(() => {
+        if (currentSelectedSpace) {
+            navigate(`/dashboard/${currentSelectedSpace}/knowledge/create`);
+        }
+    }, [currentSelectedSpace, navigate]);
 
     function onChanges() {
         refreshDataList();
     }
 
-    const onDelete = useCallback(
-        (knowledgeID: string) => {
-            setDataList(dataList.filter(a => a.id !== knowledgeID));
-            setTotal(prevTotal => prevTotal - 1);
-        },
-        [dataList]
-    );
-
     const isShowCreate = useMemo(() => {
         return !isSpaceViewer;
-    }, [isMobile, isSpaceViewer]);
+    }, [isSpaceViewer]);
 
     // 当 resource 变化时，滚动到知识列表区域（排除"全部"选项）
     useEffect(() => {
@@ -251,12 +239,11 @@ export default memo(function Component() {
                     isShowCreate={isShowCreate}
                     knowledgeList={dataList}
                     onSelect={showKnowledge}
+                    onShowCreate={showKnowledgeCreate}
                     onChanges={onChanges}
                     onLoadMore={onLoadMore}
                 />
             </div>
-
-            <KnowledgeModal ref={viewKnowledge} onChange={onChanges} onDelete={onDelete} />
         </>
     );
 });
@@ -289,10 +276,10 @@ const KnowledgeList = memo(
         const workBarRef = useRef<WorkBarRef>(null);
 
         const showKnowledgeCreate = useCallback(() => {
-            if (workBarRef.current) {
-                workBarRef.current.showCreateModal();
+            if (onShowCreate) {
+                onShowCreate();
             }
-        }, []);
+        }, [onShowCreate]);
 
         const ssDom = useRef<HTMLElement>(null);
 
@@ -345,7 +332,7 @@ const KnowledgeList = memo(
 
                     <MultiDayJournalTodos />
 
-                    <div className="w-full  space-y-1 mb-6  py-1">
+                    <div className="w-full space-y-1 mb-6 py-1">
                         <div className="flex justify-between items-center gap-4 md:px-6 px-3">
                             <div className="flex flex-col gap-2">
                                 <div id="knowledgebox" className="text-xl font-bold leading-9 text-default-foreground">
@@ -370,14 +357,14 @@ const KnowledgeList = memo(
                             // 显示骨架屏
                             <>
                                 {Array.from({ length: isMobile ? 6 : 10 }).map((_, index) => (
-                                    <SkeletonCard key={index} shadow={isMobile ? 'none' : 'sm'} />
+                                    <SkeletonCard key={index} shadow="none" />
                                 ))}
                             </>
                         ) : (
                             dataList.map(item => {
                                 return (
                                     <div key={item.id} role="button" tabIndex={0} className="relative" onClick={() => onSelect(item)} onKeyDown={() => {}}>
-                                        <NormalCard shadow={isMobile ? 'none' : 'sm'} content={item.content} tags={item.tags} title={item.title} stage={item.stage} knowledgeId={item.id} />
+                                        <NormalCard shadow="none" content={item.content} tags={item.tags} title={item.title} stage={item.stage} knowledgeId={item.id} />
                                     </div>
                                 );
                             })
@@ -404,9 +391,9 @@ const SkeletonCard = memo(function SkeletonCard({ shadow }: { shadow: 'none' | '
     return (
         <Card
             shadow={shadow}
-            className="w-full h-80 relative border-small dark:border-default-100 overflow-hidden bg-linear-to-br from-default-400/30 to-default-400 dark:from-default-400 dark:to-default-400/30"
+            className="w-full h-80 relative overflow-hidden border border-default-200 bg-content1 shadow-none dark:border-default-100 dark:bg-gradient-to-br dark:from-default-400 dark:to-default-400/30"
         >
-            <div className="relative z-10 flex flex-col h-full p-5 bg-linear-to-b from-background/70 to-background/70">
+            <div className="relative z-10 flex flex-col h-full p-5 bg-content1/90 dark:bg-gradient-to-b dark:from-background/70 dark:to-background/70">
                 {/* 标题骨架 */}
                 <Skeleton className="w-3/4 h-6 mb-3 rounded-lg" />
 
@@ -451,11 +438,11 @@ const NormalCard = memo(function NormalCard({
         <>
             <Card
                 shadow={shadow}
-                className="w-full h-80 relative border-small dark:border-default-100 overflow-hidden bg-linear-to-br from-default-400/30 to-default-400 dark:from-default-400 dark:to-default-400/30
-                hover:border-indigo-300 dark:hover:border-indigo-600 hover:shadow-md transition-all duration-200 cursor-pointer"
+                className="w-full h-80 relative overflow-hidden border border-default-200 bg-content1 shadow-none dark:border-default-100 dark:bg-gradient-to-br dark:from-default-400 dark:to-default-400/30
+                hover:border-primary/40 dark:hover:border-indigo-600 transition-all duration-200 cursor-pointer"
             >
                 {/* 前景内容层 */}
-                <div className="relative z-10 flex flex-col h-full p-5 bg-linear-to-b from-background/70 to-background/70 text-sm">
+                <div className="relative z-10 flex flex-col h-full p-5 bg-content1/95 text-sm dark:bg-gradient-to-b dark:from-background/70 dark:to-background/70">
                     {/* 标题 */}
                     {title && title.trim() !== '' && <h3 className="text-lg font-semibold text-foreground mb-2.5 line-clamp-2 leading-snug min-h-10 shrink-0">{title}</h3>}
 
@@ -467,13 +454,13 @@ const NormalCard = memo(function NormalCard({
                                     key={`${knowledgeId}-tag-${index}`}
                                     size="sm"
                                     variant="flat"
-                                    className="bg-default-200/80 dark:bg-default-200/60 text-foreground-600 dark:text-foreground-700 text-xs h-5"
+                                    className="bg-default-100 text-default-600 dark:bg-default-200/60 dark:text-foreground-700 text-xs h-5"
                                 >
                                     {item}
                                 </Chip>
                             ))}
                             {tags.length > 3 && (
-                                <Chip key={`${knowledgeId}-tag-more`} size="sm" variant="flat" className="bg-default-200/60 dark:bg-default-100/10 text-foreground-500 text-xs h-5">
+                                <Chip key={`${knowledgeId}-tag-more`} size="sm" variant="flat" className="bg-default-100 text-default-500 dark:bg-default-100/10 dark:text-foreground-500 text-xs h-5">
                                     +{tags.length - 3}
                                 </Chip>
                             )}
@@ -482,7 +469,7 @@ const NormalCard = memo(function NormalCard({
 
                     {/* 内容预览区域 - 占据剩余空间 */}
                     <div className="flex-1 mb-3 relative w-full m-auto mt-2 p-2">
-                        <div className="text-[0.7rem] leading-relaxed text-foreground-500 dark:text-foreground-400 line-clamp-9 opacity-70">
+                        <div className="text-[0.7rem] leading-relaxed text-default-600 dark:text-foreground-400 line-clamp-9 opacity-80">
                             <Markdown isLight>{content}</Markdown>
                         </div>
                     </div>

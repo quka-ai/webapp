@@ -21,7 +21,7 @@ export interface EditKnowledgeProps {
     onClose?: () => void;
 }
 
-const EditKnowledge = function (props: EditKnowledgeProps) {
+const EditKnowledge = function (_props: EditKnowledgeProps) {
     const { t } = useTranslation();
     const [knowledge, setKnowledge] = useState<Knowledge>();
     const [isEdit, setIsEdit] = useState(false);
@@ -79,13 +79,16 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
     }, [knowledge, currentSpaceResources]);
 
     const editor = useRef<KnwoledgeEditorRefObject>();
+    const [saveLoading, setSaveLoading] = useState(false);
     const submit = useCallback(async () => {
         if (editor.current) {
+            setSaveLoading(true);
             try {
                 await editor.current.submit();
             } catch (e: any) {
                 console.error(e);
             }
+            setSaveLoading(false);
         }
     }, [editor]);
 
@@ -101,7 +104,7 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
         }
 
         return (
-            <Breadcrumbs size="lg" className="break-all text-wrap max-w-[66%] overflow-hidden text-ellipsis">
+            <Breadcrumbs className="break-all text-wrap max-w-[66%] overflow-hidden text-ellipsis">
                 <BreadcrumbItem
                     onPress={() => {
                         navigate(`/dashboard/${spaceID}/knowledge`);
@@ -120,13 +123,13 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                 <BreadcrumbItem>{knowledge.id}</BreadcrumbItem>
             </Breadcrumbs>
         );
-    }, [knowledge, knowledgeResource, spaceTitle]);
+    }, [knowledge, knowledgeResource, navigate, spaceID, spaceTitle, t]);
 
     return (
-        <div className="bg-content1 w-full min-h-screen">
+        <section className="h-screen w-full overflow-hidden bg-content1 flex flex-col">
             {knowledge && knowledge.id ? (
                 <>
-                    <div className="flex justify-between items-center w-full min-h-10 p-2 overflow-hidden gap-4">
+                    <header className="flex items-center justify-between dark:text-gray-100 text-gray-800 gap-4 px-6 py-4 shrink-0">
                         {breadcrumbs}
                         {!isEdit && userIsPro && (
                             <ShareButton
@@ -141,18 +144,28 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                                 }}
                             />
                         )}
-                    </div>
-                    <div className="w-full overflow-hidden p-4 z-1">
-                        {isEdit ? <KnowledgeEdit ref={editor} hideSubmit classNames={{ base: '', editor: '!mx-0' }} knowledge={knowledge} /> : <KnowledgeView knowledge={knowledge} />}
-                    </div>
-                    <div className="fixed w-full left-0 bottom-0 min-h-14 flex justify-center items-center z-50 box-border">
-                        {isSpaceViewer ? (
-                            <ButtonGroup size="md">
-                                <Button onPress={onClose}>{t('Close')}</Button>
-                            </ButtonGroup>
+                    </header>
+                    <main className="w-full flex-1 min-h-0 flex flex-col items-center px-6 overflow-y-auto overflow-x-visible">
+                        {isEdit ? (
+                            <KnowledgeEdit
+                                ref={editor}
+                                hideSubmit
+                                knowledge={knowledge}
+                                classNames={{
+                                    editorWrapper: 'md:-ml-[60px] md:w-[calc(100%+60px)] md:pl-[60px]',
+                                    editor: 'mx-0!'
+                                }}
+                            />
                         ) : (
-                            <ButtonGroup variant="flat" size="md" className="mt-2 mb-4">
-                                <Button isDisabled={knowledge.stage !== 3} className="bg-default" onPress={changeEditable}>
+                            <KnowledgeView knowledge={knowledge} />
+                        )}
+                    </main>
+                    <footer className="flex justify-center shrink-0 px-6 py-4">
+                        {isSpaceViewer ? (
+                            <Button onPress={onClose}>{t('Close')}</Button>
+                        ) : (
+                            <ButtonGroup variant="flat" size="md" className="mb-4">
+                                <Button isDisabled={knowledge.stage !== 3} size="md" onPress={changeEditable}>
                                     {(() => {
                                         if (knowledge.stage == 1) {
                                             return t('Summarizing');
@@ -167,27 +180,23 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                                     })()}
                                 </Button>
                                 {isEdit ? (
-                                    <Button color="primary" className="bg-default" onPress={submit}>
+                                    <Button color="primary" isLoading={saveLoading} onPress={submit}>
                                         {t('Save')}
                                     </Button>
                                 ) : (
-                                    <KnowledgeDeletePopover backdrop="transparent" knowledge={knowledge} onDelete={onClose}>
-                                        <Button color="danger" className="bg-default">
-                                            {t('Delete')}
-                                        </Button>
+                                    <KnowledgeDeletePopover knowledge={knowledge} onDelete={onClose}>
+                                        <Button color="danger">{t('Delete')}</Button>
                                     </KnowledgeDeletePopover>
                                 )}
 
-                                <Button className="bg-default" onPress={onClose}>
-                                    {t('Close')}
-                                </Button>
+                                <Button onPress={onClose}>{t('Close')}</Button>
                             </ButtonGroup>
                         )}
-                    </div>
+                    </footer>
                 </>
             ) : (
                 <>
-                    <div className="flex justify-between items-center w-full min-h-10 p-2 overflow-hidden gap-4">
+                    <header className="flex flex-col gap-1 dark:text-gray-100 text-gray-800 px-6 py-4 shrink-0">
                         <Skeleton className="rounded-lg">
                             <Breadcrumbs>
                                 <BreadcrumbItem>Home</BreadcrumbItem>
@@ -196,15 +205,15 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                                 <BreadcrumbItem>Home</BreadcrumbItem>
                             </Breadcrumbs>
                         </Skeleton>
-                    </div>
-                    <div className="flex flex-col gap-4 w-full overflow-hidden p-4">
-                        <Skeleton className="h-5 w-3/5 rounded-lg" />
-                        <Skeleton className="h-5 w-4/5 rounded-lg" />
+                    </header>
+                    <main className="w-full flex-1 min-h-0 overflow-hidden flex flex-col items-center px-6">
+                        <Skeleton className="h-3 w-3/5 rounded-lg" />
+                        <Skeleton className="h-3 w-4/5 rounded-lg" />
                         <Spacer y={2} />
-                        <Skeleton className="h-5 w-3/5 rounded-lg" />
-                        <Skeleton className="h-5 w-4/5 rounded-lg" />
-                    </div>
-                    <div className="fixed w-full left-0 bottom-0 h-14 flex justify-center items-center bg-content1">
+                        <Skeleton className="h-3 w-3/5 rounded-lg" />
+                        <Skeleton className="h-3 w-4/5 rounded-lg" />
+                    </main>
+                    <footer className="flex justify-center shrink-0 px-6 py-4">
                         <Skeleton className="rounded-lg">
                             <ButtonGroup variant="flat" size="md">
                                 <Button />
@@ -212,10 +221,10 @@ const EditKnowledge = function (props: EditKnowledgeProps) {
                                 <Button />
                             </ButtonGroup>
                         </Skeleton>
-                    </div>
+                    </footer>
                 </>
             )}
-        </div>
+        </section>
     );
 };
 

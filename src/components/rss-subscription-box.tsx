@@ -104,7 +104,7 @@ const RSSSubscriptionBox = memo(function RSSSubscriptionBox() {
     return (
         <>
             {/* RSS 订阅盒子 - 整合输入框和摘要 */}
-            <Card className="border-small rounded-xl border-default-200 bg-linear-to-br from-default-400/30 to-default-400 dark:from-default-100/50 dark:to-default-50/50 relative min-h-[200px]">
+            <Card className="relative min-h-[200px] rounded-xl border border-default-200 bg-content1 shadow-none dark:border-default-100 dark:bg-gradient-to-br dark:from-default-100/50 dark:to-default-50/50">
                 <CardBody className="relative">
                     {/* 顶部输入区域 - 仅无摘要时显示 */}
                     <form
@@ -159,14 +159,14 @@ const RSSSubscriptionBox = memo(function RSSSubscriptionBox() {
                                 }}
                             >
                                 <div className="flex items-center gap-2 mb-2">
-                                    <Icon icon="mdi:newspaper-variant-outline" width={18} />
-                                    <span className="text-sm font-semibold">{t('rss:TodayRSSSummary')}</span>
+                                    <Icon icon="mdi:newspaper-variant-outline" width={18} className="text-default-500" />
+                                    <span className="text-sm font-semibold text-default-700 dark:text-default-foreground">{t('rss:TodayRSSSummary')}</span>
                                     <span className="text-xs text-default-500">{todayDigest.date}</span>
                                     <Icon icon="mdi:chevron-right" width={16} className="text-default-400 ml-auto" />
                                 </div>
                                 <div className="flex-1">
                                     <div className="prose prose-sm dark:prose-invert max-w-none">
-                                        <div className="text-sm text-default-700 whitespace-pre-wrap line-clamp-5">{todayDigest.content}</div>
+                                        <div className="text-sm text-default-600 dark:text-default-300 whitespace-pre-wrap line-clamp-5">{todayDigest.content}</div>
                                     </div>
                                 </div>
                             </div>

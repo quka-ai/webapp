@@ -21,6 +21,7 @@ cd quka-desktop
 # 确保有可执行权限
 chmod +x build.sh 2>/dev/null
 chmod +x copy-assets.sh 2>/dev/null
+chmod +x bundle-hermes.sh 2>/dev/null
 
 # 执行构建
 ./build.sh --arch universal

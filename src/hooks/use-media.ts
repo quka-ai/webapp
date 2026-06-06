@@ -2,6 +2,7 @@ import { useMediaQuery } from 'usehooks-ts';
 
 export const useMedia = () => {
     const isMobile = useMediaQuery('(max-width: 768px)');
+    const isCoarsePointer = useMediaQuery('(pointer: coarse)');
 
-    return { isMobile };
+    return { isMobile, isCoarsePointer };
 };

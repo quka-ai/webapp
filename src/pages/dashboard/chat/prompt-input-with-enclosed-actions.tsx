@@ -22,6 +22,8 @@ export default function Component(
         selectedEnableSearch?: boolean;
         selectedEnableThinking?: boolean;
         allowAttach: boolean;
+        disableAgentMention?: boolean;
+        hideFeatureControls?: boolean;
         onSubmitFunc?: (data: string, agent: string, args: ChatArgs, files: Attach[]) => Promise<void>;
         onStopFunc?: () => Promise<void>;
     }
@@ -95,6 +97,9 @@ export default function Component(
 
     const { isOpen, onOpen, onClose } = useDisclosure();
     function setSelectedKeys(e: any) {
+        if (props.disableAgentMention) {
+            return;
+        }
         setPrompt(prompt + e + ' ');
         onClose();
         inputRef.current.focus();
@@ -119,6 +124,12 @@ export default function Component(
                 return;
             }
             setPrompt(data);
+            if (props.disableAgentMention) {
+                if (isOpen) {
+                    onClose();
+                }
+                return;
+            }
             const lastChar = data.trim().charAt(data.length - 1);
             if (lastChar === '@') {
                 onOpen();
@@ -126,7 +137,7 @@ export default function Component(
                 onClose();
             }
         },
-        [isOpen, prompt]
+        [isOpen, onClose, onOpen, prompt, props.disableAgentMention]
     );
 
     const agents = useMemo(() => {
@@ -192,7 +203,14 @@ export default function Component(
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { uploader } = useUploader();
     const { currentSelectedSpace } = useSnapshot(spaceStore);
+    const showFeatureControls = !props.hideFeatureControls;
     const submit = useCallback(async () => {
+        console.info('[hermes] prompt submit clicked', {
+            hasPrompt: Boolean(prompt),
+            promptLength: prompt.length,
+            isLoading: props.isLoading,
+            hasSubmitFunc: Boolean(props.onSubmitFunc)
+        });
         const files: Attach[] = [];
         if (assets && assets.length > 0) {
             try {
@@ -223,13 +241,24 @@ export default function Component(
         }
 
         try {
-            await props.onSubmitFunc?.(prompt, '', { enableSearch, enableThinking, enableKnowledge }, files);
+            await props.onSubmitFunc?.(
+                prompt,
+                '',
+                {
+                    enableSearch: showFeatureControls ? enableSearch : false,
+                    enableThinking: showFeatureControls ? enableThinking : false,
+                    enableKnowledge: showFeatureControls ? enableKnowledge : false
+                },
+                files
+            );
+            console.info('[hermes] prompt submit completed');
             setPrompt('');
             setAssets([]);
         } catch (e: any) {
+            console.error('[hermes] prompt submit failed', e);
             console.error(e);
         }
-    }, [prompt, assets, currentSelectedSpace, enableSearch, enableThinking,enableKnowledge]);
+    }, [prompt, assets, currentSelectedSpace, enableSearch, enableThinking, enableKnowledge, showFeatureControls]);
 
     return (
         <>
@@ -245,7 +274,7 @@ export default function Component(
             )}
 
             <form className="flex flex-col w-full items-start gap-2 relative rounded-medium bg-default-100 transition-colors">
-                {isOpen && (
+                {!props.disableAgentMention && isOpen && (
                     <div className="absolute w-full left-0 top-0">
                         <Listbox
                             disallowEmptySelection
@@ -342,44 +371,50 @@ export default function Component(
                         {/* <Button size="sm" startContent={<Icon className="text-default-500" icon="solar:notes-linear" width={18} />} variant="flat">
                         Templates
                     </Button> */}
-                        <IconSwitch
-                            size="lg"
-                            className="text-default-500"
-                            selectedIcon="fluent-emoji-flat:thinking-face"
-                            icon="fluent-emoji-high-contrast:thinking-face"
-                            isSelected={enableThinking}
-                            onValueChange={v => {
-                                setSelectedEnableThinking(v);
-                            }}
-                        />
-                        <IconSwitch
-                            size="lg"
-                            className="text-default-500"
-                            selectedIcon="streamline-plump-color:web"
-                            icon="streamline-plump:web"
-                            isSelected={enableSearch}
-                            onValueChange={v => {
-                                setSelectedEnableSearch(v);
-                            }}
-                        />
+                        {showFeatureControls && (
+                            <>
+                                <IconSwitch
+                                    size="lg"
+                                    className="text-default-500"
+                                    selectedIcon="fluent-emoji-flat:thinking-face"
+                                    icon="fluent-emoji-high-contrast:thinking-face"
+                                    isSelected={enableThinking}
+                                    onValueChange={v => {
+                                        setSelectedEnableThinking(v);
+                                    }}
+                                />
+                                <IconSwitch
+                                    size="lg"
+                                    className="text-default-500"
+                                    selectedIcon="streamline-plump-color:web"
+                                    icon="streamline-plump:web"
+                                    isSelected={enableSearch}
+                                    onValueChange={v => {
+                                        setSelectedEnableSearch(v);
+                                    }}
+                                />
+                            </>
+                        )}
                     </div>
                     <div className="flex flex-row justify-end items-end gap-4">
-                        <Switch
-                            classNames={{
-                                base: cn(
-                                    'inline-flex flex-row-reverse hover:bg-content2 items-center bg-default-100',
-                                    'justify-between cursor-pointer rounded-lg gap-2 pl-1 pr-2 border-2 border-transparent',
-                                    'border-default h-8'
-                                ),
-                                wrapper: 'p-0 h-4 w-10 overflow-visible'
-                            }}
-                            isSelected={enableKnowledge}
-                            onValueChange={setSelectedUseMemory}
-                        >
-                            <div className="flex flex-col gap-1">
-                                <p className="text-sm text-default-500">{t('UseMemory')}</p>
-                            </div>
-                        </Switch>
+                        {showFeatureControls && (
+                            <Switch
+                                classNames={{
+                                    base: cn(
+                                        'inline-flex flex-row-reverse hover:bg-content2 items-center bg-default-100',
+                                        'justify-between cursor-pointer rounded-lg gap-2 pl-1 pr-2 border-2 border-transparent',
+                                        'border-default h-8'
+                                    ),
+                                    wrapper: 'p-0 h-4 w-10 overflow-visible'
+                                }}
+                                isSelected={enableKnowledge}
+                                onValueChange={setSelectedUseMemory}
+                            >
+                                <div className="flex flex-col gap-1">
+                                    <p className="text-sm text-default-500">{t('UseMemory')}</p>
+                                </div>
+                            </Switch>
+                        )}
                         <p className="py-1 text-tiny text-default-400 w-16 justify-end flex">{prompt.length}/2000</p>
                     </div>
                 </div>

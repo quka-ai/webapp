@@ -84,7 +84,7 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
                     }
                 }
             }
-            Login(accessToken ? '' : 'authorization', accessToken || loginToken || '');
+            Login(accessToken ? 'access' : 'authorization', accessToken || loginToken || '');
         }
     }, [isLogin, currentSelectedSpace, spaces]);
 

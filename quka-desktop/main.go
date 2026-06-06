@@ -46,13 +46,16 @@ func main() {
 		Title:  "QukaAI",
 		Width:  1640,
 		Height: 1080,
+		// Closing the window should keep the desktop agent alive, while Quit
+		// from the Dock/menu still exits the process and triggers OnShutdown.
+		HideWindowOnClose: true,
 		AssetServer: &assetserver.Options{
 			Assets: assets,
 		},
 		BackgroundColour: &options.RGBA{R: 27, G: 38, B: 54, A: 1},
 		OnStartup:        app.startup,
-		// OnBeforeClose:    app.beforeClose,
-		Menu: appMenu,
+		OnShutdown:       app.shutdown,
+		Menu:             appMenu,
 		Bind: []interface{}{
 			app,
 		},

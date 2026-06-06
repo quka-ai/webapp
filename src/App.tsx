@@ -10,9 +10,9 @@ import { subscribeKey } from 'valtio/utils';
 // import VConsole from 'vconsole';
 import { ShareProvider } from './components/share-button';
 import { useMedia } from './hooks/use-media';
-import { setNotAutoLoginDirect } from './lib/utils';
 import eventStore from './stores/event';
 
+import { HermesInteractionModal } from '@/components/hermes-interaction-modal';
 import { KnowledgeProvider } from '@/components/knowledge-drawer';
 import { Toaster } from '@/components/ui/toaster';
 import { useTheme } from '@/hooks/use-theme';
@@ -21,13 +21,12 @@ import { Init as InitI18n } from '@/lib/i18n';
 // 或者使用配置参数进行初始化
 // const vConsole = new VConsole({ theme: 'dark' });
 
-export function App({ children }: { children: React.ReactNode }) {
+export function App() {
     const { theme, isDark } = useTheme();
-    const navigate = useNavigate();
 
     enableMapSet();
 
-    const [currentTheme, setCurrentTheme] = useState(theme);
+    const [currentTheme, setCurrentTheme] = useState<string>(theme);
 
     useEffect(() => {
         const unSubscribe = subscribeKey(eventStore, 'themeChange', (theme: string) => {
@@ -54,10 +53,6 @@ export function App({ children }: { children: React.ReactNode }) {
             }
         };
     }, [currentTheme]);
-
-    // setTimeout(() => {
-    //     setNotAutoLoginDirect();
-    // }, 2000);
 
     const { isMobile } = useMedia();
 
@@ -98,6 +93,7 @@ function MyProvider({ children }: { children: React.ReactNode }) {
                     <KnowledgeProvider>
                         <ShareProvider>{children}</ShareProvider>
                     </KnowledgeProvider>
+                    <HermesInteractionModal />
                 </HeroUIProvider>
             )}
         </>

@@ -9,6 +9,8 @@ export enum EventType {
     EVENT_TOOL_CONTINUE = 6,
     EVENT_TOOL_DONE = 7,
     EVENT_TOOL_FAILED = 8,
+    EVENT_TURN_START = 9,
+    EVENT_TURN_DONE = 10,
     /** EVENT_MESSAGE_PUBLISH - match MessageDetail */
     EVENT_MESSAGE_PUBLISH = 100,
     /** EVENT_MESSAGE_ACK - match SendMessageReply */
@@ -49,4 +51,8 @@ export interface ToolTips {
     tool_name: string;
     status: ToolStatus;
     content: string;
+    arguments?: unknown;
+    arguments_text?: string;
+    result?: unknown;
+    result_text?: string;
 }

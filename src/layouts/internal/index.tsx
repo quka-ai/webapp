@@ -242,10 +242,18 @@ export default function Component({ children }: { children: React.ReactNode }) {
 
                         <Spacer y={2} />
                         <div className="flex gap-2 mx-1">
-                            <Button className="flex-1" startContent={<Icon icon="stash:data-date" width={20} />} onPress={goJournal}>
+                            <Button
+                                className="flex-1 border border-default-200 bg-content1 text-default-700 shadow-none hover:border-default-300 hover:bg-default-50 dark:border-white/10 dark:bg-default-200/20 dark:text-white dark:hover:bg-default-200/30 [&_svg]:text-current"
+                                startContent={<Icon icon="stash:data-date" width={20} />}
+                                onPress={goJournal}
+                            >
                                 {t('Journal')}
                             </Button>
-                            <Button className="flex-1" startContent={<Icon icon="mdi:podcast" width={20} />} onPress={() => navigate(`/dashboard/${currentSelectedSpace}/podcasts`)}>
+                            <Button
+                                className="flex-1 border border-default-200 bg-content1 text-default-700 shadow-none hover:border-default-300 hover:bg-default-50 dark:border-white/10 dark:bg-default-200/20 dark:text-white dark:hover:bg-default-200/30 [&_svg]:text-current"
+                                startContent={<Icon icon="mdi:podcast" width={20} />}
+                                onPress={() => navigate(`/dashboard/${currentSelectedSpace}/podcasts`)}
+                            >
                                 {t('Podcast')}
                             </Button>
                         </div>
@@ -296,10 +304,10 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                     return (
                                         <Sidebar
                                             defaultSelectedKey={currentSelectedSession?.key}
-                                            iconClassName="group-data-[selected=true]:text-primary-foreground"
+                                            iconClassName="group-data-[selected=true]:text-default-800 dark:group-data-[selected=true]:text-white"
                                             itemClasses={{
-                                                base: 'data-[selected=true]:bg-default-200 data-[selected=true]:focus:bg-default-200 dark:data-[selected=true]:bg-default-200/40 data-[hover=true]:bg-default-400 dark:data-[hover=true]:bg-default-200/20',
-                                                title: 'group-data-[selected=true]:text-primary-foreground'
+                                                base: 'data-[selected=true]:bg-default-100 data-[selected=true]:text-default-800 data-[selected=true]:focus:bg-default-100 data-[hover=true]:bg-default-100/70 dark:data-[hover=true]:bg-default-200/10 dark:data-[selected=true]:bg-default-200/20 dark:data-[selected=true]:text-white dark:data-[selected=true]:focus:bg-default-200/20',
+                                                title: 'group-data-[selected=true]:text-default-800 dark:group-data-[selected=true]:text-white'
                                             }}
                                             sectionClasses={{
                                                 heading: 'text-zinc-500 font-bold'
@@ -350,10 +358,10 @@ export default function Component({ children }: { children: React.ReactNode }) {
                                     return (
                                         <Sidebar
                                             defaultSelectedKey={currentSelectedResource?.id}
-                                            iconClassName="group-data-[selected=true]:text-primary-foreground"
+                                            iconClassName="group-data-[selected=true]:text-default-800 dark:group-data-[selected=true]:text-white"
                                             itemClasses={{
-                                                base: 'data-[selected=true]:bg-default-200 data-[selected=true]:focus:bg-default-200 dark:data-[selected=true]:bg-default-200/40 data-[hover=true]:bg-default-400 dark:data-[hover=true]:bg-default-200/20',
-                                                title: 'group-data-[selected=true]:text-primary-foreground'
+                                                base: 'data-[selected=true]:bg-default-100 data-[selected=true]:text-default-800 data-[selected=true]:focus:bg-default-100 data-[hover=true]:bg-default-100/70 dark:data-[hover=true]:bg-default-200/10 dark:data-[selected=true]:bg-default-200/20 dark:data-[selected=true]:text-white dark:data-[selected=true]:focus:bg-default-200/20',
+                                                title: 'group-data-[selected=true]:text-default-800 dark:group-data-[selected=true]:text-white'
                                             }}
                                             sectionClasses={{
                                                 heading: 'text-zinc-500 font-bold'

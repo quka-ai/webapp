@@ -1,9 +1,25 @@
 import instance from './request';
 
+import type { ToolTips } from '@/types/chat';
+
+import {
+    CreateHermesChatSession,
+    DeleteHermesChatSession,
+    GenHermesChatMessageID,
+    GetHermesChatSessionHistory,
+    GetHermesChatSessionList,
+    GetHermesMessageExt,
+    isHermesDesktopAvailable,
+    NamedHermesChatSession,
+    SendHermesChatMessage,
+    StopHermesChatStream
+} from '@/apis/hermes-desktop';
+
 export interface ChatMessageExt {
     rel_docs: RelDoc[];
     tool_name: string;
     tool_args: string;
+    tool_tips?: ToolTips[];
 }
 
 export interface RelDoc {
@@ -14,16 +30,28 @@ export interface RelDoc {
 }
 
 export async function GetMessageExt(spaceID: string, sessionID: string, messageID: string): Promise<ChatMessageExt> {
+    if (isHermesDesktopAvailable()) {
+        return GetHermesMessageExt();
+    }
+
     const resp = await instance.get(`/${spaceID}/chat/${sessionID}/message/${messageID}/ext`);
 
     return resp.data.data;
 }
 
 export async function StopChatStream(spaceID: string, sessionID: string): Promise<void> {
+    if (isHermesDesktopAvailable()) {
+        return StopHermesChatStream(spaceID, sessionID);
+    }
+
     await instance.post(`/${spaceID}/chat/${sessionID}/stop`);
 }
 
 export async function CreateChatSession(spaceID: string): Promise<string> {
+    if (isHermesDesktopAvailable()) {
+        return CreateHermesChatSession(spaceID);
+    }
+
     const resp = await instance.post(`/${spaceID}/chat`);
 
     return resp.data.data.session_id;
@@ -43,6 +71,10 @@ export interface ChatSession {
 }
 
 export async function GetChatSessionList(spaceID: string, page: number, pageSize: number): Promise<ChatSessionList> {
+    if (isHermesDesktopAvailable()) {
+        return GetHermesChatSessionList(spaceID, page, pageSize);
+    }
+
     const resp = await instance.get(`/${spaceID}/chat/list`, {
         params: {
             page: page,
@@ -80,10 +112,15 @@ export interface MessageDetail {
         is_evaluate_enable: boolean;
         tool_name: string;
         tool_args: string;
+        tool_tips?: ToolTips[];
     };
 }
 
 export async function GetChatSessionHistory(spaceID: string, sessionID: string, afterSequence: number = 0, page: number, pageSize: number): Promise<ChatMessageList> {
+    if (isHermesDesktopAvailable()) {
+        return GetHermesChatSessionHistory(spaceID, sessionID, page, pageSize);
+    }
+
     const resp = await instance.get(`/${spaceID}/chat/${sessionID}/history/list`, {
         params: {
             page: page,
@@ -96,6 +133,10 @@ export async function GetChatSessionHistory(spaceID: string, sessionID: string, 
 }
 
 export async function GenChatMessageID(spaceID: string, sessionID: string): Promise<string> {
+    if (isHermesDesktopAvailable()) {
+        return GenHermesChatMessageID();
+    }
+
     const resp = await instance.post(`/${spaceID}/chat/${sessionID}/message/id`);
 
     return resp.data.data;
@@ -117,6 +158,17 @@ export interface SendMessageResponse {
 }
 
 export async function SendMessage(spaceID: string, sessionID: string, args: SendMessageArgs): Promise<SendMessageResponse> {
+    console.info('[hermes] SendMessage called', {
+        desktop: isHermesDesktopAvailable(),
+        spaceID,
+        sessionID,
+        messageID: args.messageID,
+        messageLength: args.message.length
+    });
+    if (isHermesDesktopAvailable()) {
+        return SendHermesChatMessage(spaceID, sessionID, args);
+    }
+
     const resp = await instance.post(`/${spaceID}/chat/${sessionID}/message`, {
         message_id: args.messageID,
         message: args.message,
@@ -136,6 +188,10 @@ export interface ChatSessionNamedResult {
 }
 
 export async function NamedChatSession(spaceID: string, sessionID: string, firstMessage: string): Promise<ChatSessionNamedResult> {
+    if (isHermesDesktopAvailable()) {
+        return NamedHermesChatSession(spaceID, sessionID, firstMessage);
+    }
+
     const resp = await instance.put(`/${spaceID}/chat/${sessionID}/named`, {
         first_message: firstMessage
     });
@@ -144,5 +200,9 @@ export async function NamedChatSession(spaceID: string, sessionID: string, first
 }
 
 export async function DeleteChatSession(spaceID: string, sessionID: string): Promise<void> {
+    if (isHermesDesktopAvailable()) {
+        return DeleteHermesChatSession(spaceID, sessionID);
+    }
+
     await instance.delete(`/${spaceID}/chat/${sessionID}`);
 }

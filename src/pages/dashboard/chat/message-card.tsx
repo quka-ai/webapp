@@ -72,16 +72,8 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
 
         const { copied, copy } = useClipboard();
 
-        const failedMessageClassName = status === 'failed' ? 'bg-danger-100/50 border border-danger-100 text-foreground' : '';
-        const failedMessage = (
-            <p className="px-4">
-                {/* Something went wrong, if the issue persists please contact us through our help center at&nbsp;
-                <Link href="mailto:support@quka.ai" size="sm">
-                    support@quka.ai
-                </Link> */}
-                {t('SystemError')}
-            </p>
-        );
+        const failedMessageClassName = status === 'failed' && role !== 'tool' ? 'bg-danger-100/50 border border-danger-100 text-foreground' : '';
+        const failedMessageText = typeof message === 'string' && message.trim() ? message : t('SystemError');
 
         const hasFailed = status === 'failed';
         // const typing = status === 'continue';
@@ -178,7 +170,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
                                 ) : (
                                     <div ref={messageRef} className={'text-small gap-1 text-default-600'}>
                                         {hasFailed ? (
-                                            failedMessage
+                                            <Markdown className="px-4 text-wrap break-words text-danger-700 dark:text-danger-300 leading-loose">{failedMessageText}</Markdown>
                                         ) : (
                                             <>
                                                 <Markdown className="text-wrap break-words text-gray-600 dark:text-gray-300 leading-loose">{message}</Markdown>

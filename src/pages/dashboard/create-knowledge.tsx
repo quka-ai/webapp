@@ -40,8 +40,8 @@ const CreateKnowledge = () => {
     }, [editor]);
 
     return (
-        <div className="w-full min-h-screen bg-content1">
-            <div className="flex w-full h-10 items-center p-2">
+        <section className="h-screen flex flex-col w-full p-4 overflow-hidden items-center bg-content2">
+            <header className="flex w-full min-h-10 items-center overflow-hidden pb-4">
                 <Breadcrumbs>
                     <BreadcrumbItem
                         onPress={() => {
@@ -59,19 +59,23 @@ const CreateKnowledge = () => {
                     </BreadcrumbItem>
                     <BreadcrumbItem>{t('Create')}</BreadcrumbItem>
                 </Breadcrumbs>
-            </div>
-            <div className="w-full overflow-hidden p-4">
-                <KnowledgeEdit
-                    ref={editor}
-                    hideSubmit
-                    knowledge={{
-                        //@ts-ignore
-                        space_id: spaceID
-                    }}
-                    classNames={{ base: '', editor: '!mx-0 ' }}
-                />
-            </div>
-            <div className="fixed w-full left-0 bottom-0 h-14 flex justify-center items-center bg-content1 z-50">
+            </header>
+            <main className="flex gap-6 w-full max-w-[1400px] h-full items-stretch justify-center relative">
+                <div className="relative flex flex-col h-full gap-2 pt-4 sm:pt-10 w-full md:max-w-[720px] rounded-xl bg-content1 overflow-hidden">
+                    <div className="flex grow w-full max-w-full flex-col box-border px-1 gap-2 relative overflow-hidden">
+                        <div className="flex-1 basis-0 min-h-0 overflow-y-auto overflow-x-hidden mx-4 pb-20">
+                            <KnowledgeEdit
+                                ref={editor}
+                                hideSubmit
+                                knowledge={{
+                                    space_id: spaceID || ''
+                                }}
+                            />
+                        </div>
+                    </div>
+                </div>
+            </main>
+            <div className="fixed w-full left-0 bottom-0 min-h-14 flex justify-center items-center z-50 box-border">
                 <ButtonGroup variant="flat" size="md" className="mb-4">
                     <Button color="primary" isLoading={createLoading} className="bg-default" onPress={submit}>
                         {t('Save')}
@@ -81,7 +85,7 @@ const CreateKnowledge = () => {
                     </Button>
                 </ButtonGroup>
             </div>
-        </div>
+        </section>
     );
 };
 

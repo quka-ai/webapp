@@ -1,7 +1,6 @@
-# syntax=docker/dockerfile:1
 # Multi-architecture build support for AMD64 and ARM64
 
-FROM --platform=$BUILDPLATFORM node:18-alpine AS build
+FROM --platform=$BUILDPLATFORM docker.1ms.run/library/node:24-alpine3.22 AS build
 
 # Build arguments for multi-architecture support
 ARG BUILDPLATFORM
@@ -32,7 +31,7 @@ RUN npm run build-beta && \
     chmod -R 755 /app/dist
 
 # Production stage - Use multi-arch nginx image
-FROM --platform=$TARGETPLATFORM nginx:alpine
+FROM --platform=$TARGETPLATFORM docker.1ms.run/library/nginx:alpine
 
 # Add labels for better image management
 LABEL org.opencontainers.image.title="Quka Web Frontend"

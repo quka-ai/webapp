@@ -144,11 +144,10 @@ export function KnowledgeDrawer({ temporaryStorage, handleButton, isOpen, onOpen
                             <DrawerBody className="pt-16">
                                 <KnowledgeEdit
                                     ref={editor}
-                                    classNames={{ base: '', editor: 'mr-0' }}
                                     hideSubmit
                                     // @ts-ignore
-                                    knowledge={{ 
-                                        space_id: currentSelectedSpace 
+                                    knowledge={{
+                                        space_id: currentSelectedSpace
                                     }}
                                     temporaryStorage={temporaryStorage}
                                     enableScrollShadow={false}

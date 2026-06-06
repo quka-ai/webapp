@@ -1,18 +1,60 @@
-import { useCallback, useState } from 'react';
+import { Button, Modal, ModalBody, ModalContent, ModalHeader, useDisclosure } from '@heroui/react';
+import { Icon } from '@iconify/react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 
 import PromptInputWithEnclosedActions from './prompt-input-with-enclosed-actions';
+import HermesStatusIndicator from './hermes-status-indicator';
 
 import { CreateChatSession } from '@/apis/chat';
+import { HasHermesProviderConfigured, ensureHermesAgentConfigured, isHermesDesktopAvailable } from '@/apis/hermes-desktop';
 import { LogoIcon } from '@/components/logo';
+import HermesProviderSetting from '@/pages/dashboard/setting/hermes-provider-setting';
+import HermesSkillsSetting from '@/pages/dashboard/setting/hermes-skills-setting';
 import spaceStore from '@/stores/space';
 
 export default function Chat() {
     const navigate = useNavigate();
     const { currentSelectedSpace } = useSnapshot(spaceStore);
     const [isLoading, setIsLoading] = useState(false);
+    const [providerConfigured, setProviderConfigured] = useState<boolean>(() => !isHermesDesktopAvailable());
+    const { isOpen: isProviderSettingOpen, onOpen: openProviderSetting, onClose: closeProviderSetting, onOpenChange: onProviderSettingOpenChange } = useDisclosure();
+    const { isOpen: isSkillsSettingOpen, onOpen: openSkillsSetting, onClose: closeSkillsSetting, onOpenChange: onSkillsSettingOpenChange } = useDisclosure();
+    const desktopMode = isHermesDesktopAvailable();
+
+    useEffect(() => {
+        if (!desktopMode) {
+            setProviderConfigured(true);
+            return;
+        }
+
+        HasHermesProviderConfigured().then(setProviderConfigured).catch(error => {
+            console.error('Failed to check Hermes provider configuration:', error);
+            setProviderConfigured(false);
+        });
+    }, [desktopMode]);
+
+    useEffect(() => {
+        if (!currentSelectedSpace || !desktopMode || !providerConfigured) {
+            return;
+        }
+
+        ensureHermesAgentConfigured(currentSelectedSpace).catch(error => {
+            console.error('Failed to start Hermes Agent:', error);
+        });
+    }, [currentSelectedSpace, desktopMode, providerConfigured]);
+
+    const handleProviderConfigured = useCallback(() => {
+        setProviderConfigured(true);
+        closeProviderSetting();
+        if (currentSelectedSpace) {
+            ensureHermesAgentConfigured(currentSelectedSpace).catch(error => {
+                console.error('Failed to start Hermes Agent:', error);
+            });
+        }
+    }, [closeProviderSetting, currentSelectedSpace]);
 
     const onSubmit = useCallback<(msg: string, agent: string, args: ChatArgs, files?: Attach[]) => Promise<void>>(
         async (message: string, agent: string, args: ChatArgs, files?: Attach[]) => {
@@ -50,8 +92,54 @@ export default function Chat() {
 
     const { t } = useTranslation();
 
+    if (desktopMode && !providerConfigured) {
+        return (
+            <div className="overflow-hidden w-full h-full flex justify-center relative">
+                <div className="absolute right-4 top-4 z-10">
+                    <HermesStatusIndicator />
+                </div>
+                <div className="flex w-full h-full flex-col px-4 sm:max-w-[620px] justify-center">
+                    <HermesProviderSetting
+                        className="rounded-large border border-default-200 bg-content1 p-4 shadow-sm"
+                        description={t('Configure Hermes before chatting')}
+                        onConfigured={handleProviderConfigured}
+                    />
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="overflow-hidden w-full h-full flex justify-center">
+            {desktopMode && (
+                <>
+                    <div className="pointer-events-none absolute right-4 top-4 z-50 flex items-center gap-2">
+                        <HermesStatusIndicator className="pointer-events-auto" />
+                        <Button isIconOnly className="pointer-events-auto" variant="light" aria-label={t('Hermes Skills')} onClick={openSkillsSetting} onPress={openSkillsSetting}>
+                            <Icon icon="material-symbols:extension-rounded" width={22} />
+                        </Button>
+                        <Button isIconOnly className="pointer-events-auto" variant="light" aria-label={t('Hermes Provider Settings')} onClick={openProviderSetting} onPress={openProviderSetting}>
+                            <Icon icon="material-symbols:settings-rounded" width={22} />
+                        </Button>
+                    </div>
+                    <Modal backdrop="blur" isOpen={isProviderSettingOpen} placement="center" scrollBehavior="inside" onClose={closeProviderSetting} onOpenChange={onProviderSettingOpenChange}>
+                        <ModalContent>
+                            <ModalHeader>{t('Hermes Settings')}</ModalHeader>
+                            <ModalBody className="pb-6">
+                                <HermesProviderSetting onConfigured={handleProviderConfigured} />
+                            </ModalBody>
+                        </ModalContent>
+                    </Modal>
+                    <Modal backdrop="blur" isOpen={isSkillsSettingOpen} size="3xl" placement="center" scrollBehavior="inside" onClose={closeSkillsSetting} onOpenChange={onSkillsSettingOpenChange}>
+                        <ModalContent>
+                            <ModalHeader>{t('Hermes Skills')}</ModalHeader>
+                            <ModalBody className="pb-6">
+                                <HermesSkillsSetting />
+                            </ModalBody>
+                        </ModalContent>
+                    </Modal>
+                </>
+            )}
             <div className="flex w-full h-full flex-col px-4 sm:max-w-[760px] justify-center">
                 <div className="flex h-full flex-col items-center justify-center gap-10">
                     <div className="flex rounded-full items-center">
@@ -61,6 +149,8 @@ export default function Chat() {
                         <PromptInputWithEnclosedActions
                             autoFocus={true}
                             allowAttach={true}
+                            disableAgentMention={desktopMode}
+                            hideFeatureControls={desktopMode}
                             isLoading={isLoading}
                             classNames={{
                                 button: 'bg-default-foreground opacity-100 w-[30px] h-[30px] !min-w-[30px] self-center',
