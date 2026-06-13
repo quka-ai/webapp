@@ -10,6 +10,8 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+__pycache__/
+*.pyc
 *.local
 *.production
 *.beta
@@ -34,3 +36,4 @@ build-local.sh
 quka-desktop/build/bin
 quka-desktop/build/hermes-runtime-*/
 quka-desktop/frontend
+quka-desktop/quka.app.zip

@@ -92,7 +92,7 @@ class QukaAgentsApprovalTest(unittest.TestCase):
 
     def test_explains_shell_wrapped_github_milestone_command_for_users(self):
         command = (
-            'export PATH="/opt/homebrew/bin:$PATH" GH_CONFIG_DIR=/Users/wangboyan/.config/gh; '
+            'export PATH="/opt/homebrew/bin:$PATH" GH_CONFIG_DIR=/tmp/quka-gh-config; '
             'gh api repos/holdno/edgefn/milestones --jq ".[].title"'
         )
         explanation = build_terminal_command_explanation(command)

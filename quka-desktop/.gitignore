@@ -1,4 +1,7 @@
 build/bin
 build/hermes-runtime-*/
+__pycache__/
+*.pyc
 node_modules
 frontend/dist
+quka.app.zip
