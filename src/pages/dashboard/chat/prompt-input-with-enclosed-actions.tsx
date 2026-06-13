@@ -12,6 +12,7 @@ import PromptInput from './prompt-input';
 
 import IconSwitch from '@/components/icon-switch';
 import { UploadResult, useUploader } from '@/hooks/use-uploader';
+import type { AgentMentionOption } from '@/lib/hermes-agent-mentions';
 import spaceStore from '@/stores/space';
 
 export default function Component(
@@ -23,6 +24,7 @@ export default function Component(
         selectedEnableThinking?: boolean;
         allowAttach: boolean;
         disableAgentMention?: boolean;
+        agentMentionOptions?: AgentMentionOption[];
         hideFeatureControls?: boolean;
         onSubmitFunc?: (data: string, agent: string, args: ChatArgs, files: Attach[]) => Promise<void>;
         onStopFunc?: () => Promise<void>;
@@ -141,17 +143,22 @@ export default function Component(
     );
 
     const agents = useMemo(() => {
+        if (props.agentMentionOptions) {
+            return props.agentMentionOptions;
+        }
         return [
             {
+                key: t('agent-butler'),
                 title: t('agent-butler'),
                 description: t('AgentButlerDescription')
             },
             {
+                key: t('agent-journal'),
                 title: t('agent-journal'),
                 description: t('AgentJournalDescription')
             }
         ];
-    }, []);
+    }, [props.agentMentionOptions, t]);
 
     const [assets, setAssets] = useState<File[]>([]);
     const handlePaste = useCallback(async (e: React.ClipboardEvent) => {
@@ -278,7 +285,7 @@ export default function Component(
                     <div className="absolute w-full left-0 top-0">
                         <Listbox
                             disallowEmptySelection
-                            aria-label="Single agent selection"
+                            aria-label="Agent selection"
                             className="absolute bottom-1 left-0 bg-content2 rounded-xl z-50"
                             // @ts-ignore
                             autoFocus="first"
@@ -288,7 +295,7 @@ export default function Component(
                         >
                             {agents.map(v => {
                                 return (
-                                    <ListboxItem key={v.title} className="h-12">
+                                    <ListboxItem key={v.key} textValue={v.title} className="h-12">
                                         {v.title} <span className="text-sm text-zinc-400">（{v.description}）</span>
                                     </ListboxItem>
                                 );
@@ -433,8 +440,8 @@ const PromptInputAssets = ({ assets, onRemoveAsset }: PromptInputAssetsProps) =>
 
     useEffect(() => {
         Promise.all(
-            assets.map((file, index) => {
-                return new Promise<string>((resolve, reject) => {
+            assets.map(file => {
+                return new Promise<string>(resolve => {
                     const reader = new FileReader();
                     reader.onload = () => {
                         const base64data = reader.result as string;

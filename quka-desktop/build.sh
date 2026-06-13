@@ -43,6 +43,7 @@ echo "📦 复制前端资源..."
 # 2. 构建应用
 echo "🔨 构建应用..."
 export PATH="$HOME/go/bin:$PATH"
+./prepare-hermes-build.sh "build/bin/QukaAI.app"
 rm -rf build/bin
 wails build -clean -platform "$PLATFORM"
 

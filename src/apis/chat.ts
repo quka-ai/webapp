@@ -1,6 +1,5 @@
+/* eslint-disable import/order */
 import instance from './request';
-
-import type { ToolTips } from '@/types/chat';
 
 import {
     CreateHermesChatSession,
@@ -14,12 +13,14 @@ import {
     SendHermesChatMessage,
     StopHermesChatStream
 } from '@/apis/hermes-desktop';
+import type { AgentRun, ToolTips } from '@/types/chat';
 
 export interface ChatMessageExt {
     rel_docs: RelDoc[];
     tool_name: string;
     tool_args: string;
     tool_tips?: ToolTips[];
+    agent_run?: AgentRun;
 }
 
 export interface RelDoc {
@@ -113,6 +114,7 @@ export interface MessageDetail {
         tool_name: string;
         tool_args: string;
         tool_tips?: ToolTips[];
+        agent_run?: AgentRun;
     };
 }
 

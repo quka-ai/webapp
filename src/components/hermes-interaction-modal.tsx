@@ -69,7 +69,7 @@ export function HermesInteractionModal() {
                             {queue.length > 1 && <span className="text-xs font-normal text-default-500">{t('Hermes pending confirmations', { count: queue.length })}</span>}
                         </ModalHeader>
                         <ModalBody className="gap-4">
-                            <div className="text-sm text-default-600">{active.message || t('Hermes needs your confirmation')}</div>
+                            <div className="text-sm text-default-600">{isSudoPrompt ? active.message || t('Hermes needs your confirmation') : t('Hermes command confirmation description')}</div>
                             {isSudoPrompt ? (
                                 <Input
                                     autoFocus
@@ -86,11 +86,19 @@ export function HermesInteractionModal() {
                                 />
                             ) : (
                                 <div className="flex flex-col gap-3">
-                                    {active.description && (
+                                    {(active.explanation || active.description) && (
                                         <div>
-                                            <div className="mb-1 text-xs font-medium uppercase text-default-500">{t('Reason')}</div>
-                                            <div className="rounded-md border border-default-200 bg-default-50 px-3 py-2 text-sm text-default-700 dark:bg-default-100/10">{active.description}</div>
+                                            <div className="mb-1 text-xs font-medium uppercase text-default-500">{t('What Hermes will do')}</div>
+                                            <div className="whitespace-pre-wrap rounded-md border border-default-200 bg-default-50 px-3 py-2 text-sm leading-6 text-default-700 dark:bg-default-100/10">
+                                                {active.explanation || active.description}
+                                            </div>
                                         </div>
+                                    )}
+                                    {active.description && (
+                                        <details className="rounded-md border border-default-200 bg-default-50 px-3 py-2 text-sm text-default-600 dark:bg-default-100/10">
+                                            <summary className="cursor-pointer select-none text-xs font-medium uppercase text-default-500">{t('Technical risk details')}</summary>
+                                            <div className="mt-2 leading-5">{active.description}</div>
+                                        </details>
                                     )}
                                     {active.command && (
                                         <div>

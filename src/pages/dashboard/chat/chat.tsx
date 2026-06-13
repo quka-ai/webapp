@@ -9,8 +9,10 @@ import PromptInputWithEnclosedActions from './prompt-input-with-enclosed-actions
 import HermesStatusIndicator from './hermes-status-indicator';
 
 import { CreateChatSession } from '@/apis/chat';
-import { HasHermesProviderConfigured, ensureHermesAgentConfigured, isHermesDesktopAvailable } from '@/apis/hermes-desktop';
+import { HasHermesProviderConfigured, ensureHermesAgentConfigured, isHermesDesktopAvailable, ListHermesAgents, type HermesAgentProfile } from '@/apis/hermes-desktop';
 import { LogoIcon } from '@/components/logo';
+import { getHermesAgentMentionOptions } from '@/lib/hermes-agent-mentions';
+import HermesAgentsSetting from '@/pages/dashboard/setting/hermes-agents-setting';
 import HermesProviderSetting from '@/pages/dashboard/setting/hermes-provider-setting';
 import HermesSkillsSetting from '@/pages/dashboard/setting/hermes-skills-setting';
 import spaceStore from '@/stores/space';
@@ -22,7 +24,9 @@ export default function Chat() {
     const [providerConfigured, setProviderConfigured] = useState<boolean>(() => !isHermesDesktopAvailable());
     const { isOpen: isProviderSettingOpen, onOpen: openProviderSetting, onClose: closeProviderSetting, onOpenChange: onProviderSettingOpenChange } = useDisclosure();
     const { isOpen: isSkillsSettingOpen, onOpen: openSkillsSetting, onClose: closeSkillsSetting, onOpenChange: onSkillsSettingOpenChange } = useDisclosure();
+    const { isOpen: isAgentsSettingOpen, onOpen: openAgentsSetting, onClose: closeAgentsSetting, onOpenChange: onAgentsSettingOpenChange } = useDisclosure();
     const desktopMode = isHermesDesktopAvailable();
+    const [hermesAgentProfiles, setHermesAgentProfiles] = useState<HermesAgentProfile[]>([]);
 
     useEffect(() => {
         if (!desktopMode) {
@@ -45,6 +49,20 @@ export default function Chat() {
             console.error('Failed to start Hermes Agent:', error);
         });
     }, [currentSelectedSpace, desktopMode, providerConfigured]);
+
+    useEffect(() => {
+        if (!desktopMode || !providerConfigured) {
+            setHermesAgentProfiles([]);
+            return;
+        }
+
+        ListHermesAgents()
+            .then(list => setHermesAgentProfiles(list.profiles))
+            .catch(error => {
+                console.error('Failed to load Hermes agents:', error);
+                setHermesAgentProfiles([]);
+            });
+    }, [desktopMode, providerConfigured, isAgentsSettingOpen]);
 
     const handleProviderConfigured = useCallback(() => {
         setProviderConfigured(true);
@@ -78,7 +96,8 @@ export default function Chat() {
                         ],
                         agent: agent,
                         args: args,
-                        files: files
+                        files: files,
+                        hermesAgentProfiles: hermesAgentProfiles
                     }
                 });
             } catch (e: any) {
@@ -87,7 +106,7 @@ export default function Chat() {
             }
             setIsLoading(false);
         },
-        [currentSelectedSpace]
+        [currentSelectedSpace, hermesAgentProfiles]
     );
 
     const { t } = useTranslation();
@@ -115,6 +134,9 @@ export default function Chat() {
                 <>
                     <div className="pointer-events-none absolute right-4 top-4 z-50 flex items-center gap-2">
                         <HermesStatusIndicator className="pointer-events-auto" />
+                        <Button isIconOnly className="pointer-events-auto" variant="light" aria-label={t('Hermes Agents')} onClick={openAgentsSetting} onPress={openAgentsSetting}>
+                            <Icon icon="material-symbols:account-tree-outline-rounded" width={22} />
+                        </Button>
                         <Button isIconOnly className="pointer-events-auto" variant="light" aria-label={t('Hermes Skills')} onClick={openSkillsSetting} onPress={openSkillsSetting}>
                             <Icon icon="material-symbols:extension-rounded" width={22} />
                         </Button>
@@ -138,6 +160,14 @@ export default function Chat() {
                             </ModalBody>
                         </ModalContent>
                     </Modal>
+                    <Modal backdrop="blur" isOpen={isAgentsSettingOpen} size="5xl" placement="center" scrollBehavior="inside" onClose={closeAgentsSetting} onOpenChange={onAgentsSettingOpenChange}>
+                        <ModalContent>
+                            <ModalHeader>{t('Hermes Agents')}</ModalHeader>
+                            <ModalBody className="overflow-hidden pb-6">
+                                <HermesAgentsSetting />
+                            </ModalBody>
+                        </ModalContent>
+                    </Modal>
                 </>
             )}
             <div className="flex w-full h-full flex-col px-4 sm:max-w-[760px] justify-center">
@@ -149,7 +179,7 @@ export default function Chat() {
                         <PromptInputWithEnclosedActions
                             autoFocus={true}
                             allowAttach={true}
-                            disableAgentMention={desktopMode}
+                            agentMentionOptions={desktopMode ? getHermesAgentMentionOptions(hermesAgentProfiles) : undefined}
                             hideFeatureControls={desktopMode}
                             isLoading={isLoading}
                             classNames={{

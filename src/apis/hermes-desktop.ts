@@ -21,6 +21,10 @@ interface WailsAppBridge {
     ReloadHermesSkills?: () => Promise<HermesSkillList> | HermesSkillList;
     InstallHermesSkill?: (req: HermesSkillInstallRequest) => Promise<HermesSkillList> | HermesSkillList;
     DeleteHermesSkill?: (req: HermesSkillDeleteRequest) => Promise<HermesSkillList> | HermesSkillList;
+    ListHermesAgents?: () => Promise<HermesAgentProfileList> | HermesAgentProfileList;
+    SaveHermesAgent?: (req: HermesAgentProfileSaveRequest) => Promise<HermesAgentProfileList> | HermesAgentProfileList;
+    DeleteHermesAgent?: (req: HermesAgentProfileDeleteRequest) => Promise<HermesAgentProfileList> | HermesAgentProfileList;
+    RunHermesAgentTest?: (req: HermesAgentRunTestRequest) => Promise<HermesAgentRunTestResult> | HermesAgentRunTestResult;
     ResolveHermesInteraction?: (req: HermesInteractionResolveRequest) => Promise<void>;
     CreateHermesSession: (spaceID: string) => Promise<string>;
     ListHermesSessions: (spaceID: string, page: number, pageSize: number) => Promise<ChatSessionList>;
@@ -103,6 +107,68 @@ export interface HermesSkillContent {
     content: string;
 }
 
+export interface HermesAgentProfile {
+    id: string;
+    name: string;
+    description: string;
+    systemPrompt: string;
+    toolPolicy: 'no_tools' | 'read_only' | 'restricted' | 'workspace_write' | string;
+    enabledToolsets: string[];
+    enabledSkills: string[];
+    contextPolicy: 'minimal' | 'focused' | 'summary' | string;
+    builtIn?: boolean;
+    createdAt?: number;
+    updatedAt?: number;
+}
+
+export interface HermesAgentProfileList {
+    profiles: HermesAgentProfile[];
+    profilesPath: string;
+}
+
+export interface HermesAgentProfileSaveRequest {
+    profile: HermesAgentProfile;
+}
+
+export interface HermesAgentProfileDeleteRequest {
+    id: string;
+}
+
+export interface HermesAgentRunNodeRequest {
+    nodeID: string;
+    agentID: string;
+    task: string;
+    expectedOutput?: string;
+    dependsOn?: string[];
+    toolPolicy?: string;
+    toolsets?: string[];
+    context?: Record<string, unknown>;
+}
+
+export interface HermesAgentRunTestRequest {
+    parentSessionID?: string;
+    userRequest: string;
+    coordinatorIntent?: string;
+    strategy?: 'parallel' | 'dag' | string;
+    maxParallelism?: number;
+    nodes: HermesAgentRunNodeRequest[];
+    fake?: boolean;
+    ensureBridge?: boolean;
+}
+
+export interface HermesAgentRunTestResult {
+    ok: boolean;
+    run_id: string;
+    parent_session_id: string;
+    status: string;
+    strategy: string;
+    started_at?: string;
+    completed_at?: string;
+    trace_dir: string;
+    nodes: Array<Record<string, unknown>>;
+    error?: string;
+}
+
 export interface HermesStatus {
     ready: boolean;
     baseURL: string;
@@ -139,6 +205,7 @@ export interface HermesInteractionRequest {
     message?: string;
     command?: string;
     description?: string;
+    explanation?: string;
     pattern_key?: string;
     pattern_keys?: string[];
     allow_permanent?: boolean;
@@ -320,6 +387,39 @@ export async function DeleteHermesSkill(req: HermesSkillDeleteRequest): Promise<
     };
 }
 
+export async function ListHermesAgents(): Promise<HermesAgentProfileList> {
+    const bridge = appBridge();
+    if (!bridge?.ListHermesAgents) {
+        return { profiles: [], profilesPath: '' };
+    }
+    const list = await bridge.ListHermesAgents();
+    return normalizeHermesAgentProfileList(list);
+}
+
+export async function SaveHermesAgent(req: HermesAgentProfileSaveRequest): Promise<HermesAgentProfileList> {
+    const bridge = appBridge();
+    if (!bridge?.SaveHermesAgent) {
+        throw new Error('Hermes desktop bridge is not available');
+    }
+    return normalizeHermesAgentProfileList(await bridge.SaveHermesAgent(req));
+}
+
+export async function DeleteHermesAgent(req: HermesAgentProfileDeleteRequest): Promise<HermesAgentProfileList> {
+    const bridge = appBridge();
+    if (!bridge?.DeleteHermesAgent) {
+        throw new Error('Hermes desktop bridge is not available');
+    }
+    return normalizeHermesAgentProfileList(await bridge.DeleteHermesAgent(req));
+}
+
+export async function RunHermesAgentTest(req: HermesAgentRunTestRequest): Promise<HermesAgentRunTestResult> {
+    const bridge = appBridge();
+    if (!bridge?.RunHermesAgentTest) {
+        throw new Error('Hermes desktop bridge is not available');
+    }
+    return bridge.RunHermesAgentTest(req);
+}
+
 export function readHermesProviderConfig(): HermesProviderStoredConfig {
     if (typeof window === 'undefined') {
         return {
@@ -383,6 +483,27 @@ function normalizeHermesProviderConfig(config: Partial<HermesProviderStoredConfi
         baseURL: config?.baseURL || '',
         apiKeyConfigured: Boolean(config?.apiKeyConfigured),
         tavilyConfigured: Boolean(config?.tavilyConfigured)
+    };
+}
+
+function normalizeHermesAgentProfileList(list: Partial<HermesAgentProfileList> | null | undefined): HermesAgentProfileList {
+    return {
+        profiles: Array.isArray(list?.profiles)
+            ? list!.profiles.map(profile => ({
+                  id: profile.id || '',
+                  name: profile.name || profile.id || '',
+                  description: profile.description || '',
+                  systemPrompt: profile.systemPrompt || '',
+                  toolPolicy: profile.toolPolicy || 'read_only',
+                  enabledToolsets: Array.isArray(profile.enabledToolsets) ? profile.enabledToolsets : [],
+                  enabledSkills: Array.isArray(profile.enabledSkills) ? profile.enabledSkills : [],
+                  contextPolicy: profile.contextPolicy || 'focused',
+                  builtIn: Boolean(profile.builtIn),
+                  createdAt: profile.createdAt,
+                  updatedAt: profile.updatedAt
+              }))
+            : [],
+        profilesPath: list?.profilesPath || ''
     };
 }
 
@@ -576,11 +697,12 @@ export function SubscribeHermesChatStreamEvent(
             sessionID: event.data.session_id,
             messageID: event.data.message_id,
             messageLength: event.data.message?.length || 0,
-            msgType: event.data.msg_type
+            msgType: event.data.msg_type,
+            agentRun: event.data.agent_run
         });
         callback(event.type, {
             ...event.data,
-            msg_type: event.data.msg_type || (event.data.tool_tips ? MessageType.MESSAGE_TYPE_TOOL_TIPS : MessageType.MESSAGE_TYPE_TEXT)
+            msg_type: event.data.msg_type || (event.data.agent_run ? MessageType.MESSAGE_TYPE_AGENT_RUN : event.data.tool_tips ? MessageType.MESSAGE_TYPE_TOOL_TIPS : MessageType.MESSAGE_TYPE_TEXT)
         });
     });
 

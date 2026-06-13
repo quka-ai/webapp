@@ -1,3 +1,4 @@
 build/bin
+build/hermes-runtime-*/
 node_modules
 frontend/dist

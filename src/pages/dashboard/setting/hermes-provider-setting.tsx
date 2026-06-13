@@ -3,6 +3,7 @@ import { Icon } from '@iconify/react';
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { toast } from 'sonner';
+import { useSnapshot } from 'valtio';
 
 import {
     ConfigureHermesEnvironment,
@@ -13,6 +14,7 @@ import {
     readHermesProviderConfig,
     SubscribeHermesAgentStatus
 } from '@/apis/hermes-desktop';
+import userStore from '@/stores/user';
 
 interface HermesProviderSettingProps {
     className?: string;
@@ -37,6 +39,16 @@ interface HermesEnvironmentRow {
     configured: boolean;
 }
 
+interface HermesProviderPreset {
+    id: string;
+    modelName: string;
+    baseURL: string;
+    apiKey: string;
+    tavilyAPIKey: string;
+    updatedAt: number;
+    pinned?: boolean;
+}
+
 const DEFAULT_FORM: HermesProviderForm = {
     modelName: '',
     baseURL: '',
@@ -44,8 +56,14 @@ const DEFAULT_FORM: HermesProviderForm = {
     tavilyAPIKey: ''
 };
 
+const HERMES_PROVIDER_PRESETS_STORAGE_KEY = 'quka-hermes-provider-presets';
+const MAX_HERMES_PROVIDER_PRESETS = 8;
+const QUKA_LLM_GATEWAY_PRESET_ID = 'quka-ai-llm-gateway';
+const QUKA_LLM_GATEWAY_MODEL = 'quka-hermes';
+
 const HermesProviderSetting = React.forwardRef<HTMLDivElement, HermesProviderSettingProps>(({ className, onConfigured, title, description, ...props }, ref) => {
     const { t } = useTranslation();
+    const { host, accessToken, loginToken } = useSnapshot(userStore);
     const [storedConfig, setStoredConfig] = React.useState(() => readHermesProviderConfig());
     const [form, setForm] = React.useState<HermesProviderForm>(() => ({
         ...DEFAULT_FORM,
@@ -55,8 +73,12 @@ const HermesProviderSetting = React.forwardRef<HTMLDivElement, HermesProviderSet
     const [envRows, setEnvRows] = React.useState<HermesEnvironmentRow[]>(() => [createEnvironmentRow()]);
     const [envErrors, setEnvErrors] = React.useState<Record<string, string>>({});
     const [errors, setErrors] = React.useState<HermesProviderFormErrors>({});
+    const [presets, setPresets] = React.useState<HermesProviderPreset[]>(() => readHermesProviderPresets());
+    const [switchingPresetID, setSwitchingPresetID] = React.useState<string | null>(null);
     const [isSaving, setIsSaving] = React.useState(false);
     const [isSavingEnv, setIsSavingEnv] = React.useState(false);
+    const qukaGatewayPreset = React.useMemo(() => createQukaLLMGatewayPreset(host, accessToken || loginToken || ''), [accessToken, host, loginToken]);
+    const visiblePresets = React.useMemo(() => [qukaGatewayPreset, ...presets.filter(preset => preset.id !== QUKA_LLM_GATEWAY_PRESET_ID)], [presets, qukaGatewayPreset]);
 
     React.useEffect(() => {
         let mounted = true;
@@ -131,47 +153,93 @@ const HermesProviderSetting = React.forwardRef<HTMLDivElement, HermesProviderSet
         });
     }, []);
 
-    const save = React.useCallback(async () => {
-        const nextErrors = validateForm(form, storedConfig.apiKeyConfigured, t);
-        setErrors(nextErrors);
-        if (Object.keys(nextErrors).length > 0) {
-            return;
-        }
+    const saveProviderConfig = React.useCallback(
+        async (nextForm: HermesProviderForm, successMessage: string, options?: { skipPreset?: boolean }) => {
+            const nextErrors = validateForm(nextForm, storedConfig.apiKeyConfigured, t);
+            setErrors(nextErrors);
+            if (Object.keys(nextErrors).length > 0) {
+                return false;
+            }
 
-        setIsSaving(true);
-        try {
             console.info('[hermes] saving provider configuration', {
-                modelName: form.modelName.trim(),
-                baseURL: form.baseURL.trim(),
-                apiKeyPresent: Boolean(form.apiKey.trim()),
-                tavilyKeyPresent: Boolean(form.tavilyAPIKey.trim())
+                modelName: nextForm.modelName.trim(),
+                baseURL: nextForm.baseURL.trim(),
+                apiKeyPresent: Boolean(nextForm.apiKey.trim()),
+                tavilyKeyPresent: Boolean(nextForm.tavilyAPIKey.trim())
             });
             await withTimeout(
                 ConfigureHermesProvider({
-                    modelName: form.modelName.trim(),
-                    baseURL: form.baseURL.trim(),
-                    apiKey: form.apiKey.trim(),
-                    tavilyAPIKey: form.tavilyAPIKey.trim()
+                    modelName: nextForm.modelName.trim(),
+                    baseURL: nextForm.baseURL.trim(),
+                    apiKey: nextForm.apiKey.trim(),
+                    tavilyAPIKey: nextForm.tavilyAPIKey.trim()
                 }),
                 15000
             );
             console.info('[hermes] provider configuration saved; bridge will start in background');
-            toast.success(t('Hermes configuration saved'));
+            toast.success(successMessage);
             setStoredConfig(prev => ({
-                modelName: form.modelName.trim(),
-                baseURL: form.baseURL.trim(),
-                apiKeyConfigured: Boolean(form.apiKey.trim()) || prev.apiKeyConfigured,
-                tavilyConfigured: Boolean(form.tavilyAPIKey.trim()) || Boolean(prev.tavilyConfigured)
+                modelName: nextForm.modelName.trim(),
+                baseURL: nextForm.baseURL.trim(),
+                apiKeyConfigured: Boolean(nextForm.apiKey.trim()) || prev.apiKeyConfigured,
+                tavilyConfigured: Boolean(nextForm.tavilyAPIKey.trim()) || Boolean(prev.tavilyConfigured)
             }));
-            setForm(prev => ({ ...prev, apiKey: '', tavilyAPIKey: '' }));
+            if (!options?.skipPreset) {
+                setPresets(prev => saveHermesProviderPresets(upsertHermesProviderPreset(prev, nextForm)));
+            }
+            setForm(prev => ({ ...prev, modelName: nextForm.modelName.trim(), baseURL: nextForm.baseURL.trim(), apiKey: '', tavilyAPIKey: '' }));
             onConfigured?.();
+            return true;
+        },
+        [onConfigured, storedConfig.apiKeyConfigured, t]
+    );
+
+    const save = React.useCallback(async () => {
+        setIsSaving(true);
+        try {
+            await saveProviderConfig(form, t('Hermes configuration saved'));
         } catch (error: any) {
             console.error(error);
             toast.error(error?.message || t('Failed'));
         } finally {
             setIsSaving(false);
         }
-    }, [form, onConfigured, storedConfig.apiKeyConfigured, t]);
+    }, [form, saveProviderConfig, t]);
+
+    const switchPreset = React.useCallback(
+        async (preset: HermesProviderPreset) => {
+            if (preset.pinned && !preset.apiKey) {
+                toast.error(t('QukaAI login token is required for Hermes Agent'));
+                return;
+            }
+            if (!preset.apiKey && !storedConfig.apiKeyConfigured) {
+                toast.error(t('QukaAI login token is required for Hermes Agent'));
+                return;
+            }
+            const nextForm = {
+                ...form,
+                modelName: preset.modelName,
+                baseURL: preset.baseURL,
+                apiKey: preset.apiKey || form.apiKey,
+                tavilyAPIKey: preset.tavilyAPIKey || form.tavilyAPIKey
+            };
+            setForm(nextForm);
+            setSwitchingPresetID(preset.id);
+            try {
+                await saveProviderConfig(nextForm, t('Hermes configuration switched'), { skipPreset: preset.pinned });
+            } catch (error: any) {
+                console.error(error);
+                toast.error(error?.message || t('Failed'));
+            } finally {
+                setSwitchingPresetID(null);
+            }
+        },
+        [form, saveProviderConfig, t]
+    );
+
+    const removePreset = React.useCallback((id: string) => {
+        setPresets(prev => saveHermesProviderPresets(prev.filter(preset => preset.id !== id)));
+    }, []);
 
     const saveEnvironment = React.useCallback(async () => {
         const nextErrors = validateEnvironmentRows(envRows, t);
@@ -213,6 +281,54 @@ const HermesProviderSetting = React.forwardRef<HTMLDivElement, HermesProviderSet
                 {title && <h4 className="text-base font-semibold text-default-foreground">{title}</h4>}
 
                 <div className="flex flex-col gap-4">
+                    {visiblePresets.length > 0 && (
+                        <div className="rounded-large border border-default-200 bg-default-50/50 p-3">
+                            <div className="mb-3 flex items-start justify-between gap-3">
+                                <div>
+                                    <h4 className="text-small font-semibold text-default-foreground">{t('Quick Switch')}</h4>
+                                    <p className="mt-1 text-tiny text-default-500">{t('Quick Switch Description')}</p>
+                                </div>
+                            </div>
+                            <div className="flex flex-col gap-2">
+                                {visiblePresets.map(preset => {
+                                    const isCurrent = preset.modelName === form.modelName.trim() && preset.baseURL === form.baseURL.trim();
+                                    const isSwitching = switchingPresetID === preset.id;
+                                    return (
+                                        <div key={preset.id} className="flex items-center justify-between gap-3 rounded-medium border border-default-200 bg-background px-3 py-2">
+                                            <button type="button" className="min-w-0 flex-1 text-left" onClick={() => switchPreset(preset)}>
+                                                <div className="flex min-w-0 items-center gap-2">
+                                                    <div className="truncate text-small font-medium text-default-foreground">{preset.pinned ? t('QukaAI Built-in LLM Gateway') : preset.modelName}</div>
+                                                    {preset.pinned && (
+                                                        <span className="shrink-0 rounded-small bg-primary-100 px-1.5 py-0.5 text-tiny font-medium text-primary-600">{t('Built in')}</span>
+                                                    )}
+                                                </div>
+                                                <div className="truncate text-tiny text-default-500">{preset.baseURL}</div>
+                                                <div className="mt-1 text-tiny text-default-400">{preset.apiKey ? t('API key saved') : t('API key not saved')}</div>
+                                            </button>
+                                            <div className="flex shrink-0 items-center gap-1">
+                                                <Button
+                                                    size="sm"
+                                                    variant={isCurrent ? 'flat' : 'light'}
+                                                    color={isCurrent ? 'primary' : 'default'}
+                                                    isLoading={isSwitching}
+                                                    isDisabled={isSaving || Boolean(switchingPresetID) || isCurrent}
+                                                    onPress={() => switchPreset(preset)}
+                                                >
+                                                    {isCurrent ? t('Current') : t('Switch')}
+                                                </Button>
+                                                {!preset.pinned && (
+                                                    <Button isIconOnly size="sm" variant="light" color="danger" aria-label={t('Remove')} onPress={() => removePreset(preset.id)}>
+                                                        <Icon icon="material-symbols:close-rounded" width={18} />
+                                                    </Button>
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    )}
+
                     <Input
                         label={t('Model Name')}
                         labelPlacement="outside"
@@ -301,7 +417,7 @@ const HermesProviderSetting = React.forwardRef<HTMLDivElement, HermesProviderSet
                     </div>
 
                     <div className="flex justify-end">
-                        <Button color="primary" variant="flat" isLoading={isSavingEnv} startContent={!isSavingEnv && <Icon icon="material-symbols:save-rounded" />} onPress={saveEnvironment}>
+                        <Button color="primary" isLoading={isSavingEnv} startContent={!isSavingEnv && <Icon icon="material-symbols:save-rounded" />} onPress={saveEnvironment}>
                             {t('Save Environment')}
                         </Button>
                     </div>
@@ -352,6 +468,78 @@ function createEnvironmentRow(variable?: HermesEnvironmentVariable): HermesEnvir
 function normalizeEnvironmentRows(variables: HermesEnvironmentVariable[]): HermesEnvironmentRow[] {
     const rows = variables.map(createEnvironmentRow);
     return rows.length ? rows : [createEnvironmentRow()];
+}
+
+function readHermesProviderPresets(): HermesProviderPreset[] {
+    try {
+        const raw = window.localStorage.getItem(HERMES_PROVIDER_PRESETS_STORAGE_KEY);
+        if (!raw) {
+            return [];
+        }
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) {
+            return [];
+        }
+        return parsed
+            .filter(preset => typeof preset?.modelName === 'string' && typeof preset?.baseURL === 'string' && isValidHTTPURL(preset.baseURL))
+            .map(preset => ({
+                id: typeof preset.id === 'string' && preset.id ? preset.id : createHermesProviderPresetID(preset.modelName, preset.baseURL),
+                modelName: preset.modelName.trim(),
+                baseURL: preset.baseURL.trim(),
+                apiKey: typeof preset.apiKey === 'string' ? preset.apiKey : '',
+                tavilyAPIKey: typeof preset.tavilyAPIKey === 'string' ? preset.tavilyAPIKey : '',
+                updatedAt: Number(preset.updatedAt) || 0
+            }))
+            .filter(preset => preset.modelName && preset.baseURL)
+            .sort((a, b) => b.updatedAt - a.updatedAt)
+            .slice(0, MAX_HERMES_PROVIDER_PRESETS);
+    } catch {
+        return [];
+    }
+}
+
+function saveHermesProviderPresets(presets: HermesProviderPreset[]): HermesProviderPreset[] {
+    const nextPresets = presets.slice(0, MAX_HERMES_PROVIDER_PRESETS);
+    window.localStorage.setItem(HERMES_PROVIDER_PRESETS_STORAGE_KEY, JSON.stringify(nextPresets));
+    return nextPresets;
+}
+
+function upsertHermesProviderPreset(presets: HermesProviderPreset[], form: HermesProviderForm): HermesProviderPreset[] {
+    const modelName = form.modelName.trim();
+    const baseURL = form.baseURL.trim();
+    if (!modelName || !baseURL || !isValidHTTPURL(baseURL)) {
+        return presets;
+    }
+
+    const id = createHermesProviderPresetID(modelName, baseURL);
+    const existingPreset = presets.find(preset => preset.id === id || (preset.modelName === modelName && preset.baseURL === baseURL));
+    return [
+        {
+            id,
+            modelName,
+            baseURL,
+            apiKey: form.apiKey.trim() || existingPreset?.apiKey || '',
+            tavilyAPIKey: form.tavilyAPIKey.trim() || existingPreset?.tavilyAPIKey || '',
+            updatedAt: Date.now()
+        },
+        ...presets.filter(preset => preset.id !== id && !(preset.modelName === modelName && preset.baseURL === baseURL))
+    ].slice(0, MAX_HERMES_PROVIDER_PRESETS);
+}
+
+function createQukaLLMGatewayPreset(host: string, apiKey: string): HermesProviderPreset {
+    return {
+        id: QUKA_LLM_GATEWAY_PRESET_ID,
+        modelName: QUKA_LLM_GATEWAY_MODEL,
+        baseURL: `${host.trim().replace(/\/+$/, '')}/llm-gateway/v1`,
+        apiKey,
+        tavilyAPIKey: '',
+        updatedAt: Number.MAX_SAFE_INTEGER,
+        pinned: true
+    };
+}
+
+function createHermesProviderPresetID(modelName: string, baseURL: string): string {
+    return `${modelName.trim()}::${baseURL.trim()}`;
 }
 
 function validateEnvironmentRows(rows: HermesEnvironmentRow[], t: (key: string) => string): Record<string, string> {

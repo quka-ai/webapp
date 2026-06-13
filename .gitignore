@@ -32,4 +32,5 @@ Dockerfile-local
 build-local.sh
 
 quka-desktop/build/bin
+quka-desktop/build/hermes-runtime-*/
 quka-desktop/frontend

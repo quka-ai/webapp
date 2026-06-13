@@ -29,6 +29,11 @@ func NewApp() *App {
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
 	a.hermes.SetContext(ctx)
+	go func() {
+		if err := a.hermes.CleanupExpiredDesktopData(); err != nil {
+			hermesLogf("app startup: desktop cleanup failed: %v", err)
+		}
+	}()
 	hermesLogf("app startup: checking Hermes provider configuration")
 	go a.hermes.StartIfProviderConfigured()
 }
@@ -108,6 +113,22 @@ func (a *App) InstallHermesSkill(req HermesSkillInstallRequest) (*HermesSkillLis
 
 func (a *App) DeleteHermesSkill(req HermesSkillDeleteRequest) (*HermesSkillList, error) {
 	return a.hermes.DeleteSkill(req)
+}
+
+func (a *App) ListHermesAgents() (*HermesAgentProfileList, error) {
+	return a.hermes.AgentProfiles()
+}
+
+func (a *App) SaveHermesAgent(req HermesAgentProfileSaveRequest) (*HermesAgentProfileList, error) {
+	return a.hermes.SaveAgentProfile(req)
+}
+
+func (a *App) DeleteHermesAgent(req HermesAgentProfileDeleteRequest) (*HermesAgentProfileList, error) {
+	return a.hermes.DeleteAgentProfile(req)
+}
+
+func (a *App) RunHermesAgentTest(req HermesAgentRunTestRequest) (*HermesAgentRunTestResult, error) {
+	return a.hermes.RunAgentTest(req)
 }
 
 func (a *App) ResolveHermesInteraction(req HermesInteractionResolveRequest) error {

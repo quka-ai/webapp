@@ -2,7 +2,7 @@ import { Tooltip } from '@heroui/react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { GetHermesAgentStatus, SubscribeHermesAgentStatus, type HermesStatusEvent } from '@/apis/hermes-desktop';
+import { GetHermesAgentStatus, type HermesStatusEvent, SubscribeHermesAgentStatus } from '@/apis/hermes-desktop';
 import { cn } from '@/lib/utils';
 
 interface HermesStatusIndicatorProps {
@@ -16,17 +16,22 @@ export default function HermesStatusIndicator({ className }: HermesStatusIndicat
     useEffect(() => {
         let disposed = false;
 
-        GetHermesAgentStatus()
-            .then(nextStatus => {
-                if (!disposed) {
-                    setStatus(nextStatus);
-                }
-            })
-            .catch(error => {
-                if (!disposed) {
-                    setStatus({ ready: false, mode: 'unavailable', error: error?.message || String(error) });
-                }
-            });
+        const refresh = () => {
+            GetHermesAgentStatus()
+                .then(nextStatus => {
+                    if (!disposed) {
+                        setStatus(nextStatus);
+                    }
+                })
+                .catch(error => {
+                    if (!disposed) {
+                        setStatus({ ready: false, mode: 'unavailable', error: error?.message || String(error) });
+                    }
+                });
+        };
+
+        refresh();
+        const refreshTimer = window.setInterval(refresh, 15000);
 
         const unsubscribe = SubscribeHermesAgentStatus(event => {
             setStatus(event);
@@ -34,6 +39,7 @@ export default function HermesStatusIndicator({ className }: HermesStatusIndicat
 
         return () => {
             disposed = true;
+            window.clearInterval(refreshTimer);
             unsubscribe();
         };
     }, []);
@@ -54,18 +60,10 @@ export default function HermesStatusIndicator({ className }: HermesStatusIndicat
         <Tooltip showArrow content={detail}>
             <div
                 aria-label={label}
-                className={cn(
-                    'flex h-9 items-center gap-2 rounded-full border border-default-200 bg-content1/90 px-3 text-small font-medium shadow-sm backdrop-blur',
-                    className
-                )}
+                className={cn('flex h-9 items-center gap-2 rounded-full border border-default-200 bg-content1/90 px-3 text-small font-medium shadow-sm backdrop-blur', className)}
                 role="status"
             >
-                <span
-                    className={cn(
-                        'h-2.5 w-2.5 rounded-full',
-                        ready ? 'bg-success shadow-[0_0_0_3px_rgba(23,201,100,0.18)]' : 'bg-danger shadow-[0_0_0_3px_rgba(243,18,96,0.16)]'
-                    )}
-                />
+                <span className={cn('h-2.5 w-2.5 rounded-full', ready ? 'bg-success shadow-[0_0_0_3px_rgba(23,201,100,0.18)]' : 'bg-danger shadow-[0_0_0_3px_rgba(243,18,96,0.16)]')} />
                 <span className="hidden text-default-600 sm:inline">{t('Hermes Agent')}</span>
             </div>
         </Tooltip>

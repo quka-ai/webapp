@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -49,6 +50,101 @@ func TestQukaDesktopTmpDirUsesAppDataDateFolder(t *testing.T) {
 	want := filepath.Join("Users", "test", "Library", "Application Support", "QukaAI", "tmp", "2026-06-06")
 	if got != want {
 		t.Fatalf("qukaDesktopTmpDirForDate() = %q, want %q", got, want)
+	}
+}
+
+func TestCleanupQukaDesktopTmpRootRemovesEntriesOlderThanRetention(t *testing.T) {
+	tmpRoot := t.TempDir()
+	now := time.Date(2026, 6, 9, 12, 0, 0, 0, time.Local)
+	for _, name := range []string{"2026-05-08", "2026-05-09", "2026-06-09"} {
+		if err := os.MkdirAll(filepath.Join(tmpRoot, name), 0700); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	removed, err := cleanupQukaDesktopTmpRoot(tmpRoot, now, hermesLocalRetentionDays)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if removed != 1 {
+		t.Fatalf("removed = %d, want 1", removed)
+	}
+	if _, err := os.Stat(filepath.Join(tmpRoot, "2026-05-08")); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expired tmp dir should be removed, stat err=%v", err)
+	}
+	for _, name := range []string{"2026-05-09", "2026-06-09"} {
+		if _, err := os.Stat(filepath.Join(tmpRoot, name)); err != nil {
+			t.Fatalf("tmp dir %s should be kept: %v", name, err)
+		}
+	}
+}
+
+func TestCleanHermesBridgeEnvRemovesHostTempDirs(t *testing.T) {
+	cleaned := cleanHermesBridgeEnv([]string{
+		"PATH=/usr/bin",
+		"TMPDIR=/tmp/host",
+		"TEMP=/tmp/host",
+		"TMP=/tmp/host",
+		"QUKA_DESKTOP_TMP_ROOT=/tmp/old-root",
+		"QUKA_DESKTOP_TMP_DIR=/tmp/old",
+	})
+	text := "\n" + strings.Join(cleaned, "\n") + "\n"
+	for _, unwanted := range []string{"\nTMPDIR=", "\nTEMP=", "\nTMP=", "\nQUKA_DESKTOP_TMP_ROOT=", "\nQUKA_DESKTOP_TMP_DIR="} {
+		if strings.Contains(text, unwanted) {
+			t.Fatalf("cleanHermesBridgeEnv kept %q in %v", unwanted, cleaned)
+		}
+	}
+	if !strings.Contains(text, "\nPATH=/usr/bin\n") {
+		t.Fatalf("cleanHermesBridgeEnv dropped PATH: %v", cleaned)
+	}
+}
+
+func TestPruneExpiredSessionsUsesThirtyOneDayRetention(t *testing.T) {
+	service := NewHermesAgentService()
+	now := time.Date(2026, 6, 9, 12, 0, 0, 0, time.Local)
+	expired := now.AddDate(0, 0, -32).Unix()
+	boundary := now.AddDate(0, 0, -31).Unix()
+	recent := now.AddDate(0, 0, -2).Unix()
+
+	service.sessions["expired"] = &HermesSession{ID: "expired", LatestAccessTime: expired}
+	service.sessions["boundary"] = &HermesSession{ID: "boundary", LatestAccessTime: boundary}
+	service.sessions["recent"] = &HermesSession{ID: "recent", LatestAccessTime: recent}
+	service.sessions["fallback-history"] = &HermesSession{ID: "fallback-history"}
+	service.histories["expired"] = []HermesMessageDetail{{Meta: HermesMessageMeta{SendTime: expired}}}
+	service.histories["boundary"] = []HermesMessageDetail{{Meta: HermesMessageMeta{SendTime: boundary}}}
+	service.histories["recent"] = []HermesMessageDetail{{Meta: HermesMessageMeta{SendTime: recent}}}
+	service.histories["fallback-history"] = []HermesMessageDetail{{Meta: HermesMessageMeta{SendTime: recent}}}
+	service.histories["orphan"] = []HermesMessageDetail{{Meta: HermesMessageMeta{SendTime: recent}}}
+	service.messageSeq["expired"] = 3
+	service.messageSeq["boundary"] = 4
+	service.messageSeq["orphan"] = 5
+	service.activeTurns["expired"] = &activeTurn{MessageID: "m"}
+	service.restored["expired"] = true
+
+	removed := service.pruneExpiredSessionsLocked(now, hermesLocalRetentionDays)
+
+	if removed != 2 {
+		t.Fatalf("removed = %d, want expired session and orphan history", removed)
+	}
+	for _, sessionID := range []string{"expired", "orphan"} {
+		if _, ok := service.sessions[sessionID]; ok {
+			t.Fatalf("session %s should be removed", sessionID)
+		}
+		if _, ok := service.histories[sessionID]; ok {
+			t.Fatalf("history %s should be removed", sessionID)
+		}
+		if _, ok := service.messageSeq[sessionID]; ok {
+			t.Fatalf("message sequence %s should be removed", sessionID)
+		}
+	}
+	for _, sessionID := range []string{"boundary", "recent", "fallback-history"} {
+		if _, ok := service.sessions[sessionID]; !ok {
+			t.Fatalf("session %s should be kept", sessionID)
+		}
+		if _, ok := service.histories[sessionID]; !ok {
+			t.Fatalf("history %s should be kept", sessionID)
+		}
 	}
 }
 
@@ -248,6 +344,20 @@ func readBundledQukaSkillHelper(t *testing.T) string {
 	return string(raw)
 }
 
+func readBundledSkillFile(t *testing.T, skillName string, parts ...string) string {
+	t.Helper()
+	skillsDir, err := resolveHermesBundledSkillsDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	pathParts := append([]string{skillsDir, skillName}, parts...)
+	raw, err := os.ReadFile(filepath.Join(pathParts...))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(raw)
+}
+
 func TestQukaJournalSkillUsesSpacePrefixedRoutes(t *testing.T) {
 	helper := readBundledQukaSkillHelper(t)
 	for _, want := range []string{
@@ -407,6 +517,121 @@ func TestEnsureHermesBundledSkillsConfiguredRegistersBundledJournalSkill(t *test
 	}
 	if !strings.Contains(string(helper), "command_journal_list") {
 		t.Fatalf("journal helper should include command_journal_list")
+	}
+
+	agentsRoot := filepath.Join(bundledSkillsDir, "quka-agents")
+	agentsSkill, err := os.ReadFile(filepath.Join(agentsRoot, "SKILL.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(agentsSkill), "run-agents") {
+		t.Fatalf("agents skill should mention run-agents")
+	}
+
+	agentsHelper, err := os.ReadFile(filepath.Join(agentsRoot, "scripts", "quka_agents.py"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(agentsHelper), "QUKA_HERMES_BRIDGE_BIN") {
+		t.Fatalf("agents helper should locate bridge from QUKA_HERMES_BRIDGE_BIN")
+	}
+}
+
+func TestQukaAgentsSkillIsBundledAndReserved(t *testing.T) {
+	skill := readBundledSkillFile(t, "quka-agents", "SKILL.md")
+	if !strings.Contains(skill, "Multi-Agent Collaboration") {
+		t.Fatalf("quka-agents skill missing collaboration instructions")
+	}
+	if !strings.Contains(skill, "profiles.json") {
+		t.Fatalf("quka-agents skill should mention user-created agent profiles")
+	}
+	if !strings.Contains(skill, "${HERMES_SKILL_DIR}/scripts/quka_agents.py") {
+		t.Fatalf("quka-agents skill should use Hermes template skill directory")
+	}
+	if !isReservedHermesSkillName("quka-agents") {
+		t.Fatalf("quka-agents should be reserved")
+	}
+}
+
+func TestHermesAgentProfilesSaveListDelete(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("QUKA_HERMES_HOME", home)
+
+	if err := hermesSaveAgentProfile(HermesAgentProfile{
+		ID:              "github-issue-agent",
+		Name:            "GitHub Issue Agent",
+		Description:     "Works with GitHub issues.",
+		SystemPrompt:    "Focus on GitHub issue triage.",
+		ToolPolicy:      "restricted",
+		EnabledToolsets: []string{"terminal", "skills", "terminal"},
+		EnabledSkills:   []string{"quka-ai"},
+		ContextPolicy:   "summary",
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	list, err := hermesAgentProfiles()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if list.ProfilesPath != filepath.Join(home, "agents", "profiles.json") {
+		t.Fatalf("ProfilesPath = %q", list.ProfilesPath)
+	}
+	var saved *HermesAgentProfile
+	for i := range list.Profiles {
+		if list.Profiles[i].ID == "github-issue-agent" {
+			saved = &list.Profiles[i]
+			break
+		}
+	}
+	if saved == nil {
+		t.Fatalf("saved profile not listed: %+v", list.Profiles)
+	}
+	if saved.BuiltIn {
+		t.Fatalf("saved profile should not be built-in")
+	}
+	if strings.Join(saved.EnabledToolsets, ",") != "terminal,skills" {
+		t.Fatalf("EnabledToolsets = %v", saved.EnabledToolsets)
+	}
+	if saved.ToolPolicy != "restricted" || saved.ContextPolicy != "summary" {
+		t.Fatalf("policy = %q context = %q", saved.ToolPolicy, saved.ContextPolicy)
+	}
+
+	raw, err := os.ReadFile(filepath.Join(home, "agents", "profiles.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), "github-issue-agent") || !strings.Contains(string(raw), "Focus on GitHub issue triage.") {
+		t.Fatalf("profile file missing saved content:\n%s", string(raw))
+	}
+
+	if err := hermesDeleteAgentProfile("github-issue-agent"); err != nil {
+		t.Fatal(err)
+	}
+	list, err = hermesAgentProfiles()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, profile := range list.Profiles {
+		if profile.ID == "github-issue-agent" {
+			t.Fatalf("profile should have been deleted: %+v", profile)
+		}
+	}
+}
+
+func TestHermesAgentProfilesProtectBuiltIns(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("QUKA_HERMES_HOME", home)
+
+	if err := hermesSaveAgentProfile(HermesAgentProfile{
+		ID:           "researcher",
+		Name:         "Researcher",
+		SystemPrompt: "overwrite",
+	}); err == nil {
+		t.Fatalf("expected built-in overwrite to fail")
+	}
+	if err := hermesDeleteAgentProfile("researcher"); err == nil {
+		t.Fatalf("expected built-in delete to fail")
 	}
 }
 
@@ -1133,5 +1358,406 @@ func TestRecordToolMessagePersistsToolTipsDetails(t *testing.T) {
 	}
 	if stringValue(ext.ToolTips[0]["result_text"]) == "" {
 		t.Fatalf("tool_tips result_text missing: %+v", ext.ToolTips[0])
+	}
+}
+
+func TestQukaAgentToolStartCreatesAgentRunInsteadOfToolMessage(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("QUKA_HERMES_HOME", home)
+
+	service := NewHermesAgentService()
+	sessionID := "session-1"
+	service.activeTurns[sessionID] = &activeTurn{MessageID: "answer-1", Initialized: true}
+	request := `{"user_request":"Check milestones","nodes":[{"node_id":"github","agent_id":"github-agent","title":"GitHub Agent","task":"Read milestones"}]}`
+	command := `python3 "/tmp/quka_agents.py" run-agents --request-json '` + request + `'`
+
+	if !service.handleAgentToolStart(gatewayEvent{
+		Type:      "tool.start",
+		SessionID: sessionID,
+		Payload:   []byte(`{"id":"tool-1","name":"terminal","arguments":{"command":` + strconv.Quote(command) + `}}`),
+	}) {
+		t.Fatal("quka agent tool start was not intercepted")
+	}
+	if !service.activeTurns[sessionID].NeedsNewSegment {
+		t.Fatal("quka agent tool start did not mark assistant boundary")
+	}
+
+	history, err := service.GetSessionHistory("", sessionID, 1, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if history.Total != 1 {
+		t.Fatalf("history total = %d, want 1", history.Total)
+	}
+	item := history.List[0]
+	if item.Meta.Role != 5 {
+		t.Fatalf("role = %d, want agent role 5", item.Meta.Role)
+	}
+	if item.Ext.ToolName != "" || len(item.Ext.ToolTips) != 0 {
+		t.Fatalf("sub agent was persisted as tool metadata: %+v", item.Ext)
+	}
+	if got := stringValue(item.Ext.AgentRun["status"]); got != "running" {
+		t.Fatalf("agent status = %q, want running", got)
+	}
+}
+
+func TestQukaAgentUpdateAppendsRealtimeEvents(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("QUKA_HERMES_HOME", home)
+
+	service := NewHermesAgentService()
+	sessionID := "session-1"
+	request := `{"user_request":"Check milestones","nodes":[{"node_id":"github","agent_id":"github-agent","title":"GitHub Agent","task":"Read milestones"}]}`
+	command := `python3 "/tmp/quka_agents.py" run-agents --request-json '` + request + `'`
+
+	service.handleAgentToolStart(gatewayEvent{
+		Type:      "tool.start",
+		SessionID: sessionID,
+		Payload:   []byte(`{"id":"tool-1","name":"terminal","arguments":{"command":` + strconv.Quote(command) + `}}`),
+	})
+	service.handleAgentRunUpdate(gatewayEvent{
+		Type:      "agent.update",
+		SessionID: sessionID,
+		Payload: []byte(`{
+			"run_id":"agent-run-actual",
+			"node_id":"github",
+			"agent_id":"github-agent",
+			"title":"GitHub Agent",
+			"status":"running",
+			"event":{"type":"delta","text":"checking milestones","time":"2026-06-08T00:00:00Z"}
+		}`),
+	})
+	service.handleAgentRunUpdate(gatewayEvent{
+		Type:      "agent.update",
+		SessionID: sessionID,
+		Payload: []byte(`{
+			"run_id":"agent-run-actual",
+			"node_id":"github",
+			"event":{"type":"tool.start","id":"gh","name":"terminal","arguments":{"command":"gh issue list"}}
+		}`),
+	})
+
+	history, err := service.GetSessionHistory("", sessionID, 1, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if history.Total != 1 {
+		t.Fatalf("history total = %d, want 1", history.Total)
+	}
+	item := history.List[0]
+	if got := stringValue(item.Ext.AgentRun["status"]); got != "running" {
+		t.Fatalf("agent status = %q, want running", got)
+	}
+	events, ok := item.Ext.AgentRun["events"].([]any)
+	if !ok {
+		t.Fatalf("agent events type = %T", item.Ext.AgentRun["events"])
+	}
+	if len(events) != 2 {
+		t.Fatalf("agent events len = %d, want 2: %#v", len(events), events)
+	}
+	first, _ := events[0].(map[string]any)
+	if stringValue(first["text"]) != "checking milestones" {
+		t.Fatalf("first event = %#v", first)
+	}
+	second, _ := events[1].(map[string]any)
+	if stringValue(second["name"]) != "terminal" {
+		t.Fatalf("second event = %#v", second)
+	}
+}
+
+func TestParseQukaAgentsRequestFromCommandHandlesQuotedJSONContent(t *testing.T) {
+	command := `python3 "/tmp/quka_agents.py" run-agents --request-json '{"user_request":"Bob's milestone check","nodes":[{"node_id":"github","agent_id":"githuber","task":"Find {open} issues"}]}'`
+
+	request, err := parseQukaAgentsRequestFromCommand(command)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got := stringValue(request["user_request"]); got != "Bob's milestone check" {
+		t.Fatalf("user_request = %q", got)
+	}
+	nodes, ok := request["nodes"].([]any)
+	if !ok || len(nodes) != 1 {
+		t.Fatalf("nodes = %#v", request["nodes"])
+	}
+	node, ok := nodes[0].(map[string]any)
+	if !ok || stringValue(node["task"]) != "Find {open} issues" {
+		t.Fatalf("node = %#v", nodes[0])
+	}
+}
+
+func TestQukaAgentToolCompleteUsesCachedCommand(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("QUKA_HERMES_HOME", home)
+
+	service := NewHermesAgentService()
+	sessionID := "session-1"
+	request := `{"user_request":"Check milestones","nodes":[{"node_id":"github","agent_id":"github-agent","title":"GitHub Agent","task":"Read milestones"}]}`
+	command := `python3 "/tmp/quka_agents.py" run-agents --request-json '` + request + `'`
+
+	service.handleAgentToolStart(gatewayEvent{
+		Type:      "tool.start",
+		SessionID: sessionID,
+		Payload:   []byte(`{"id":"tool-1","name":"terminal","arguments":{"command":` + strconv.Quote(command) + `}}`),
+	})
+	result := `{"ok":true,"run_id":"agent-run-actual","nodes":[{"node_id":"github","agent_id":"github-agent","title":"GitHub Agent","status":"completed","result":"done"}]}`
+	if !service.handleAgentToolComplete(gatewayEvent{
+		Type:      "tool.complete",
+		SessionID: sessionID,
+		Payload:   []byte(`{"id":"tool-1","name":"terminal","result":` + strconv.Quote(result) + `}`),
+	}) {
+		t.Fatal("quka agent tool complete was not intercepted from cached command")
+	}
+
+	history, err := service.GetSessionHistory("", sessionID, 1, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if history.Total != 1 {
+		t.Fatalf("history total = %d, want 1", history.Total)
+	}
+	item := history.List[0]
+	if item.Meta.Role != 5 {
+		t.Fatalf("role = %d, want agent role 5", item.Meta.Role)
+	}
+	if item.Meta.Complete != 1 {
+		t.Fatalf("complete = %d, want success", item.Meta.Complete)
+	}
+	if got := stringValue(item.Ext.AgentRun["status"]); got != "completed" {
+		t.Fatalf("agent status = %q, want completed", got)
+	}
+	if _, ok := service.agentTools[agentToolKey(sessionID, "tool-1")]; ok {
+		t.Fatal("agent tool cache was not cleared")
+	}
+}
+
+func TestQukaAgentToolTimeoutKeepsRunningUntilFinalAgentUpdate(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("QUKA_HERMES_HOME", home)
+
+	service := NewHermesAgentService()
+	sessionID := "session-1"
+	request := `{"user_request":"Check milestones","nodes":[{"node_id":"github","agent_id":"github-agent","title":"GitHub Agent","task":"Read milestones"}]}`
+	command := `python3 "/tmp/quka_agents.py" run-agents --request-json '` + request + `'`
+
+	service.handleAgentToolStart(gatewayEvent{
+		Type:      "tool.start",
+		SessionID: sessionID,
+		Payload:   []byte(`{"id":"tool-1","name":"terminal","arguments":{"command":` + strconv.Quote(command) + `}}`),
+	})
+	timeoutResult := `{"status":"timeout","output":"","timeout_note":"Waited 120s, process still running"}`
+	if !service.handleAgentToolComplete(gatewayEvent{
+		Type:      "tool.complete",
+		SessionID: sessionID,
+		Payload:   []byte(`{"id":"tool-1","name":"terminal","result":` + strconv.Quote(timeoutResult) + `}`),
+	}) {
+		t.Fatal("quka agent timeout complete was not intercepted")
+	}
+
+	history, err := service.GetSessionHistory("", sessionID, 1, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if history.Total != 1 {
+		t.Fatalf("history total after timeout = %d, want 1", history.Total)
+	}
+	item := history.List[0]
+	if got := stringValue(item.Ext.AgentRun["status"]); got != "running" {
+		t.Fatalf("agent status after timeout = %q, want running", got)
+	}
+	if item.Meta.Complete != 0 {
+		t.Fatalf("complete after timeout = %d, want running", item.Meta.Complete)
+	}
+
+	service.handleAgentRunUpdate(gatewayEvent{
+		Type:      "agent.update",
+		SessionID: sessionID,
+		Payload: []byte(`{
+			"run_id":"agent-run-actual",
+			"node_id":"github",
+			"agent_id":"github-agent",
+			"title":"GitHub Agent",
+			"status":"completed",
+			"result":"done"
+		}`),
+	})
+
+	history, err = service.GetSessionHistory("", sessionID, 1, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if history.Total != 1 {
+		t.Fatalf("history total after final update = %d, want 1", history.Total)
+	}
+	item = history.List[0]
+	if item.Meta.Complete != 1 {
+		t.Fatalf("complete after final update = %d, want completed", item.Meta.Complete)
+	}
+	if got := stringValue(item.Ext.AgentRun["status"]); got != "completed" {
+		t.Fatalf("agent status after final update = %q, want completed", got)
+	}
+	if got := stringValue(item.Ext.AgentRun["actual_run_id"]); got != "agent-run-actual" {
+		t.Fatalf("actual_run_id = %q, want agent-run-actual", got)
+	}
+}
+
+func TestQukaAgentParseFallbackDoesNotOverwriteFinalResult(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("QUKA_HERMES_HOME", home)
+
+	service := NewHermesAgentService()
+	sessionID := "session-1"
+	request := `{"user_request":"Check milestones","nodes":[{"node_id":"github","agent_id":"github-agent","title":"GitHub Agent","task":"Read milestones"}]}`
+	command := `python3 "/tmp/quka_agents.py" run-agents --request-json '` + request + `'`
+
+	service.handleAgentToolStart(gatewayEvent{
+		Type:      "tool.start",
+		SessionID: sessionID,
+		Payload:   []byte(`{"id":"tool-1","name":"terminal","arguments":{"command":` + strconv.Quote(command) + `}}`),
+	})
+	service.handleAgentRunUpdate(gatewayEvent{
+		Type:      "agent.update",
+		SessionID: sessionID,
+		Payload: []byte(`{
+			"run_id":"agent-run-actual",
+			"node_id":"github",
+			"agent_id":"github-agent",
+			"title":"GitHub Agent",
+			"status":"completed",
+			"result":"final sub agent result",
+			"event":{"type":"delta","text":"working details"}
+		}`),
+	})
+	if !service.handleAgentToolComplete(gatewayEvent{
+		Type:      "tool.complete",
+		SessionID: sessionID,
+		Payload:   []byte(`{"id":"tool-1","name":"terminal","result":"{\"ok\": true, \"nodes\": [{\"result\": \"bad\njson\"}]}"} `),
+	}) {
+		t.Fatal("quka agent parse-failed complete was not intercepted")
+	}
+
+	history, err := service.GetSessionHistory("", sessionID, 1, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if history.Total != 1 {
+		t.Fatalf("history total = %d, want 1", history.Total)
+	}
+	item := history.List[0]
+	if got := stringValue(item.Ext.AgentRun["result"]); got != "final sub agent result" {
+		t.Fatalf("result was overwritten = %q", got)
+	}
+	if got := stringValue(item.Ext.AgentRun["warning"]); strings.Contains(got, "could not parse") {
+		t.Fatalf("parse fallback warning overwrote final run: %q", got)
+	}
+	events := agentRunEvents(item.Ext.AgentRun["events"])
+	if len(events) != 1 {
+		t.Fatalf("events len = %d, want 1: %#v", len(events), events)
+	}
+}
+
+func TestFinalAgentUpdateMarksAgentRunComplete(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("QUKA_HERMES_HOME", home)
+
+	service := NewHermesAgentService()
+	sessionID := "session-1"
+
+	service.handleAgentRunUpdate(gatewayEvent{
+		Type:      "agent.update",
+		SessionID: sessionID,
+		Payload: []byte(`{
+			"run_id":"agent-run-actual",
+			"node_id":"github",
+			"agent_id":"github-agent",
+			"title":"GitHub Agent",
+			"status":"completed",
+			"result":"done"
+		}`),
+	})
+
+	history, err := service.GetSessionHistory("", sessionID, 1, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if history.Total != 1 {
+		t.Fatalf("history total = %d, want 1", history.Total)
+	}
+	item := history.List[0]
+	if item.Meta.Complete != 1 {
+		t.Fatalf("complete = %d, want completed", item.Meta.Complete)
+	}
+	if got := stringValue(item.Ext.AgentRun["status"]); got != "completed" {
+		t.Fatalf("agent status = %q, want completed", got)
+	}
+}
+
+func TestQukaAgentToolStartDoesNotCreateCoordinatorPlaceholder(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("QUKA_HERMES_HOME", home)
+
+	service := NewHermesAgentService()
+	sessionID := "session-1"
+	command := `python3 "/tmp/quka_agents.py" run-agents --request-file /tmp/not-created-yet.json`
+
+	if !service.handleAgentToolStart(gatewayEvent{
+		Type:      "tool.start",
+		SessionID: sessionID,
+		Payload:   []byte(`{"id":"tool-1","name":"terminal","arguments":{"command":` + strconv.Quote(command) + `}}`),
+	}) {
+		t.Fatal("quka agent tool start was not intercepted")
+	}
+
+	history, err := service.GetSessionHistory("", sessionID, 1, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if history.Total != 0 {
+		t.Fatalf("history total = %d, want no synthetic coordinator placeholder", history.Total)
+	}
+}
+
+func TestParseQukaAgentsResultFromNestedTerminalOutput(t *testing.T) {
+	runResult := map[string]any{
+		"ok":        true,
+		"run_id":    "agent-run-123",
+		"status":    "completed",
+		"trace_dir": "/tmp/agent-run-123",
+		"nodes": []map[string]any{
+			{
+				"node_id":  "create_reminder",
+				"agent_id": "adidas",
+				"title":    "穿Adi的Agent",
+				"status":   "completed",
+				"result":   "done",
+			},
+		},
+	}
+	runRaw, err := json.MarshalIndent(runResult, "", "  ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	terminalResult, err := json.Marshal(map[string]any{"output": string(runRaw), "exit_code": 0, "error": nil})
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, err := json.Marshal(map[string]any{"result": string(terminalResult)})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parsed, err := parseQukaAgentsResultFromPayload(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parsed["run_id"] != "agent-run-123" {
+		t.Fatalf("run_id = %v", parsed["run_id"])
+	}
+	nodes, ok := parsed["nodes"].([]any)
+	if !ok || len(nodes) != 1 {
+		t.Fatalf("nodes = %#v", parsed["nodes"])
+	}
+	node, ok := nodes[0].(map[string]any)
+	if !ok || node["title"] != "穿Adi的Agent" {
+		t.Fatalf("node = %#v", nodes[0])
 	}
 }

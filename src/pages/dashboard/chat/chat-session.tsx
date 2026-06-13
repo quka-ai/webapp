@@ -8,21 +8,23 @@ import { useImmer } from 'use-immer';
 import { useSnapshot } from 'valtio';
 
 import { GenChatMessageID, GetChatSessionHistory, GetMessageExt, MessageDetail, NamedChatSession, SendMessage, StopChatStream } from '@/apis/chat';
-import { ensureHermesAgentConfigured, HasHermesProviderConfigured, isHermesDesktopAvailable, SubscribeHermesChatStreamEvent } from '@/apis/hermes-desktop';
+import { ensureHermesAgentConfigured, HasHermesProviderConfigured, isHermesDesktopAvailable, ListHermesAgents, SubscribeHermesChatStreamEvent, type HermesAgentProfile } from '@/apis/hermes-desktop';
 import KnowledgeModal from '@/components/knowledge-modal';
 import { LogoIcon } from '@/components/logo';
 import AnimatedShinyText from '@/components/shiny-text';
 import { useMedia } from '@/hooks/use-media';
 import useUserAvatar from '@/hooks/use-user-avatar';
+import { buildHermesAgentHandoffMessage, getHermesAgentMentionOptions } from '@/lib/hermes-agent-mentions';
 import HermesStatusIndicator from '@/pages/dashboard/chat/hermes-status-indicator';
 import MessageCard, { type MessageExt } from '@/pages/dashboard/chat/message-card';
 import PromptInputWithEnclosedActions from '@/pages/dashboard/chat/prompt-input-with-enclosed-actions';
+import HermesAgentsSetting from '@/pages/dashboard/setting/hermes-agents-setting';
 import HermesProviderSetting from '@/pages/dashboard/setting/hermes-provider-setting';
 import HermesSkillsSetting from '@/pages/dashboard/setting/hermes-skills-setting';
 import { notifySessionNamedEvent, notifySessionReload } from '@/stores/session';
 import socketStore, { CONNECTION_OK } from '@/stores/socket';
 import spaceStore from '@/stores/space';
-import { EventType, MessageType, StreamMessage, ToolStatus, ToolTips } from '@/types/chat';
+import { AgentRun, EventType, MessageType, StreamMessage, ToolStatus, ToolTips } from '@/types/chat';
 
 export interface Message {
     key: string;
@@ -46,6 +48,29 @@ interface MessageEvent {
     startAt?: number;
     sequence?: number;
     toolTips?: ToolTips[];
+    agentRun?: AgentRun;
+}
+
+function upsertAgentMessageDraft(prev: Message[], data: MessageEvent, currentSelectedSpace: string, status: Message['status']) {
+    const todo = prev.find(todo => todo.key === data.messageID);
+    if (todo) {
+        todo.message = data.message || todo.message;
+        todo.status = status;
+        todo.ext = { ...(todo.ext || {}), agentRun: data.agentRun };
+        return;
+    }
+
+    const nextMessage: Message = {
+        key: data.messageID,
+        spaceID: data.spaceID || currentSelectedSpace,
+        message: data.message || '',
+        role: 'agent',
+        status,
+        sequence: data.sequence || 0,
+        len: runes(data.message || '').length,
+        ext: { agentRun: data.agentRun }
+    };
+    prev.push(nextMessage);
 }
 
 function delay(ms: number) {
@@ -90,8 +115,10 @@ export default function Chat() {
     const [providerConfigured, setProviderConfigured] = useState<boolean>(() => !isHermesDesktopAvailable());
     const [hermesTurnActive, setHermesTurnActive] = useState<boolean>(false);
     const [hermesAssistantStreaming, setHermesAssistantStreaming] = useState<boolean>(false);
+    const [hermesAgentProfiles, setHermesAgentProfiles] = useState<HermesAgentProfile[]>([]);
     const { isOpen: isHermesSettingOpen, onOpen: openHermesSetting, onClose: closeHermesSetting, onOpenChange: onHermesSettingOpenChange } = useDisclosure();
     const { isOpen: isHermesSkillsOpen, onOpen: openHermesSkills, onClose: closeHermesSkills, onOpenChange: onHermesSkillsOpenChange } = useDisclosure();
+    const { isOpen: isHermesAgentsOpen, onOpen: openHermesAgents, onClose: closeHermesAgents, onOpenChange: onHermesAgentsOpenChange } = useDisclosure();
 
     const ssDom = useRef<HTMLElement>(null);
     const autoScrollRef = useRef(true);
@@ -123,6 +150,20 @@ export default function Chat() {
             console.error('Failed to start Hermes Agent:', error);
         });
     }, [currentSelectedSpace, desktopMode, providerConfigured]);
+
+    useEffect(() => {
+        if (!desktopMode || !providerConfigured) {
+            setHermesAgentProfiles([]);
+            return;
+        }
+
+        ListHermesAgents()
+            .then(list => setHermesAgentProfiles(list.profiles))
+            .catch(error => {
+                console.error('Failed to load Hermes agents:', error);
+                setHermesAgentProfiles([]);
+            });
+    }, [desktopMode, providerConfigured, isHermesAgentsOpen]);
 
     const handleMessageScroll = useCallback(() => {
         autoScrollRef.current = getScrollBottom() <= AUTO_SCROLL_BOTTOM_THRESHOLD;
@@ -498,6 +539,21 @@ export default function Chat() {
                                 });
                             }
                             break;
+                        case EventType.EVENT_AGENT_INIT:
+                        case EventType.EVENT_AGENT_UPDATE:
+                            setMessages((prev: Message[]) => {
+                                upsertAgentMessageDraft(prev, data, currentSelectedSpace, 'continue');
+                            });
+                            setMessageDaemon(data.messageID, reloadFunc);
+                            break;
+                        case EventType.EVENT_AGENT_DONE:
+                        case EventType.EVENT_AGENT_FAILED:
+                            removeMessageDaemon(data.messageID);
+                            setMessages((prev: Message[]) => {
+                                const nextStatus = data.type === EventType.EVENT_AGENT_FAILED ? 'failed' : 'success';
+                                upsertAgentMessageDraft(prev, data, currentSelectedSpace, nextStatus);
+                            });
+                            break;
                         case EventType.EVENT_ASSISTANT_FAILED:
                             console.log(`[FAILED] Assistant message failed, messageID: ${data.messageID}`);
                             if (desktopMode) {
@@ -615,6 +671,32 @@ export default function Chat() {
                     });
                     // 可以在这里处理tool tips相关逻辑
                     break;
+                case EventType.EVENT_AGENT_INIT:
+                case EventType.EVENT_AGENT_UPDATE:
+                    queue.push({
+                        messageID: streamData.message_id,
+                        type: eventType,
+                        startAt: streamData.start_at,
+                        sequence: data.sequence,
+                        spaceID: data.space_id,
+                        sessionID: streamData.session_id,
+                        message: streamData.message || '',
+                        agentRun: streamData.agent_run
+                    });
+                    break;
+                case EventType.EVENT_AGENT_DONE:
+                case EventType.EVENT_AGENT_FAILED:
+                    queue.push({
+                        messageID: streamData.message_id,
+                        type: eventType,
+                        startAt: streamData.start_at,
+                        sequence: data.sequence,
+                        spaceID: data.space_id,
+                        sessionID: streamData.session_id,
+                        message: streamData.message || '',
+                        agentRun: streamData.agent_run
+                    });
+                    break;
                 case EventType.EVENT_ASSISTANT_FAILED:
                 case EventType.EVENT_TOOL_FAILED:
                     const failedToolTips: ToolTips[] = [];
@@ -692,6 +774,9 @@ export default function Chat() {
                             case 4:
                                 role = 'tool';
                                 break;
+                            case 5:
+                                role = 'agent';
+                                break;
                             default:
                                 role = 'assistant';
                                 break;
@@ -700,14 +785,15 @@ export default function Chat() {
                             key: v.meta.message_id,
                             message: v.meta.message.text,
                             role: role,
-                            status: v.meta.complete !== 4 ? 'success' : 'failed',
+                            status: v.meta.complete === 4 ? 'failed' : v.meta.complete === 0 ? 'continue' : 'success',
                             sequence: v.meta.sequence,
                             spaceID: currentSelectedSpace,
                             attach: v.meta.attach,
                             ext: {
                                 relDocs: v.ext?.rel_docs,
                                 toolName: v.ext?.tool_name,
-                                toolArgs: v.ext?.tool_args
+                                toolArgs: v.ext?.tool_args,
+                                agentRun: v.ext?.agent_run
                             },
                             toolTips: v.ext?.tool_tips
                         };
@@ -740,6 +826,7 @@ export default function Chat() {
     const hasOngoingMessage = useMemo<boolean>(() => messages.some(msg => msg.status === 'continue'), [messages]);
     const hasActiveAssistantPlaceholder = useMemo<boolean>(() => messages.some(msg => msg.role === 'assistant' && msg.status === 'continue' && !msg.message.trim()), [messages]);
     const hasRunningToolMessage = useMemo<boolean>(() => messages.some(msg => msg.role === 'tool' && msg.status === 'continue'), [messages]);
+    const hasRunningAgentMessage = useMemo<boolean>(() => messages.some(msg => msg.role === 'agent' && msg.status === 'continue'), [messages]);
 
     const isGenerating = useMemo<boolean>(() => {
         if (desktopMode) {
@@ -752,8 +839,8 @@ export default function Chat() {
         if (!desktopMode || (!hermesTurnActive && !aiTyping)) {
             return false;
         }
-        return !hermesAssistantStreaming && !hasActiveAssistantPlaceholder && !hasRunningToolMessage;
-    }, [aiTyping, desktopMode, hasActiveAssistantPlaceholder, hasRunningToolMessage, hermesAssistantStreaming, hermesTurnActive]);
+        return !hermesAssistantStreaming && !hasActiveAssistantPlaceholder && !hasRunningToolMessage && !hasRunningAgentMessage;
+    }, [aiTyping, desktopMode, hasActiveAssistantPlaceholder, hasRunningAgentMessage, hasRunningToolMessage, hermesAssistantStreaming, hermesTurnActive]);
 
     const showTypingIndicator = desktopMode ? showHermesThinkingIndicator : aiTyping;
 
@@ -777,14 +864,16 @@ export default function Chat() {
                 return;
             }
 
-            message = message.replace(/\n/g, '  \n');
+            const displayMessage = message.replace(/\n/g, '  \n');
+            const availableHermesAgentProfiles = desktopMode && hermesAgentProfiles.length === 0 && Array.isArray(location.state?.hermesAgentProfiles) ? location.state.hermesAgentProfiles : hermesAgentProfiles;
+            const outgoingMessage = desktopMode ? buildHermesAgentHandoffMessage(displayMessage, availableHermesAgentProfiles) : displayMessage;
 
             try {
                 const msgID = await GenChatMessageID(currentSelectedSpace, sessionID);
                 console.info('[hermes] chat session generated message id', { msgID });
                 const resp = await SendMessage(currentSelectedSpace, sessionID, {
                     messageID: msgID,
-                    message: message,
+                    message: outgoingMessage,
                     agent: agent,
                     enableThinking: args.enableThinking,
                     enableSearch: args.enableSearch,
@@ -796,7 +885,7 @@ export default function Chat() {
                 setMessages((prev: Message[]) => {
                     prev.push({
                         key: msgID,
-                        message: message,
+                        message: displayMessage,
                         role: 'user',
                         status: 'success',
                         sequence: resp.sequence,
@@ -840,7 +929,7 @@ export default function Chat() {
                 throw e;
             }
         },
-        [currentSelectedSpace, sessionID, loadData, desktopMode, providerConfigured, openHermesSetting, setHermesTurnRunning, markHermesAssistantStreaming]
+        [currentSelectedSpace, sessionID, loadData, desktopMode, providerConfigured, openHermesSetting, setHermesTurnRunning, markHermesAssistantStreaming, hermesAgentProfiles]
     );
 
     async function NamedSession(firstMessage: string) {
@@ -992,6 +1081,9 @@ export default function Chat() {
                     <>
                         <div className="pointer-events-none absolute right-4 top-4 z-50 flex items-center gap-2">
                             <HermesStatusIndicator className="pointer-events-auto" />
+                            <Button isIconOnly className="pointer-events-auto" variant="light" aria-label={t('Hermes Agents')} onClick={openHermesAgents} onPress={openHermesAgents}>
+                                <Icon icon="material-symbols:account-tree-outline-rounded" width={22} />
+                            </Button>
                             <Button isIconOnly className="pointer-events-auto" variant="light" aria-label={t('Hermes Skills')} onClick={openHermesSkills} onPress={openHermesSkills}>
                                 <Icon icon="material-symbols:extension-rounded" width={22} />
                             </Button>
@@ -1012,6 +1104,14 @@ export default function Chat() {
                                 <ModalHeader>{t('Hermes Skills')}</ModalHeader>
                                 <ModalBody className="pb-6">
                                     <HermesSkillsSetting />
+                                </ModalBody>
+                            </ModalContent>
+                        </Modal>
+                        <Modal backdrop="blur" isOpen={isHermesAgentsOpen} size="5xl" placement="center" scrollBehavior="inside" onClose={closeHermesAgents} onOpenChange={onHermesAgentsOpenChange}>
+                            <ModalContent>
+                                <ModalHeader>{t('Hermes Agents')}</ModalHeader>
+                                <ModalBody className="overflow-hidden pb-6">
+                                    <HermesAgentsSetting currentSessionID={sessionID} />
                                 </ModalBody>
                             </ModalContent>
                         </Modal>
@@ -1104,7 +1204,7 @@ export default function Chat() {
                     <div className="mt-auto flex flex-col gap-2 max-w-[760px] w-full">
                         <PromptInputWithEnclosedActions
                             allowAttach={true}
-                            disableAgentMention={desktopMode}
+                            agentMentionOptions={desktopMode ? getHermesAgentMentionOptions(hermesAgentProfiles) : undefined}
                             hideFeatureControls={desktopMode}
                             isLoading={isGenerating}
                             classNames={{

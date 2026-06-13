@@ -1,4 +1,4 @@
-import { Avatar, Badge, Button, Image, Skeleton, Tooltip } from '@heroui/react';
+import { Avatar, Badge, Button, Chip, Image, Skeleton, Tooltip } from '@heroui/react';
 import { cn } from '@heroui/react';
 import { useClipboard } from '@heroui/use-clipboard';
 import { Icon } from '@iconify/react';
@@ -10,7 +10,7 @@ import 'react-medium-image-zoom/dist/styles.css';
 import { RelDoc } from '@/apis/chat';
 import Markdown from '@/components/markdown';
 import ToolUsing from '@/components/tool-using';
-import { ToolStatus, ToolTips } from '@/types/chat';
+import { AgentRun, ToolStatus, ToolTips } from '@/types/chat';
 
 // import { useMedia } from '@/hooks/use-media';
 
@@ -38,6 +38,7 @@ export interface MessageExt {
     relDocs?: RelDoc[];
     toolName?: string;
     toolArgs?: string;
+    agentRun?: AgentRun;
 }
 
 const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
@@ -51,7 +52,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
             attach,
             currentAttempt = 1,
             status,
-            isLoading,
+            isLoading: _isLoading,
             onMessageCopy,
             onAttemptChange,
             onFeedback,
@@ -72,7 +73,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
 
         const { copied, copy } = useClipboard();
 
-        const failedMessageClassName = status === 'failed' && role !== 'tool' ? 'bg-danger-100/50 border border-danger-100 text-foreground' : '';
+        const failedMessageClassName = status === 'failed' && role !== 'tool' && role !== 'agent' ? 'bg-danger-100/50 border border-danger-100 text-foreground' : '';
         const failedMessageText = typeof message === 'string' && message.trim() ? message : t('SystemError');
 
         const hasFailed = status === 'failed';
@@ -132,7 +133,7 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
         return (
             <div {...props} ref={ref} className={cn('flex flex-col md:flex-row md:gap-2', className)}>
                 <div className="relative flex-none md:py-1">
-                    {role === 'tool' ? (
+                    {role === 'tool' || role === 'agent' ? (
                         <div className="w-10" />
                     ) : (
                         <Badge
@@ -157,6 +158,8 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
                     <div className={cn('relative rounded-medium', failedMessageClassName, messageClassName, role === 'tool' ? '' : 'py-3')}>
                         {role === 'tool' ? (
                             toolTipsDom
+                        ) : role === 'agent' ? (
+                            <AgentSessionCard agentRun={ext?.agentRun} message={message} status={status} />
                         ) : (
                             <>
                                 {!hasFailed && !message ? (
@@ -271,3 +274,266 @@ const MessageCard = React.forwardRef<HTMLDivElement, MessageCardProps>(
 export default MessageCard;
 
 MessageCard.displayName = 'MessageCard';
+
+function AgentSessionCard({ agentRun, message: _message, status }: { agentRun?: AgentRun; message?: string; status?: 'success' | 'failed' | 'continue' }) {
+    const isFailed = status === 'failed' || agentRun?.status === 'failed';
+    const isRunning = status === 'continue' || agentRun?.status === 'running';
+    const [expanded, setExpanded] = React.useState(isRunning);
+    const title = String(agentRun?.title || agentRun?.agent_id || agentRun?.node_id || 'Sub Agent');
+    const subtitle = [agentRun?.agent_id, agentRun?.node_id].filter(Boolean).join(' · ');
+    const task = String(agentRun?.task || '');
+    const expectedOutput = String(agentRun?.expected_output || '');
+    const result = String(agentRun?.result || '');
+    const errorText = String(agentRun?.error || '');
+    const warningText = String(agentRun?.warning || '');
+    const events = Array.isArray(agentRun?.events) ? agentRun.events : [];
+    const messages = Array.isArray(agentRun?.messages) ? agentRun.messages : [];
+    const toolEvents = events.filter(event => String(event.type || '').startsWith('tool.') || String(event.type || '') === 'status');
+    const streamedText = collectAgentStreamedText(events);
+    const finalEventText = collectAgentFinalText(events);
+    const assistantMessageText = collectAgentAssistantMessageText(messages);
+    const assistantOutput = result || streamedText || finalEventText || assistantMessageText;
+    const summaryText = String(agentRun?.summary || '');
+    const preview = errorText || warningText || assistantOutput || summaryText;
+    const showWaitingOutput = isRunning && !assistantOutput && !errorText;
+    const showStreamedText = Boolean(result && streamedText && streamedText.trim() !== result.trim());
+    const hasDetails = Boolean(
+        task || expectedOutput || preview || result || streamedText || finalEventText || assistantMessageText || toolEvents.length || messages.length || agentRun?.trace_path || agentRun?.trace_dir
+    );
+    const statusLabel = isFailed ? t('Failed') : isRunning ? t('Running') : t('Completed');
+    React.useEffect(() => {
+        if (isRunning) {
+            setExpanded(true);
+            return;
+        }
+        setExpanded(false);
+    }, [isRunning]);
+    const toggleExpanded = React.useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
+        setExpanded(value => !value);
+    }, []);
+
+    return (
+        <div className="w-full max-w-[680px] rounded-medium border border-default-200 bg-content1 px-3 py-2.5 shadow-sm">
+            <div className="flex items-center gap-2">
+                <div className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-default-100 text-default-600">
+                    <Icon icon="material-symbols:account-tree-outline-rounded" width={17} />
+                </div>
+                <div className="min-w-0 flex-1">
+                    <div className="flex min-w-0 items-center gap-2">
+                        <span className="truncate text-small font-medium text-default-800">{title}</span>
+                        <Chip size="sm" variant="flat" color={isFailed ? 'danger' : isRunning ? 'warning' : 'success'}>
+                            {statusLabel}
+                        </Chip>
+                    </div>
+                    {subtitle && <p className="truncate text-tiny text-default-500">{subtitle}</p>}
+                </div>
+                {hasDetails && (
+                    <button
+                        type="button"
+                        className="flex h-8 w-8 flex-none items-center justify-center rounded-full text-default-500 transition-colors hover:bg-default-100 hover:text-default-700"
+                        aria-label={expanded ? t('Collapse') : t('Expand')}
+                        aria-expanded={expanded}
+                        onClick={toggleExpanded}
+                    >
+                        <Icon className={expanded ? 'rotate-180 transition-transform' : 'transition-transform'} icon="material-symbols:keyboard-arrow-down-rounded" width={20} />
+                    </button>
+                )}
+            </div>
+            {isRunning && task && <p className="mt-2 line-clamp-2 text-tiny text-default-500">{task}</p>}
+            {!isRunning && preview && <p className="mt-2 line-clamp-2 text-tiny leading-5 text-default-600">{preview}</p>}
+            {expanded && (
+                <div className="mt-3 flex flex-col gap-3 border-t border-default-200 pt-3">
+                    <AgentSessionFlow task={task} expectedOutput={expectedOutput} assistantOutput={assistantOutput} waiting={showWaitingOutput} errorText={errorText} warningText={warningText} />
+                    {!assistantOutput && !errorText && !warningText && !isRunning && summaryText && <AgentDetailBlock title={t('Summary')} content={summaryText} />}
+                    {showStreamedText && <AgentDetailBlock title={t('Stream Output')} content={streamedText} />}
+                    {toolEvents.length > 0 && (
+                        <div>
+                            <p className="mb-1 text-tiny font-medium text-default-500">{t('Tool Activity')}</p>
+                            <div className="flex flex-col gap-1.5">
+                                {toolEvents.map((event, index) => (
+                                    <div
+                                        key={`${event.type}-${event.id || index}`}
+                                        className="rounded-small border border-default-100 bg-default-50 px-2.5 py-2 text-[11px] leading-5 text-default-600 dark:bg-default-100/10"
+                                    >
+                                        <div className="flex flex-wrap items-center gap-2">
+                                            <span className="font-medium text-default-700">{String(event.name || event.type || 'event')}</span>
+                                            {event.time && <span className="text-default-400">{String(event.time)}</span>}
+                                        </div>
+                                        {Boolean(event.arguments_text || event.arguments) && (
+                                            <pre className="mt-1 max-h-32 overflow-auto whitespace-pre-wrap break-words">
+                                                {truncateAgentText(String(event.arguments_text || stringifyAgentValue(event.arguments)), 900)}
+                                            </pre>
+                                        )}
+                                        {Boolean(event.result_text || event.result || event.message) && (
+                                            <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap break-words">
+                                                {truncateAgentText(String(event.result_text || stringifyAgentValue(event.result) || stringifyAgentValue(event.message)), 1200)}
+                                            </pre>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {messages.length > 0 && (
+                        <div>
+                            <p className="mb-1 text-tiny font-medium text-default-500">{t('Sub Session Messages')}</p>
+                            <div className="flex flex-col gap-1.5">
+                                {messages.map((item, index) => (
+                                    <div key={`${item.role}-${index}`} className="rounded-small border border-default-100 px-2.5 py-2 text-[11px] leading-5 text-default-600">
+                                        <div className="mb-1 font-medium text-default-700">{String(item.role || item.tool_name || item.name || 'message')}</div>
+                                        <pre className="max-h-44 overflow-auto whitespace-pre-wrap break-words">{truncateAgentText(String(item.content || stringifyAgentValue(item)), 1800)}</pre>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                    {(agentRun?.trace_path || agentRun?.trace_dir) && <p className="truncate text-[11px] text-default-400">{String(agentRun.trace_path || agentRun.trace_dir)}</p>}
+                </div>
+            )}
+        </div>
+    );
+}
+
+function AgentSessionFlow({
+    task,
+    expectedOutput,
+    assistantOutput,
+    waiting,
+    errorText,
+    warningText
+}: {
+    task: string;
+    expectedOutput: string;
+    assistantOutput: string;
+    waiting: boolean;
+    errorText: string;
+    warningText: string;
+}) {
+    if (!task && !expectedOutput && !assistantOutput && !waiting && !errorText && !warningText) {
+        return null;
+    }
+    return (
+        <div>
+            <p className="mb-2 text-tiny font-medium text-default-500">{t('Sub Session')}</p>
+            <div className="flex flex-col gap-2">
+                {(task || expectedOutput) && (
+                    <AgentSessionFlowRow icon="material-symbols:person-outline-rounded" label={t('User')} tone="user">
+                        {task && <Markdown className="text-wrap break-words">{task}</Markdown>}
+                        {expectedOutput && (
+                            <div className="mt-2 border-t border-default-200 pt-2">
+                                <p className="mb-1 text-[11px] font-medium text-default-500">{t('Expected Output')}</p>
+                                <Markdown className="text-wrap break-words">{expectedOutput}</Markdown>
+                            </div>
+                        )}
+                    </AgentSessionFlowRow>
+                )}
+                <AgentSessionFlowRow
+                    icon={errorText ? 'material-symbols:error-outline-rounded' : 'material-symbols:smart-toy-outline-rounded'}
+                    label={errorText ? t('Error') : warningText ? t('Warning') : t('Assistant')}
+                    tone={errorText ? 'error' : warningText ? 'warning' : 'assistant'}
+                >
+                    {assistantOutput ? (
+                        <Markdown className="text-wrap break-words">{assistantOutput}</Markdown>
+                    ) : errorText ? (
+                        <Markdown className="text-wrap break-words">{errorText}</Markdown>
+                    ) : warningText ? (
+                        <Markdown className="text-wrap break-words">{warningText}</Markdown>
+                    ) : waiting ? (
+                        <span className="inline-flex items-center gap-2 text-default-500">
+                            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-default-400" />
+                            {t('Waiting for assistant output...')}
+                        </span>
+                    ) : (
+                        <span className="text-default-400">{t('No assistant output captured')}</span>
+                    )}
+                </AgentSessionFlowRow>
+            </div>
+        </div>
+    );
+}
+
+function AgentSessionFlowRow({ icon, label, tone, children }: { icon: string; label: string; tone: 'user' | 'assistant' | 'warning' | 'error'; children: React.ReactNode }) {
+    const toneClass = {
+        user: 'bg-default-50 text-default-700 dark:bg-default-100/10',
+        assistant: 'bg-content1 text-default-700',
+        warning: 'bg-warning-50 text-warning-700 dark:bg-warning-100/10',
+        error: 'bg-danger-50 text-danger-700 dark:bg-danger-100/10'
+    }[tone];
+    return (
+        <div className="flex gap-2">
+            <div className="mt-0.5 flex h-6 w-6 flex-none items-center justify-center rounded-full bg-default-100 text-default-500">
+                <Icon icon={icon} width={14} />
+            </div>
+            <div className={cn('min-w-0 flex-1 rounded-small border border-default-100 px-2.5 py-2 text-tiny leading-5', toneClass)}>
+                <p className="mb-1 text-[11px] font-medium text-default-500">{label}</p>
+                {children}
+            </div>
+        </div>
+    );
+}
+
+function collectAgentStreamedText(events: AgentRun['events']): string {
+    if (!Array.isArray(events)) {
+        return '';
+    }
+    return events
+        .filter(event => ['delta', 'assistant.delta', 'output.delta'].includes(String(event.type || '')) && event.text)
+        .map(event => String(event.text))
+        .join('');
+}
+
+function collectAgentFinalText(events: AgentRun['events']): string {
+    if (!Array.isArray(events)) {
+        return '';
+    }
+    return events
+        .filter(event => ['assistant.final', 'output.final', 'final'].includes(String(event.type || '')))
+        .map(event => String(event.text || event.message || event.result_text || stringifyAgentValue(event.result)))
+        .filter(Boolean)
+        .join('\n\n');
+}
+
+function collectAgentAssistantMessageText(messages: AgentRun['messages']): string {
+    if (!Array.isArray(messages)) {
+        return '';
+    }
+    return messages
+        .filter(item => String(item.role || '').toLowerCase() === 'assistant' && item.content)
+        .map(item => String(item.content))
+        .filter(Boolean)
+        .join('\n\n');
+}
+
+function AgentDetailBlock({ title, content }: { title: string; content: string }) {
+    return (
+        <div>
+            <p className="mb-1 text-tiny font-medium text-default-500">{title}</p>
+            <div className="max-h-80 overflow-auto rounded-small bg-default-50 px-2.5 py-2 text-tiny leading-5 text-default-700 dark:bg-default-100/10">
+                <Markdown className="text-wrap break-words">{content}</Markdown>
+            </div>
+        </div>
+    );
+}
+
+function stringifyAgentValue(value: unknown): string {
+    if (value === undefined || value === null) {
+        return '';
+    }
+    if (typeof value === 'string') {
+        return value;
+    }
+    try {
+        return JSON.stringify(value, null, 2);
+    } catch {
+        return String(value);
+    }
+}
+
+function truncateAgentText(value: string, maxLength: number): string {
+    if (value.length <= maxLength) {
+        return value;
+    }
+    return `${value.slice(0, maxLength)}\n...`;
+}

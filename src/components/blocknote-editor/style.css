@@ -327,6 +327,33 @@
     z-index: 1;
 }
 
+.fixed-pin-home-panel__blocknote.blocknote-editor .bn-container {
+    margin-left: 0;
+    width: 100%;
+}
+
+.fixed-pin-home-panel__blocknote.blocknote-editor .bn-editor {
+    min-height: 3.5rem;
+    overflow: visible;
+    padding: 0 0 0 54px;
+}
+
+.fixed-pin-home-panel__blocknote.blocknote-editor .bn-block-outer {
+    margin-block: 0;
+}
+
+.fixed-pin-home-panel__blocknote.blocknote-editor .bn-block-content {
+    font-size: 0.875rem;
+    line-height: 1.5;
+}
+
+.fixed-pin-home-panel__blocknote.blocknote-editor .ProseMirror-gapcursor,
+.fixed-pin-home-panel__blocknote.blocknote-editor .prosemirror-dropcursor-block,
+.fixed-pin-home-panel__blocknote.blocknote-editor .prosemirror-dropcursor-inline,
+.fixed-pin-home-panel__blocknote.blocknote-editor .prosemirror-dropcursor-vertical {
+    display: none !important;
+}
+
 :root.dark .blocknote-editor,
 :root.dark .blocknote-editor .bn-root,
 :root.dark .blocknote-editor-portal.bn-root {

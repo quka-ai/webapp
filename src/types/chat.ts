@@ -11,6 +11,10 @@ export enum EventType {
     EVENT_TOOL_FAILED = 8,
     EVENT_TURN_START = 9,
     EVENT_TURN_DONE = 10,
+    EVENT_AGENT_INIT = 11,
+    EVENT_AGENT_DONE = 12,
+    EVENT_AGENT_FAILED = 13,
+    EVENT_AGENT_UPDATE = 14,
     /** EVENT_MESSAGE_PUBLISH - match MessageDetail */
     EVENT_MESSAGE_PUBLISH = 100,
     /** EVENT_MESSAGE_ACK - match SendMessageReply */
@@ -23,7 +27,8 @@ export enum EventType {
 export enum MessageType {
     MESSAGE_TYPE_UNKNOWN = 0,
     MESSAGE_TYPE_TEXT = 1,
-    MESSAGE_TYPE_TOOL_TIPS = 2
+    MESSAGE_TYPE_TOOL_TIPS = 2,
+    MESSAGE_TYPE_AGENT_RUN = 3
 }
 
 // ToolStatus 枚举 - 对应Go中的ToolTips状态
@@ -43,6 +48,54 @@ export interface StreamMessage {
     start_at: number;
     complete: number;
     msg_type: MessageType;
+    agent_run?: AgentRun;
+}
+
+export interface AgentRun {
+    run_id?: string;
+    node_id?: string;
+    agent_id?: string;
+    title?: string;
+    status?: string;
+    task?: string;
+    expected_output?: string;
+    summary?: string;
+    result?: string;
+    error?: string;
+    warning?: string;
+    events?: AgentRunEvent[];
+    messages?: AgentRunMessage[];
+    trace_path?: string;
+    trace_dir?: string;
+    tool_policy?: string;
+    started_at?: string;
+    completed_at?: string;
+    [key: string]: unknown;
+}
+
+export interface AgentRunEvent {
+    type?: string;
+    text?: string;
+    time?: string;
+    name?: string;
+    id?: string;
+    message?: string;
+    arguments?: unknown;
+    arguments_text?: string;
+    result?: unknown;
+    result_text?: string;
+    [key: string]: unknown;
+}
+
+export interface AgentRunMessage {
+    role?: string;
+    content?: string;
+    name?: string;
+    tool_name?: string;
+    tool_call_id?: string;
+    tool_calls?: unknown[];
+    finish_reason?: string;
+    [key: string]: unknown;
 }
 
 // ToolTips 接口 - 对应Go中的ToolTips结构体

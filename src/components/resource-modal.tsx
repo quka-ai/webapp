@@ -1,5 +1,5 @@
-import { Button, ButtonGroup, Input, Kbd, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Textarea, useDisclosure } from '@heroui/react';
-import { TargetIcon } from '@radix-ui/react-icons';
+import { Button, ButtonGroup, Input, Modal, ModalBody, ModalContent, ModalFooter, ModalHeader, Select, SelectItem, Textarea, useDisclosure } from '@heroui/react';
+import { Icon } from '@iconify/react';
 import { forwardRef, memo, useCallback, useImperativeHandle, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSnapshot } from 'valtio';
@@ -24,14 +24,10 @@ const ResourceManage = memo(
         const { isOpen, onOpen, onClose } = useDisclosure();
         const [id, setID] = useState('');
         const [title, setTitle] = useState('');
-        const [cycle, setCycle] = useState<number | null>();
+        const [cycle, setCycle] = useState<number | null>(null);
         const [tag, setTag] = useState('resources');
         const [description, setDescription] = useState('');
-        const [resource, setResource] = useState<Resource | null>({
-            title: '',
-            description: '',
-            id: ''
-        });
+        const [resource, setResource] = useState<Resource | null>(null);
         const [isCreate, setIsCreate] = useState(false);
         const [isLoading, setIsLoading] = useState(false);
         const { toast } = useToast();
@@ -42,9 +38,16 @@ const ResourceManage = memo(
         function show(resource: Resource | string | undefined) {
             if (!resource) {
                 setIsCreate(true);
+                setResource(null);
+                setID('');
+                setTitle('');
+                setCycle(null);
+                setDescription('');
+                setTag('resources');
             } else if (typeof resource === 'string') {
                 // TODO load resource
             } else {
+                setIsCreate(false);
                 setResource(resource);
                 setID(resource.id);
                 setTitle(resource.title);
@@ -55,10 +58,24 @@ const ResourceManage = memo(
             onOpen();
         }
 
+        const copyResourceID = useCallback(async () => {
+            if (!id) {
+                return;
+            }
+            try {
+                await navigator.clipboard.writeText(id);
+                toast({
+                    title: t('Copied')
+                });
+            } catch (e: any) {
+                console.error(e);
+            }
+        }, [id, t, toast]);
+
         const create = useCallback(async () => {
             setIsLoading(true);
             try {
-                await CreateResource(currentSelectedSpace, id, title, cycle, tag, description);
+                await CreateResource(currentSelectedSpace, id, title, cycle || 0, tag, description);
                 onModify && onModify();
                 onClose();
                 toast({
@@ -76,7 +93,7 @@ const ResourceManage = memo(
             }
             setIsLoading(true);
             try {
-                await UpdateResource(currentSelectedSpace, id, title, cycle, tag, description);
+                await UpdateResource(currentSelectedSpace, id, title, cycle || 0, tag, description);
                 onModify && onModify();
                 onClose();
                 toast({
@@ -116,6 +133,23 @@ const ResourceManage = memo(
                             </ModalHeader>
                             <ModalBody className="w-full overflow-hidden flex flex-col items-center">
                                 <div className="w-full h-full md:max-w-[650px]">
+                                    {!isCreate && (
+                                        <div className="flex flex-wrap gap-1 mb-5">
+                                            <Input
+                                                isReadOnly
+                                                label={t('Resource ID')}
+                                                variant="bordered"
+                                                className="text-xl text-gray-800 dark:text-gray-100"
+                                                labelPlacement="outside"
+                                                value={id}
+                                                endContent={
+                                                    <Button isIconOnly size="sm" variant="light" aria-label={t('Copy')} onPress={copyResourceID}>
+                                                        <Icon icon="gravity-ui:copy" width={18} />
+                                                    </Button>
+                                                }
+                                            />
+                                        </div>
+                                    )}
                                     {/* <div className="flex flex-wrap gap-1">
                                         <Input
                                             isRequired
@@ -172,9 +206,9 @@ const ResourceManage = memo(
                                             className="text-xl text-gray-800 dark:text-gray-100"
                                             labelPlacement="outside"
                                             type="number"
-                                            defaultValue={resource?.cycle}
+                                            defaultValue={resource?.cycle === undefined || resource.cycle === null ? '' : String(resource.cycle)}
                                             description={t('ResourceClearCycleInputDescription')}
-                                            onValueChange={setCycle}
+                                            onValueChange={value => setCycle(value ? Number(value) : null)}
                                         />
                                     </div>
                                     <div className="flex flex-wrap gap-1 mb-5">
@@ -201,7 +235,7 @@ const ResourceManage = memo(
                                     >
                                         {isCreate ? t('Submit') : t('Update')}
                                     </Button>
-                                    {isCreate || (
+                                    {!isCreate && resource && (
                                         <ResourceDeletePopover resource={resource} onDelete={onDelete}>
                                             <Button color="danger">{t('Delete')}</Button>
                                         </ResourceDeletePopover>

@@ -4,6 +4,9 @@
   "outputfilename": "QukaAI",
   "frontendDirectory": "../",
   "frontend:build:dir": "../dist",
+  "preBuildHooks": {
+    "darwin/*": "sh ../../prepare-hermes-build.sh QukaAI.app"
+  },
   "author": {
     "name": "boyce",
     "email": "w@ojbk.io"

@@ -6,6 +6,7 @@ import { useSnapshot } from 'valtio';
 import { subscribeKey } from 'valtio/utils';
 
 import { GetKnowledge, type Knowledge, ListKnowledge } from '@/apis/knowledge';
+import FixedPinHomePanel from '@/components/fixed-pin-home-panel';
 import GoTop from '@/components/go-top';
 import MainQuery from '@/components/main-query';
 import Markdown from '@/components/markdown';
@@ -329,6 +330,8 @@ const KnowledgeList = memo(
             <>
                 <ScrollShadow ref={ssDom} hideScrollBar className="w-full flex-grow box-border mb-6 pb-20" onScroll={scrollChanged}>
                     <WorkBar ref={workBarRef} spaceid={currentSelectedSpace} isShowCreate={isShowCreate} onSubmit={onChanges} />
+
+                    <FixedPinHomePanel />
 
                     <MultiDayJournalTodos />
 

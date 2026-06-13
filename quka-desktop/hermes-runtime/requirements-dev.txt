@@ -1,0 +1,4 @@
+# Optional dependencies for IDE/static analysis of quka_hermes_bridge.py.
+# Production packaging is controlled by ../build-hermes-runtime.sh.
+git+https://github.com/NousResearch/hermes-agent.git
+websockets>=14,<16
