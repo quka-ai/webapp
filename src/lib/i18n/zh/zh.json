@@ -331,6 +331,7 @@
     "API key saved": "API Key 已保存",
     "API key not saved": "API Key 未保存",
     "QukaAI Built-in LLM Gateway": "QukaAI 内置 LLM 网关",
+    "Configure custom provider": "配置自定义模型服务商",
     "Built in": "内置",
     "Switch": "切换",
     "Current": "当前",

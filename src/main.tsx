@@ -1,3 +1,4 @@
+import { KeepAliveProvider } from 'keepalive-react-router';
 import ReactDOM from 'react-dom/client';
 import { RouterProvider } from 'react-router-dom';
 
@@ -10,5 +11,7 @@ import '@/utils/wails-external-links';
 ReactDOM.createRoot(document.getElementById('root')!).render(
     // <React.StrictMode></React.StrictMode>
 
-    <RouterProvider router={routes} />
+    <KeepAliveProvider>
+        <RouterProvider router={routes} />
+    </KeepAliveProvider>
 );

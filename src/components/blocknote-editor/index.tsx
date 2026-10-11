@@ -6,6 +6,7 @@ import { ja } from '@blocknote/core/locales';
 import { zh } from '@blocknote/core/locales';
 import { BlockNoteView } from '@blocknote/mantine';
 import '@blocknote/mantine/style.css';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import {
     BlockPopover,
     DefaultReactSuggestionItem,
@@ -61,6 +62,9 @@ type ZoomedImage = {
 const generatingImageDescriptions = new Map<string, boolean>();
 const DEFAULT_CODE_BLOCK_LANGUAGE = 'shellscript';
 const BLOCKNOTE_IMAGE_ZOOM_CHANGE_EVENT = 'quka:blocknote-image-zoom-change';
+const COMPOSITION_TEXT_ANCHOR = '\u200b';
+const COMPOSITION_END_KEY_SUPPRESSION_MS = 500;
+const COMPOSITION_ANCHOR_EXCLUDED_TEXTBLOCKS = new Set(['codeBlock']);
 const PLAIN_CODE_BLOCK_LANGUAGES = new Set(['', 'text', 'txt', 'plain', 'plaintext', 'none']);
 const blockNoteSchema = BlockNoteSchema.create({
     blockSpecs: {
@@ -280,6 +284,107 @@ function ensureEmptyCodeBlocksUseShell(editor: ReturnType<typeof useCreateBlockN
     });
 
     return emptyCodeBlocks.length > 0;
+}
+
+function seedEmptyCompositionAnchor(view: ReturnType<typeof useCreateBlockNote>['prosemirrorView']) {
+    const { state } = view;
+    const { selection } = state;
+
+    if (
+        !(selection instanceof TextSelection) ||
+        !selection.empty ||
+        !selection.$from.parent.inlineContent ||
+        selection.$from.parent.content.size !== 0 ||
+        COMPOSITION_ANCHOR_EXCLUDED_TEXTBLOCKS.has(selection.$from.parent.type.name)
+    ) {
+        return false;
+    }
+
+    const tr = state.tr.insertText(COMPOSITION_TEXT_ANCHOR, selection.from, selection.to);
+
+    tr.setSelection(TextSelection.create(tr.doc, selection.from + COMPOSITION_TEXT_ANCHOR.length));
+
+    tr.setMeta('addToHistory', false);
+    view.dispatch(tr);
+
+    return true;
+}
+
+function removeCompositionAnchorsFromView(view: ReturnType<typeof useCreateBlockNote>['prosemirrorView']) {
+    const ranges: Array<{ from: number; to: number }> = [];
+
+    view.state.doc.descendants((node: ProseMirrorNode, pos: number) => {
+        if (!node.isText || !node.text?.includes(COMPOSITION_TEXT_ANCHOR)) {
+            return true;
+        }
+
+        let index = node.text.indexOf(COMPOSITION_TEXT_ANCHOR);
+
+        while (index >= 0) {
+            ranges.push({
+                from: pos + index,
+                to: pos + index + COMPOSITION_TEXT_ANCHOR.length
+            });
+            index = node.text.indexOf(COMPOSITION_TEXT_ANCHOR, index + COMPOSITION_TEXT_ANCHOR.length);
+        }
+
+        return true;
+    });
+
+    if (ranges.length === 0) {
+        return false;
+    }
+
+    const tr = view.state.tr;
+
+    ranges
+        .sort((a, b) => b.from - a.from)
+        .forEach(range => {
+            tr.delete(range.from, range.to);
+        });
+
+    tr.setMeta('addToHistory', false);
+    view.dispatch(tr);
+
+    return true;
+}
+
+function removeCompositionAnchors(editor: ReturnType<typeof useCreateBlockNote>) {
+    return removeCompositionAnchorsFromView(editor.prosemirrorView);
+}
+
+function stripCompositionAnchorsFromText(value: string) {
+    return value.includes(COMPOSITION_TEXT_ANCHOR) ? value.split(COMPOSITION_TEXT_ANCHOR).join('') : value;
+}
+
+function stripCompositionAnchorsFromInlineContent(content: any): any {
+    if (typeof content === 'string') {
+        return stripCompositionAnchorsFromText(content);
+    }
+
+    if (!Array.isArray(content)) {
+        return content;
+    }
+
+    return content.map(item => {
+        if (!item || typeof item !== 'object') {
+            return typeof item === 'string' ? stripCompositionAnchorsFromText(item) : item;
+        }
+
+        return {
+            ...item,
+            text: typeof item.text === 'string' ? stripCompositionAnchorsFromText(item.text) : item.text,
+            content: stripCompositionAnchorsFromInlineContent(item.content)
+        };
+    });
+}
+
+function stripCompositionAnchorsFromBlocks(blocks: PartialBlock[]): PartialBlock[] {
+    return blocks.map(block => ({
+        ...block,
+        content: stripCompositionAnchorsFromInlineContent(block.content),
+        children: Array.isArray(block.children) ? stripCompositionAnchorsFromBlocks(block.children) : block.children
+    }));
 }
 
 function findReadonlyImageFromEventTarget(target: EventTarget | null) {
@@ -821,6 +926,12 @@ export const BlockNoteEditor = memo(
         const zoomCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
         const zoomOpenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
         const renderingRef = useRef(false);
+        const isComposingRef = useRef(false);
+        const compositionEndedAtRef = useRef(0);
+        const flushAfterCompositionRef = useRef(false);
+        const latestChangedEditorRef = useRef<ReturnType<typeof useCreateBlockNote> | null>(null);
+        const scheduleValueChangeRef = useRef<((currentEditor: ReturnType<typeof useCreateBlockNote>) => void) | null>(null);
+        const skipNextEmptyAnchorSeedRef = useRef(false);
         const lastEmittedValueRef = useRef<BlockNoteEditorValue | null>(null);
         const [zoomedImage, setZoomedImage] = useState<ZoomedImage | null>(null);
 
@@ -849,10 +960,119 @@ export const BlockNoteEditor = memo(
                         return true;
                     }
                 },
+                _tiptapOptions: {
+                    editorProps: {
+                        handleDOMEvents: {
+                            compositionstart: () => {
+                                isComposingRef.current = true;
+                                flushAfterCompositionRef.current = false;
+
+                                if (saveTimeoutRef.current) {
+                                    clearTimeout(saveTimeoutRef.current);
+                                    saveTimeoutRef.current = null;
+                                }
+
+                                return false;
+                            },
+                            compositionend: (_eventView, event) => {
+                                isComposingRef.current = false;
+                                compositionEndedAtRef.current = event.timeStamp || performance.now();
+
+                                window.setTimeout(() => {
+                                    const changedEditor = latestChangedEditorRef.current;
+
+                                    if (!changedEditor) {
+                                        return;
+                                    }
+
+                                    const removedAnchor = removeCompositionAnchors(changedEditor);
+
+                                    if (!flushAfterCompositionRef.current && !removedAnchor) {
+                                        return;
+                                    }
+
+                                    flushAfterCompositionRef.current = false;
+                                    scheduleValueChangeRef.current?.(changedEditor);
+                                });
+
+                                return false;
+                            },
+                            keydown: (eventView, event) => {
+                                if (event.isComposing || isComposingRef.current || event.keyCode === 229) {
+                                    return false;
+                                }
+
+                                skipNextEmptyAnchorSeedRef.current = true;
+                                if (!removeCompositionAnchorsFromView(eventView)) {
+                                    skipNextEmptyAnchorSeedRef.current = false;
+                                }
+
+                                if (event.key !== 'Enter') {
+                                    return false;
+                                }
+
+                                if (compositionEndedAtRef.current !== 0 && Math.abs(event.timeStamp - compositionEndedAtRef.current) <= COMPOSITION_END_KEY_SUPPRESSION_MS) {
+                                    compositionEndedAtRef.current = 0;
+                                    event.preventDefault();
+
+                                    return true;
+                                }
+
+                                window.setTimeout(() => {
+                                    seedEmptyCompositionAnchor(eventView);
+                                });
+
+                                compositionEndedAtRef.current = 0;
+
+                                return false;
+                            }
+                        }
+                    }
+                },
                 uploadFile: readOnly || !currentSelectedSpace ? undefined : getUploader(toast, t, currentSelectedSpace)
             },
-            [readOnly, autofocus, currentSelectedSpace, dictionary, placeholder]
+            [readOnly, currentSelectedSpace, dictionary, placeholder]
         );
+
+        const scheduleValueChange = useCallback(
+            (currentEditor: ReturnType<typeof useCreateBlockNote>) => {
+                latestChangedEditorRef.current = currentEditor;
+
+                if (!onValueChange || renderingRef.current) {
+                    return;
+                }
+
+                if (saveTimeoutRef.current) {
+                    clearTimeout(saveTimeoutRef.current);
+                    saveTimeoutRef.current = null;
+                }
+
+                if (isComposingRef.current) {
+                    flushAfterCompositionRef.current = true;
+
+                    return;
+                }
+
+                saveTimeoutRef.current = setTimeout(() => {
+                    saveTimeoutRef.current = null;
+
+                    if (isComposingRef.current) {
+                        flushAfterCompositionRef.current = true;
+
+                        return;
+                    }
+
+                    const sanitizedDocument = stripCompositionAnchorsFromBlocks(currentEditor.document);
+                    const value = outputFormat === 'markdown' ? currentEditor.blocksToMarkdownLossy(sanitizedDocument) : sanitizedDocument;
+
+                    lastEmittedValueRef.current = value;
+                    onValueChange(value);
+                }, 500);
+            },
+            [onValueChange, outputFormat]
+        );
+
+        scheduleValueChangeRef.current = scheduleValueChange;
 
         const getSlashMenuItems = useCallback(
             async (query: string) => {
@@ -889,6 +1109,10 @@ export const BlockNoteEditor = memo(
 
         useEffect(() => {
             return () => {
+                if (saveTimeoutRef.current) {
+                    clearTimeout(saveTimeoutRef.current);
+                }
+
                 if (zoomCloseTimeoutRef.current) {
                     clearTimeout(zoomCloseTimeoutRef.current);
                 }
@@ -1019,24 +1243,29 @@ export const BlockNoteEditor = memo(
                     slashMenu={false}
                     theme={theme}
                     onChange={async currentEditor => {
+                        if (isComposingRef.current) {
+                            latestChangedEditorRef.current = currentEditor;
+                            flushAfterCompositionRef.current = true;
+
+                            if (saveTimeoutRef.current) {
+                                clearTimeout(saveTimeoutRef.current);
+                                saveTimeoutRef.current = null;
+                            }
+
+                            return;
+                        }
+
                         if (!renderingRef.current && ensureEmptyCodeBlocksUseShell(currentEditor)) {
                             return;
                         }
 
-                        if (!onValueChange || renderingRef.current) {
+                        if (skipNextEmptyAnchorSeedRef.current) {
+                            skipNextEmptyAnchorSeedRef.current = false;
+                        } else if (!renderingRef.current && seedEmptyCompositionAnchor(currentEditor.prosemirrorView)) {
                             return;
                         }
 
-                        if (saveTimeoutRef.current) {
-                            clearTimeout(saveTimeoutRef.current);
-                        }
-
-                        saveTimeoutRef.current = setTimeout(() => {
-                            const value = outputFormat === 'markdown' ? currentEditor.blocksToMarkdownLossy(currentEditor.document) : currentEditor.document;
-
-                            lastEmittedValueRef.current = value;
-                            onValueChange(value);
-                        }, 500);
+                        scheduleValueChange(currentEditor);
                     }}
                 >
                     {!readOnly && (useMobileSideMenu ? <MobileSideMenuController floatingUIOptions={sideMenuFloatingOptions} /> : <SideMenuController floatingUIOptions={sideMenuFloatingOptions} />)}

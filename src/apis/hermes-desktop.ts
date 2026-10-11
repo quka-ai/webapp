@@ -56,6 +56,17 @@ export interface HermesProviderConfigureRequest {
     tavilyAPIKey: string;
 }
 
+export const QUKA_LLM_GATEWAY_MODEL = 'quka-hermes';
+
+export function createQukaLLMGatewayConfig(host: string, token: string): HermesProviderConfigureRequest {
+    return {
+        modelName: QUKA_LLM_GATEWAY_MODEL,
+        baseURL: `${host.trim().replace(/\/+$/, '')}/llm-gateway/v1`,
+        apiKey: token,
+        tavilyAPIKey: ''
+    };
+}
+
 export interface HermesProviderStoredConfig {
     modelName: string;
     baseURL: string;

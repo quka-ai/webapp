@@ -29,6 +29,8 @@ const TOOLSET_OPTIONS = [
     { key: 'skills', label: 'Skills' },
     { key: 'memory', label: 'Memory' }
 ];
+const TOOL_POLICY_OPTIONS = ['no_tools', 'read_only', 'restricted', 'workspace_write'];
+const CONTEXT_POLICY_OPTIONS = ['minimal', 'focused', 'summary'];
 const DEFAULT_FORM: AgentForm = {
     id: '',
     name: '',
@@ -252,44 +254,50 @@ const HermesAgentsSetting = React.forwardRef<HTMLDivElement, HermesAgentsSetting
                             <Select
                                 label={t('Tool Policy')}
                                 labelPlacement="outside"
-                                selectedKeys={[form.toolPolicy]}
+                                selectedKeys={new Set([normalizeToolPolicy(form.toolPolicy)])}
                                 isDisabled={Boolean(selectedProfile?.builtIn)}
                                 variant="bordered"
-                                onSelectionChange={keys => setField('toolPolicy', String(Array.from(keys)[0] || 'read_only'))}
+                                onSelectionChange={keys => setField('toolPolicy', normalizeToolPolicy(selectionFirst(keys) || form.toolPolicy))}
                             >
-                                <SelectItem key="no_tools">{t('No Tools')}</SelectItem>
-                                <SelectItem key="read_only">{t('Read Only')}</SelectItem>
-                                <SelectItem key="restricted">{t('Restricted')}</SelectItem>
-                                <SelectItem key="workspace_write">{t('Workspace Write')}</SelectItem>
+                                <>
+                                    <SelectItem key="no_tools">{t('No Tools')}</SelectItem>
+                                    <SelectItem key="read_only">{t('Read Only')}</SelectItem>
+                                    <SelectItem key="restricted">{t('Restricted')}</SelectItem>
+                                    <SelectItem key="workspace_write">{t('Workspace Write')}</SelectItem>
+                                </>
                             </Select>
                             <Select
                                 label={t('Context')}
                                 labelPlacement="outside"
-                                selectedKeys={[form.contextPolicy]}
+                                selectedKeys={new Set([normalizeContextPolicy(form.contextPolicy)])}
                                 isDisabled={Boolean(selectedProfile?.builtIn)}
                                 variant="bordered"
-                                onSelectionChange={keys => setField('contextPolicy', String(Array.from(keys)[0] || 'focused'))}
+                                onSelectionChange={keys => setField('contextPolicy', normalizeContextPolicy(selectionFirst(keys) || form.contextPolicy))}
                             >
-                                <SelectItem key="minimal">{t('Minimal')}</SelectItem>
-                                <SelectItem key="focused">{t('Focused')}</SelectItem>
-                                <SelectItem key="summary">{t('Summary')}</SelectItem>
+                                <>
+                                    <SelectItem key="minimal">{t('Minimal')}</SelectItem>
+                                    <SelectItem key="focused">{t('Focused')}</SelectItem>
+                                    <SelectItem key="summary">{t('Summary')}</SelectItem>
+                                </>
                             </Select>
                             <Select
                                 label={t('Toolsets')}
                                 labelPlacement="outside"
                                 selectionMode="multiple"
-                                selectedKeys={new Set(form.enabledToolsets)}
+                                selectedKeys={new Set(cleanStringList(form.enabledToolsets))}
                                 isDisabled={Boolean(selectedProfile?.builtIn)}
                                 variant="bordered"
                                 renderValue={() => <span className="block min-w-0 truncate text-small">{formatToolsetSelection(form.enabledToolsets, t)}</span>}
                                 onSelectionChange={keys => {
-                                    const selected = keys === 'all' ? TOOLSET_OPTIONS.map(option => option.key) : Array.from(keys).map(String);
+                                    const selected = keys === 'all' ? TOOLSET_OPTIONS.map(option => option.key) : selectionValues(keys);
                                     setField('enabledToolsets', selected);
                                 }}
                             >
-                                {TOOLSET_OPTIONS.map(option => (
-                                    <SelectItem key={option.key}>{t(option.label)}</SelectItem>
-                                ))}
+                                <>
+                                    {TOOLSET_OPTIONS.map(option => (
+                                        <SelectItem key={option.key}>{t(option.label)}</SelectItem>
+                                    ))}
+                                </>
                             </Select>
                         </div>
                         <Input
@@ -379,10 +387,10 @@ function profileToForm(profile: HermesAgentProfile): AgentForm {
         name: profile.name || '',
         description: profile.description || '',
         systemPrompt: profile.systemPrompt || '',
-        toolPolicy: profile.toolPolicy || 'read_only',
+        toolPolicy: normalizeToolPolicy(profile.toolPolicy),
         enabledToolsets: cleanStringList(profile.enabledToolsets || []),
-        enabledSkills: (profile.enabledSkills || []).join(','),
-        contextPolicy: profile.contextPolicy || 'focused'
+        enabledSkills: cleanStringList(profile.enabledSkills).join(','),
+        contextPolicy: normalizeContextPolicy(profile.contextPolicy)
     };
 }
 
@@ -392,16 +400,44 @@ function formToProfile(form: AgentForm): HermesAgentProfile {
         name: form.name.trim(),
         description: form.description.trim(),
         systemPrompt: form.systemPrompt.trim(),
-        toolPolicy: form.toolPolicy || 'read_only',
+        toolPolicy: normalizeToolPolicy(form.toolPolicy),
         enabledToolsets: cleanStringList(form.enabledToolsets),
         enabledSkills: splitCSV(form.enabledSkills),
-        contextPolicy: form.contextPolicy || 'focused',
+        contextPolicy: normalizeContextPolicy(form.contextPolicy),
         builtIn: false
     };
 }
 
-function cleanStringList(values: string[]): string[] {
-    return Array.from(new Set(values.map(item => item.trim()).filter(Boolean)));
+function normalizeToolPolicy(value?: string | null): string {
+    return TOOL_POLICY_OPTIONS.includes(value || '') ? value! : 'read_only';
+}
+
+function normalizeContextPolicy(value?: string | null): string {
+    return CONTEXT_POLICY_OPTIONS.includes(value || '') ? value! : 'focused';
+}
+
+function selectionFirst(keys: 'all' | Iterable<React.Key> | null | undefined): string {
+    if (!keys || keys === 'all') {
+        return '';
+    }
+
+    return String(Array.from(keys)[0] || '');
+}
+
+function selectionValues(keys: 'all' | Iterable<React.Key> | null | undefined): string[] {
+    if (!keys || keys === 'all') {
+        return [];
+    }
+
+    return cleanStringList(Array.from(keys).map(String));
+}
+
+function cleanStringList(values?: string[] | null): string[] {
+    if (!Array.isArray(values)) {
+        return [];
+    }
+
+    return Array.from(new Set(values.map(item => String(item || '').trim()).filter(Boolean)));
 }
 
 function formatToolsetSelection(values: string[], t: (value: string) => string): string {

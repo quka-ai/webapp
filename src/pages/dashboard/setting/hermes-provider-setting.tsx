@@ -8,9 +8,11 @@ import { useSnapshot } from 'valtio';
 import {
     ConfigureHermesEnvironment,
     ConfigureHermesProvider,
+    createQukaLLMGatewayConfig,
     GetHermesEnvironmentVariables,
     GetHermesProviderConfig,
     type HermesEnvironmentVariable,
+    QUKA_LLM_GATEWAY_MODEL,
     readHermesProviderConfig,
     SubscribeHermesAgentStatus
 } from '@/apis/hermes-desktop';
@@ -59,7 +61,6 @@ const DEFAULT_FORM: HermesProviderForm = {
 const HERMES_PROVIDER_PRESETS_STORAGE_KEY = 'quka-hermes-provider-presets';
 const MAX_HERMES_PROVIDER_PRESETS = 8;
 const QUKA_LLM_GATEWAY_PRESET_ID = 'quka-ai-llm-gateway';
-const QUKA_LLM_GATEWAY_MODEL = 'quka-hermes';
 
 const HermesProviderSetting = React.forwardRef<HTMLDivElement, HermesProviderSettingProps>(({ className, onConfigured, title, description, ...props }, ref) => {
     const { t } = useTranslation();
@@ -79,6 +80,7 @@ const HermesProviderSetting = React.forwardRef<HTMLDivElement, HermesProviderSet
     const [isSavingEnv, setIsSavingEnv] = React.useState(false);
     const qukaGatewayPreset = React.useMemo(() => createQukaLLMGatewayPreset(host, accessToken || loginToken || ''), [accessToken, host, loginToken]);
     const visiblePresets = React.useMemo(() => [qukaGatewayPreset, ...presets.filter(preset => preset.id !== QUKA_LLM_GATEWAY_PRESET_ID)], [presets, qukaGatewayPreset]);
+    const usingGateway = form.modelName.trim() === QUKA_LLM_GATEWAY_MODEL && form.baseURL.trim() === qukaGatewayPreset.baseURL;
 
     React.useEffect(() => {
         let mounted = true;
@@ -155,43 +157,37 @@ const HermesProviderSetting = React.forwardRef<HTMLDivElement, HermesProviderSet
 
     const saveProviderConfig = React.useCallback(
         async (nextForm: HermesProviderForm, successMessage: string, options?: { skipPreset?: boolean }) => {
-            const nextErrors = validateForm(nextForm, storedConfig.apiKeyConfigured, t);
+            const gatewaySelected = nextForm.modelName.trim() === QUKA_LLM_GATEWAY_MODEL && nextForm.baseURL.trim() === qukaGatewayPreset.baseURL;
+            const configToSave = gatewaySelected ? createQukaLLMGatewayConfig(host, accessToken || loginToken || '') : nextForm;
+            const nextErrors = gatewaySelected ? {} : validateForm(configToSave, storedConfig.apiKeyConfigured && storedConfig.modelName !== QUKA_LLM_GATEWAY_MODEL, t);
             setErrors(nextErrors);
             if (Object.keys(nextErrors).length > 0) {
                 return false;
             }
 
             console.info('[hermes] saving provider configuration', {
-                modelName: nextForm.modelName.trim(),
-                baseURL: nextForm.baseURL.trim(),
-                apiKeyPresent: Boolean(nextForm.apiKey.trim()),
-                tavilyKeyPresent: Boolean(nextForm.tavilyAPIKey.trim())
+                modelName: configToSave.modelName.trim(),
+                baseURL: configToSave.baseURL.trim(),
+                apiKeyPresent: Boolean(configToSave.apiKey.trim()),
+                tavilyKeyPresent: Boolean(configToSave.tavilyAPIKey.trim())
             });
-            await withTimeout(
-                ConfigureHermesProvider({
-                    modelName: nextForm.modelName.trim(),
-                    baseURL: nextForm.baseURL.trim(),
-                    apiKey: nextForm.apiKey.trim(),
-                    tavilyAPIKey: nextForm.tavilyAPIKey.trim()
-                }),
-                15000
-            );
+            await withTimeout(ConfigureHermesProvider(configToSave), 15000);
             console.info('[hermes] provider configuration saved; bridge will start in background');
             toast.success(successMessage);
             setStoredConfig(prev => ({
-                modelName: nextForm.modelName.trim(),
-                baseURL: nextForm.baseURL.trim(),
-                apiKeyConfigured: Boolean(nextForm.apiKey.trim()) || prev.apiKeyConfigured,
-                tavilyConfigured: Boolean(nextForm.tavilyAPIKey.trim()) || Boolean(prev.tavilyConfigured)
+                modelName: configToSave.modelName.trim(),
+                baseURL: configToSave.baseURL.trim(),
+                apiKeyConfigured: Boolean(configToSave.apiKey.trim()) || prev.apiKeyConfigured,
+                tavilyConfigured: Boolean(configToSave.tavilyAPIKey.trim()) || Boolean(prev.tavilyConfigured)
             }));
-            if (!options?.skipPreset) {
+            if (!options?.skipPreset && !gatewaySelected) {
                 setPresets(prev => saveHermesProviderPresets(upsertHermesProviderPreset(prev, nextForm)));
             }
             setForm(prev => ({ ...prev, modelName: nextForm.modelName.trim(), baseURL: nextForm.baseURL.trim(), apiKey: '', tavilyAPIKey: '' }));
             onConfigured?.();
             return true;
         },
-        [onConfigured, storedConfig.apiKeyConfigured, t]
+        [accessToken, host, loginToken, onConfigured, qukaGatewayPreset.baseURL, storedConfig.apiKeyConfigured, storedConfig.modelName, t]
     );
 
     const save = React.useCallback(async () => {
@@ -212,8 +208,8 @@ const HermesProviderSetting = React.forwardRef<HTMLDivElement, HermesProviderSet
                 toast.error(t('QukaAI login token is required for Hermes Agent'));
                 return;
             }
-            if (!preset.apiKey && !storedConfig.apiKeyConfigured) {
-                toast.error(t('QukaAI login token is required for Hermes Agent'));
+            if (!preset.pinned && !preset.apiKey && (!storedConfig.apiKeyConfigured || storedConfig.modelName === QUKA_LLM_GATEWAY_MODEL)) {
+                toast.error(t('Model API key is required'));
                 return;
             }
             const nextForm = {
@@ -234,7 +230,7 @@ const HermesProviderSetting = React.forwardRef<HTMLDivElement, HermesProviderSet
                 setSwitchingPresetID(null);
             }
         },
-        [form, saveProviderConfig, t]
+        [form, saveProviderConfig, storedConfig.apiKeyConfigured, t]
     );
 
     const removePreset = React.useCallback((id: string) => {
@@ -302,8 +298,8 @@ const HermesProviderSetting = React.forwardRef<HTMLDivElement, HermesProviderSet
                                                         <span className="shrink-0 rounded-small bg-primary-100 px-1.5 py-0.5 text-tiny font-medium text-primary-600">{t('Built in')}</span>
                                                     )}
                                                 </div>
-                                                <div className="truncate text-tiny text-default-500">{preset.baseURL}</div>
-                                                <div className="mt-1 text-tiny text-default-400">{preset.apiKey ? t('API key saved') : t('API key not saved')}</div>
+                                                {!preset.pinned && <div className="truncate text-tiny text-default-500">{preset.baseURL}</div>}
+                                                {!preset.pinned && <div className="mt-1 text-tiny text-default-400">{preset.apiKey ? t('API key saved') : t('API key not saved')}</div>}
                                             </button>
                                             <div className="flex shrink-0 items-center gap-1">
                                                 <Button
@@ -329,55 +325,65 @@ const HermesProviderSetting = React.forwardRef<HTMLDivElement, HermesProviderSet
                         </div>
                     )}
 
-                    <Input
-                        label={t('Model Name')}
-                        labelPlacement="outside"
-                        placeholder="anthropic/claude-sonnet-4"
-                        value={form.modelName}
-                        variant="bordered"
-                        isInvalid={Boolean(errors.modelName)}
-                        errorMessage={errors.modelName}
-                        onValueChange={value => setField('modelName', value)}
-                    />
-                    <Input
-                        label={t('Base URL')}
-                        labelPlacement="outside"
-                        placeholder="https://api.example.com/v1"
-                        value={form.baseURL}
-                        variant="bordered"
-                        isInvalid={Boolean(errors.baseURL)}
-                        errorMessage={errors.baseURL}
-                        onValueChange={value => setField('baseURL', value)}
-                    />
-                    <Input
-                        label={t('Model API Key')}
-                        labelPlacement="outside"
-                        placeholder={storedConfig.apiKeyConfigured ? t('API key already configured') : 'sk-...'}
-                        type="password"
-                        value={form.apiKey}
-                        variant="bordered"
-                        isInvalid={Boolean(errors.apiKey)}
-                        errorMessage={errors.apiKey}
-                        onValueChange={value => setField('apiKey', value)}
-                    />
-                    <Input
-                        label={t('Tavily API Key Optional')}
-                        labelPlacement="outside"
-                        placeholder={storedConfig.tavilyConfigured ? t('Tavily API key already configured') : 'tvly-...'}
-                        type="password"
-                        value={form.tavilyAPIKey}
-                        variant="bordered"
-                        isInvalid={Boolean(errors.tavilyAPIKey)}
-                        errorMessage={errors.tavilyAPIKey}
-                        onValueChange={value => setField('tavilyAPIKey', value)}
-                    />
+                    {usingGateway ? (
+                        <Button variant="flat" onPress={() => setForm({ ...DEFAULT_FORM, tavilyAPIKey: form.tavilyAPIKey })}>
+                            {t('Configure custom provider')}
+                        </Button>
+                    ) : (
+                        <>
+                            <Input
+                                label={t('Model Name')}
+                                labelPlacement="outside"
+                                placeholder="anthropic/claude-sonnet-4"
+                                value={form.modelName}
+                                variant="bordered"
+                                isInvalid={Boolean(errors.modelName)}
+                                errorMessage={errors.modelName}
+                                onValueChange={value => setField('modelName', value)}
+                            />
+                            <Input
+                                label={t('Base URL')}
+                                labelPlacement="outside"
+                                placeholder="https://api.example.com/v1"
+                                value={form.baseURL}
+                                variant="bordered"
+                                isInvalid={Boolean(errors.baseURL)}
+                                errorMessage={errors.baseURL}
+                                onValueChange={value => setField('baseURL', value)}
+                            />
+                            <Input
+                                label={t('Model API Key')}
+                                labelPlacement="outside"
+                                placeholder={storedConfig.apiKeyConfigured ? t('API key already configured') : 'sk-...'}
+                                type="password"
+                                value={form.apiKey}
+                                variant="bordered"
+                                isInvalid={Boolean(errors.apiKey)}
+                                errorMessage={errors.apiKey}
+                                onValueChange={value => setField('apiKey', value)}
+                            />
+                            <Input
+                                label={t('Tavily API Key Optional')}
+                                labelPlacement="outside"
+                                placeholder={storedConfig.tavilyConfigured ? t('Tavily API key already configured') : 'tvly-...'}
+                                type="password"
+                                value={form.tavilyAPIKey}
+                                variant="bordered"
+                                isInvalid={Boolean(errors.tavilyAPIKey)}
+                                errorMessage={errors.tavilyAPIKey}
+                                onValueChange={value => setField('tavilyAPIKey', value)}
+                            />
+                        </>
+                    )}
                 </div>
 
-                <div className="flex justify-end">
-                    <Button color="primary" isLoading={isSaving} startContent={!isSaving && <Icon icon="material-symbols:save-rounded" />} onPress={save}>
-                        {t('Save')}
-                    </Button>
-                </div>
+                {!usingGateway && (
+                    <div className="flex justify-end">
+                        <Button color="primary" isLoading={isSaving} startContent={!isSaving && <Icon icon="material-symbols:save-rounded" />} onPress={save}>
+                            {t('Save')}
+                        </Button>
+                    </div>
+                )}
 
                 <div className="flex flex-col gap-4">
                     <div className="flex items-center justify-between gap-3">
@@ -529,9 +535,7 @@ function upsertHermesProviderPreset(presets: HermesProviderPreset[], form: Herme
 function createQukaLLMGatewayPreset(host: string, apiKey: string): HermesProviderPreset {
     return {
         id: QUKA_LLM_GATEWAY_PRESET_ID,
-        modelName: QUKA_LLM_GATEWAY_MODEL,
-        baseURL: `${host.trim().replace(/\/+$/, '')}/llm-gateway/v1`,
-        apiKey,
+        ...createQukaLLMGatewayConfig(host, apiKey),
         tavilyAPIKey: '',
         updatedAt: Number.MAX_SAFE_INTEGER,
         pinned: true

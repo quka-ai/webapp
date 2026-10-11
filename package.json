@@ -1,7 +1,7 @@
 {
   "name": "Quka-Web",
   "private": true,
-  "version": "0.2.9",
+  "version": "0.2.10",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -65,6 +65,7 @@
     "i18next-browser-languagedetector": "^8.0.0",
     "immer": "^10.1.1",
     "katex": "^0.16.21",
+    "keepalive-react-router": "^1.2.0",
     "lowlight": "^3.1.0",
     "lucide-react": "^0.451.0",
     "motion": "^11.16.0",

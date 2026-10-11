@@ -250,6 +250,7 @@
     "API key saved": "API Key 保存済み",
     "API key not saved": "API Key 未保存",
     "QukaAI Built-in LLM Gateway": "QukaAI 組み込み LLM Gateway",
+    "Configure custom provider": "カスタムモデルプロバイダーを設定",
     "Built in": "組み込み",
     "Switch": "切り替え",
     "Current": "現在",

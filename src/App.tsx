@@ -2,8 +2,8 @@
 
 import { HeroUIProvider, ToastProvider } from '@heroui/react';
 import { enableMapSet } from 'immer';
-import { useEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Component, type ErrorInfo, type ReactNode, useEffect, useState } from 'react';
+import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster as SonnerTotaster } from 'sonner';
 import { subscribeKey } from 'valtio/utils';
 
@@ -13,16 +13,19 @@ import { useMedia } from './hooks/use-media';
 import eventStore from './stores/event';
 
 import { HermesInteractionModal } from '@/components/hermes-interaction-modal';
+import { BackendUnavailableModal } from '@/components/backend-unavailable-modal';
 import { KnowledgeProvider } from '@/components/knowledge-drawer';
 import { Toaster } from '@/components/ui/toaster';
 import { useTheme } from '@/hooks/use-theme';
 import { Init as InitI18n } from '@/lib/i18n';
+import i18n from '@/lib/i18n';
 
 // 或者使用配置参数进行初始化
 // const vConsole = new VConsole({ theme: 'dark' });
 
 export function App() {
     const { theme, isDark } = useTheme();
+    const { pathname } = useLocation();
 
     enableMapSet();
 
@@ -58,11 +61,41 @@ export function App() {
 
     return (
         <MyProvider>
-            <Outlet />
+            <RouteContentBoundary pathname={pathname}><Outlet /></RouteContentBoundary>
             <Toaster />
             <SonnerTotaster theme={isDark ? 'dark' : 'light'} position={isMobile ? 'top-right' : 'bottom-right'} />
         </MyProvider>
     );
+}
+
+class RouteContentBoundary extends Component<{ children: ReactNode; pathname: string }, { hasError: boolean }> {
+    state = { hasError: false };
+
+    static getDerivedStateFromError() {
+        return { hasError: true };
+    }
+
+    componentDidCatch(error: Error, info: ErrorInfo) {
+        console.error('Page rendering failed', error, info);
+    }
+
+    componentDidUpdate(previousProps: { pathname: string }) {
+        if (this.state.hasError && previousProps.pathname !== this.props.pathname) {
+            this.setState({ hasError: false });
+        }
+    }
+
+    render() {
+        if (this.state.hasError) {
+            return (
+                <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-6 text-center">
+                    <p>{i18n.t('backend-availability:pageLoadFailed')}</p>
+                    <button className="rounded bg-primary px-4 py-2 text-white" onClick={() => window.location.reload()}>{i18n.t('backend-availability:retry')}</button>
+                </div>
+            );
+        }
+        return this.props.children;
+    }
 }
 
 function MyProvider({ children }: { children: React.ReactNode }) {
@@ -94,6 +127,7 @@ function MyProvider({ children }: { children: React.ReactNode }) {
                         <ShareProvider>{children}</ShareProvider>
                     </KnowledgeProvider>
                     <HermesInteractionModal />
+                    <BackendUnavailableModal />
                 </HeroUIProvider>
             )}
         </>

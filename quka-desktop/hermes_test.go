@@ -1244,6 +1244,65 @@ func TestHermesToolFirstKeepsInitialAnswerIDForPostToolText(t *testing.T) {
 	}
 }
 
+func TestHermesMessageCompleteDoesNotEndTurn(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("QUKA_HERMES_HOME", home)
+
+	service := NewHermesAgentService()
+	sessionID := "quka-hermes-test"
+	answerID := "hermes-answer-existing"
+
+	service.activeTurns[sessionID] = &activeTurn{MessageID: answerID}
+	service.messageSeq[sessionID] = 1
+
+	service.handleGatewayEvent(gatewayEvent{
+		Type:      "message.delta",
+		SessionID: sessionID,
+		Payload:   []byte(`{"text":"Before terminal."}`),
+	})
+	service.handleGatewayEvent(gatewayEvent{
+		Type:      "message.complete",
+		SessionID: sessionID,
+		Payload:   []byte(`{"text":"Before terminal.","status":"ok"}`),
+	})
+
+	if service.activeTurns[sessionID] == nil {
+		t.Fatal("message.complete ended the active Hermes turn")
+	}
+
+	history, err := service.GetSessionHistory("", sessionID, 1, 20)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if history.Total != 1 {
+		t.Fatalf("history total = %d, want assistant message only", history.Total)
+	}
+	if history.List[0].Meta.Complete != 1 {
+		t.Fatalf("assistant complete = %d, want completed", history.List[0].Meta.Complete)
+	}
+}
+
+func TestHermesTurnCompleteEndsTurn(t *testing.T) {
+	service := NewHermesAgentService()
+	sessionID := "quka-hermes-test"
+	answerID := "hermes-answer-existing"
+
+	service.activeTurns[sessionID] = &activeTurn{
+		MessageID:   answerID,
+		Text:        "Finished.",
+		Initialized: true,
+	}
+
+	service.handleGatewayEvent(gatewayEvent{
+		Type:      "turn.complete",
+		SessionID: sessionID,
+	})
+
+	if service.activeTurns[sessionID] != nil {
+		t.Fatal("turn.complete did not end the active Hermes turn")
+	}
+}
+
 func TestPrepareHermesProcessHomeIsolatesDotHermes(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("symlink target assertion is unix-specific")
@@ -1759,5 +1818,57 @@ func TestParseQukaAgentsResultFromNestedTerminalOutput(t *testing.T) {
 	node, ok := nodes[0].(map[string]any)
 	if !ok || node["title"] != "穿Adi的Agent" {
 		t.Fatalf("node = %#v", nodes[0])
+	}
+}
+
+func TestParseQukaAgentsResultFromNoisyTerminalOutput(t *testing.T) {
+	runResult := `{
+		"ok": true,
+		"run_id": "agent-run-noisy",
+		"nodes": [{
+			"node_id": "github",
+			"agent_id": "github-agent",
+			"status": "completed",
+			"result": "done"
+		}]
+	}`
+	if _, err := parseQukaAgentsJSONFromText(runResult, 0); err != nil {
+		t.Fatalf("pure run result parse failed: %v", err)
+	}
+	payload, err := json.Marshal(map[string]any{
+		"result": "debug before {not json}\n" + runResult + "\ndebug after {also not json}",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parsed, err := parseQukaAgentsResultFromPayload(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parsed["run_id"] != "agent-run-noisy" {
+		t.Fatalf("run_id = %v", parsed["run_id"])
+	}
+}
+
+func TestParseQukaAgentsResultFromTopLevelTerminalOutput(t *testing.T) {
+	runResult := `{"ok":true,"run_id":"agent-run-top","nodes":[{"node_id":"research","agent_id":"researcher","status":"completed","result":"done"}]}`
+	payload, err := json.Marshal(map[string]any{
+		"id":      "tool-1",
+		"name":    "terminal",
+		"result":  map[string]any{"exit_code": 0},
+		"output":  runResult,
+		"success": true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	parsed, err := parseQukaAgentsResultFromPayload(payload)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if parsed["run_id"] != "agent-run-top" {
+		t.Fatalf("run_id = %v", parsed["run_id"])
 	}
 }

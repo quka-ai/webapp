@@ -1,5 +1,8 @@
 import axios from 'axios';
-import { ReactNode, useEffect, useMemo } from 'react';
+import { Button, Spinner } from '@heroui/react';
+import { KeepAliveOutlet } from 'keepalive-react-router';
+import { ReactNode, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createBrowserRouter, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 
@@ -37,26 +40,42 @@ import SpaceLandingPage from '@/pages/space-landing';
 import Test from '@/pages/test';
 import { setLoginRedirect } from '@/stores/event';
 import { buildTower } from '@/stores/socket';
-import spaceStore, { loadUserSpaces, setCurrentSelectedSpace } from '@/stores/space';
+import spaceStore, { loadUserSpaces } from '@/stores/space';
 import userStore, { logout, setUserInfo } from '@/stores/user';
 
 function ProtectedRoute({ children }: { children: ReactNode }) {
+    const { t } = useTranslation('backend-availability');
     const { accessToken, loginToken, userInfo } = useSnapshot(userStore);
     const navigate = useNavigate();
     const { pathname } = useLocation();
     const { currentSelectedSpace, spaces } = useSnapshot(spaceStore);
+    const loadingUserInfo = useRef(false);
+    const loadingSpaces = useRef(false);
+    const [spacesLoadFinished, setSpacesLoadFinished] = useState(false);
+    const isDashboardHome = pathname === '/dashboard' || pathname === '/dashboard/';
+
+    function reloadSpaces() {
+        if (loadingSpaces.current) return;
+        loadingSpaces.current = true;
+        setSpacesLoadFinished(false);
+        loadUserSpaces().finally(() => {
+            loadingSpaces.current = false;
+            setSpacesLoadFinished(true);
+        });
+    }
 
     const isLogin = useMemo(() => {
         return accessToken || loginToken;
     }, [accessToken, loginToken]);
 
     useEffect(() => {
-        if ((pathname === '/dashboard' || pathname === '/') && currentSelectedSpace && userInfo) {
+        if (isDashboardHome && currentSelectedSpace && userInfo) {
             navigate(`/dashboard/${currentSelectedSpace}/chat`, { replace: true });
             return;
         }
 
-        if (isLogin && (!userInfo || !userInfo.userID)) {
+        if (isLogin && (!userInfo || !userInfo.userID) && !loadingUserInfo.current) {
+            loadingUserInfo.current = true;
             // load user info
             async function Login(type: string, accessToken: string) {
                 try {
@@ -72,8 +91,6 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
                         systemRole: resp.system_role
                     });
 
-                    await loadUserSpaces();
-
                     buildTower(resp.user_id, resp.appid, accessToken, type, () => {
                         console.log('socket connected');
                     });
@@ -82,11 +99,24 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
                         logout();
                         navigate('/login');
                     }
+                } finally {
+                    loadingUserInfo.current = false;
                 }
             }
             Login(accessToken ? 'access' : 'authorization', accessToken || loginToken || '');
         }
-    }, [isLogin, currentSelectedSpace, spaces]);
+
+        if (isLogin && userInfo?.userID && spaces.length === 0 && !loadingSpaces.current && !spacesLoadFinished) {
+            reloadSpaces();
+        }
+    }, [isLogin, userInfo?.userID, currentSelectedSpace, spaces.length, isDashboardHome, spacesLoadFinished]);
+
+    if (isLogin && isDashboardHome && !currentSelectedSpace) {
+        return <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-background text-foreground">
+            {spacesLoadFinished ? <p>{t('workspaceLoadFailed')}</p> : <><Spinner /><p>{t('workspaceLoading')}</p></>}
+            {spacesLoadFinished && <Button color="primary" onPress={reloadSpaces}>{t('retry')}</Button>}
+        </div>;
+    }
 
     return isLogin
         ? children
@@ -103,8 +133,6 @@ function PreLogin({ init, children }: { init?: boolean; children: ReactNode }) {
     }, [accessToken, loginToken]);
 
     if (userInfo && userInfo.userID) {
-        setCurrentSelectedSpace('');
-
         if (init) {
             if (autoLoginDirect()) {
                 return <Navigate to="/dashboard" />;
@@ -130,7 +158,7 @@ const routes = createBrowserRouter([
     },
     {
         path: '/',
-        element: <App>{<Outlet />}</App>,
+        element: <App />,
         children: [
             {
                 path: '/test',
@@ -190,22 +218,6 @@ const routes = createBrowserRouter([
                 )
             },
             {
-                path: '/dashboard/:spaceID/knowledge/create',
-                element: (
-                    <ProtectedRoute>
-                        <CreateKnowledge />
-                    </ProtectedRoute>
-                )
-            },
-            {
-                path: '/dashboard/:spaceID/knowledge/:knowledgeID/editor',
-                element: (
-                    <ProtectedRoute>
-                        <EditKnowledge />
-                    </ProtectedRoute>
-                )
-            },
-            {
                 path: '/dashboard/:spaceID/rss-subscriptions',
                 element: (
                     <ProtectedRoute>
@@ -233,21 +245,36 @@ const routes = createBrowserRouter([
                 path: '/dashboard/',
                 element: (
                     <ProtectedRoute>
-                        <Dashboard />
+                        <KeepAliveOutlet />
                     </ProtectedRoute>
                 ),
                 children: [
                     {
-                        path: ':spaceID/knowledge',
-                        element: <Knowledge />
+                        path: ':spaceID',
+                        element: <Dashboard />,
+                        children: [
+                            {
+                                path: 'knowledge',
+                                element: <Knowledge />,
+                                handle: { keepAlive: true }
+                            },
+                            {
+                                path: 'chat',
+                                element: <Chat />
+                            },
+                            {
+                                path: 'chat/session/:sessionID',
+                                element: <ChatSession />
+                            }
+                        ]
                     },
                     {
-                        path: ':spaceID/chat',
-                        element: <Chat />
+                        path: ':spaceID/knowledge/create',
+                        element: <CreateKnowledge />
                     },
                     {
-                        path: ':spaceID/chat/session/:sessionID',
-                        element: <ChatSession />
+                        path: ':spaceID/knowledge/:knowledgeID/editor',
+                        element: <EditKnowledge />
                     }
                 ]
             },

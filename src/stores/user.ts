@@ -1,6 +1,7 @@
 import { proxy } from 'valtio';
 
 import { ChangeBaseURL } from '@/apis/request';
+import { clearBackendUnavailable } from '@/stores/backend-availability';
 import { closeSocket } from '@/stores/socket';
 
 const ACCESS_TOKEN_STORAGE_KEY = 'access_token';
@@ -73,6 +74,7 @@ export const setHost = (host: string) => {
 };
 
 export const logout = () => {
+    clearBackendUnavailable();
     closeSocket();
     userStore.accessToken = '';
     userStore.loginToken = '';

@@ -1,9 +1,9 @@
 import { Button, Divider, Input, Link } from '@heroui/react';
 import { Icon } from '@iconify/react';
 import { AxiosError } from 'axios';
-import { memo, useCallback, useState } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 
 import { Login, LoginWithAccessToken } from '@/apis/user';
@@ -66,6 +66,7 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
     });
 
     const { host } = useSnapshot(userStore);
+    const location = useLocation();
 
     const [hostURL, setHostURL] = useState(host);
     const [hostURLInvalid, setInvalidHostURL] = useState<{ isInvalid: boolean; message: string }>({
@@ -115,7 +116,6 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
         setHostURL(host);
         setEmail('');
         setPassword('');
-        setUseSelfHost(false);
     }, [host]);
 
     async function accessTokenLogin() {
@@ -162,13 +162,22 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
         setLoading(false);
     }
 
-    const [useSelfHost, setUseSelfHost] = useState(false);
+    const [useSelfHost, setUseSelfHost] = useState(Boolean(location.state?.configureHost || localStorage.getItem('self-host')));
+
+    useEffect(() => {
+        if (location.state?.configureHost) {
+            setUseSelfHost(true);
+        }
+    }, [location.state]);
 
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
     async function login() {
         setLoading(true);
+        if (useSelfHost) {
+            setHost(hostURL || import.meta.env.VITE_BASE_URL);
+        }
         try {
             const resp = await Login(email, md5(password));
 
@@ -207,6 +216,22 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
     return (
         <div className="flex w-full max-w-sm flex-col gap-4 rounded-large bg-content1 p-6 shadow-small">
             <p className="pb-2 text-xl font-medium">{t('LogIn')}</p>
+            {useSelfHost ? (
+                <Input
+                    isClearable
+                    label={t('backend-availability:apiAddress')}
+                    name="host"
+                    placeholder={t('backend-availability:apiAddressPlaceholder')}
+                    isInvalid={hostURLInvalid.isInvalid}
+                    errorMessage={hostURLInvalid.message}
+                    variant="bordered"
+                    value={hostURL}
+                    onValueChange={setHostURLFunc}
+                    autoComplete="off"
+                />
+            ) : (
+                <Button variant="bordered" onPress={() => setUseSelfHost(true)}>{t('backend-availability:configureApiAddress')}</Button>
+            )}
             {!useTokenLogin ? (
                 <form
                     className="flex flex-col gap-3"
@@ -265,31 +290,6 @@ const LoginComponent = memo(function LoginComponent({ changeMode }: { changeMode
                         onValueChange={setAccessTokenFunc}
                         autoComplete="off"
                     />
-                    {useSelfHost ? (
-                        <Input
-                            isClearable
-                            label="Host"
-                            name="host"
-                            placeholder="Enter your service host"
-                            isInvalid={hostURLInvalid.isInvalid}
-                            errorMessage={hostURLInvalid.message}
-                            variant="bordered"
-                            value={hostURL}
-                            onValueChange={setHostURLFunc}
-                            autoComplete="off"
-                        />
-                    ) : (
-                        <Button
-                            variant="bordered"
-                            size="lg"
-                            onPress={() => {
-                                setUseSelfHost(e => !e);
-                            }}
-                        >
-                            Use Self-Host
-                        </Button>
-                    )}
-
                     <Button color="primary" isLoading={isLoading} type="submit">
                         {t('LogIn')}
                     </Button>

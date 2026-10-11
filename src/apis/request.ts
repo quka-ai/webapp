@@ -2,6 +2,7 @@ import axios, { AxiosError } from 'axios';
 import { toast } from 'sonner';
 
 import i18n from '@/lib/i18n';
+import { markBackendUnavailable } from '@/stores/backend-availability';
 import userStore, { logout } from '@/stores/user';
 
 const instance = axios.create({
@@ -55,6 +56,11 @@ instance.interceptors.response.use(
 );
 
 function handleAxiosError(error: AxiosError) {
+    if (error.response?.status === 503 || (!error.response && (error.code === 'ERR_NETWORK' || error.message === 'Network Error'))) {
+        markBackendUnavailable();
+        return;
+    }
+
     if (error.status && error.status === 401) {
         logout();
         if (userStore.userInfo?.userID) {

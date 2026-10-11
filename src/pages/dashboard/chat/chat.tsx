@@ -5,23 +5,33 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useSnapshot } from 'valtio';
 
-import PromptInputWithEnclosedActions from './prompt-input-with-enclosed-actions';
 import HermesStatusIndicator from './hermes-status-indicator';
+import PromptInputWithEnclosedActions from './prompt-input-with-enclosed-actions';
 
 import { CreateChatSession } from '@/apis/chat';
-import { HasHermesProviderConfigured, ensureHermesAgentConfigured, isHermesDesktopAvailable, ListHermesAgents, type HermesAgentProfile } from '@/apis/hermes-desktop';
+import {
+    ConfigureHermesProvider,
+    createQukaLLMGatewayConfig,
+    ensureHermesAgentConfigured,
+    HasHermesProviderConfigured,
+    type HermesAgentProfile,
+    isHermesDesktopAvailable,
+    ListHermesAgents
+} from '@/apis/hermes-desktop';
 import { LogoIcon } from '@/components/logo';
 import { getHermesAgentMentionOptions } from '@/lib/hermes-agent-mentions';
 import HermesAgentsSetting from '@/pages/dashboard/setting/hermes-agents-setting';
 import HermesProviderSetting from '@/pages/dashboard/setting/hermes-provider-setting';
 import HermesSkillsSetting from '@/pages/dashboard/setting/hermes-skills-setting';
 import spaceStore from '@/stores/space';
+import userStore from '@/stores/user';
 
 export default function Chat() {
     const navigate = useNavigate();
     const { currentSelectedSpace } = useSnapshot(spaceStore);
+    const { host, accessToken, loginToken } = useSnapshot(userStore);
     const [isLoading, setIsLoading] = useState(false);
-    const [providerConfigured, setProviderConfigured] = useState<boolean>(() => !isHermesDesktopAvailable());
+    const [providerConfigured, setProviderConfigured] = useState<boolean | null>(() => (isHermesDesktopAvailable() ? null : true));
     const { isOpen: isProviderSettingOpen, onOpen: openProviderSetting, onClose: closeProviderSetting, onOpenChange: onProviderSettingOpenChange } = useDisclosure();
     const { isOpen: isSkillsSettingOpen, onOpen: openSkillsSetting, onClose: closeSkillsSetting, onOpenChange: onSkillsSettingOpenChange } = useDisclosure();
     const { isOpen: isAgentsSettingOpen, onOpen: openAgentsSetting, onClose: closeAgentsSetting, onOpenChange: onAgentsSettingOpenChange } = useDisclosure();
@@ -34,11 +44,28 @@ export default function Chat() {
             return;
         }
 
-        HasHermesProviderConfigured().then(setProviderConfigured).catch(error => {
-            console.error('Failed to check Hermes provider configuration:', error);
-            setProviderConfigured(false);
-        });
-    }, [desktopMode]);
+        let active = true;
+        const initializeProvider = async () => {
+            try {
+                const configured = await HasHermesProviderConfigured();
+                if (!configured) {
+                    const token = accessToken || loginToken;
+                    if (!host || !token) {
+                        throw new Error('QukaAI login token is required for Hermes Agent');
+                    }
+                    await ConfigureHermesProvider(createQukaLLMGatewayConfig(host, token));
+                }
+                if (active) setProviderConfigured(true);
+            } catch (error) {
+                console.error('Failed to initialize Hermes provider:', error);
+                if (active) setProviderConfigured(false);
+            }
+        };
+        initializeProvider();
+        return () => {
+            active = false;
+        };
+    }, [desktopMode, host, accessToken, loginToken]);
 
     useEffect(() => {
         if (!currentSelectedSpace || !desktopMode || !providerConfigured) {
@@ -110,6 +137,10 @@ export default function Chat() {
     );
 
     const { t } = useTranslation();
+
+    if (desktopMode && providerConfigured === null) {
+        return <div className="w-full h-full flex items-center justify-center" aria-label={t('Hermes Agent')} />;
+    }
 
     if (desktopMode && !providerConfigured) {
         return (

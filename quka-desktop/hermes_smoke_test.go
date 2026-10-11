@@ -225,6 +225,7 @@ func smokeSubmitAndAssertEvents(t *testing.T, conn *websocket.Conn, sessionID st
 	gotStart := false
 	gotDelta := false
 	gotComplete := false
+	gotTurnComplete := false
 	for deadline := time.Now().Add(5 * time.Second); time.Now().Before(deadline); {
 		frame := smokeReadFrame(t, conn)
 		if frame.ID != nil && *frame.ID == 2 {
@@ -262,12 +263,14 @@ func smokeSubmitAndAssertEvents(t *testing.T, conn *websocket.Conn, sessionID st
 				t.Fatalf("decode complete: %v", err)
 			}
 			gotComplete = payload.Status == "ok"
+		case "turn.complete":
+			gotTurnComplete = true
 		}
-		if gotSubmitResponse && gotStart && gotDelta && gotComplete {
+		if gotSubmitResponse && gotStart && gotDelta && gotComplete && gotTurnComplete {
 			return
 		}
 	}
-	t.Fatalf("missing expected bridge events: response=%t start=%t delta=%t complete=%t", gotSubmitResponse, gotStart, gotDelta, gotComplete)
+	t.Fatalf("missing expected bridge events: response=%t start=%t delta=%t complete=%t turnComplete=%t", gotSubmitResponse, gotStart, gotDelta, gotComplete, gotTurnComplete)
 }
 
 func smokeReadFrame(t *testing.T, conn *websocket.Conn) rpcFrame {

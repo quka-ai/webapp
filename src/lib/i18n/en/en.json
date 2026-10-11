@@ -329,6 +329,7 @@
     "API key saved": "API key saved",
     "API key not saved": "API key not saved",
     "QukaAI Built-in LLM Gateway": "QukaAI Built-in LLM Gateway",
+    "Configure custom provider": "Configure custom model provider",
     "Built in": "Built in",
     "Switch": "Switch",
     "Current": "Current",

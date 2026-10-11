@@ -1,0 +1,13 @@
+{
+    "title": "后端服务暂时不可用",
+    "description": "连接后端失败。请重试，或返回登录界面修改后端 API 地址。",
+    "retryFailed": "仍无法连接后端服务，请稍后再试或检查 API 地址。",
+    "retry": "重试",
+    "pageLoadFailed": "页面加载失败，请重试。",
+    "returnToLogin": "退出并重新配置",
+    "apiAddress": "后端 API 地址",
+    "apiAddressPlaceholder": "请输入后端 API 地址",
+    "configureApiAddress": "配置后端 API 地址",
+    "workspaceLoading": "正在加载工作空间…",
+    "workspaceLoadFailed": "未能加载工作空间，请重试。"
+}

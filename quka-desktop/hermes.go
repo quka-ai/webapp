@@ -2207,6 +2207,8 @@ func (h *HermesAgentService) handleGatewayEvent(event gatewayEvent) {
 		}
 		h.recordAssistantComplete(event.SessionID, messageID, eventType == eventAssistantFailed, message, payload.ProtectedText)
 		h.emitQukaEvent(eventType, event.SessionID, messageID, "", 0, message, startAt, nil)
+	case "turn.complete":
+		messageID, startAt := h.completeTurn(event.SessionID)
 		h.emitQukaEvent(eventTurnDone, event.SessionID, messageID, "", 0, "", startAt, nil)
 	case "tool.start":
 		if h.handleAgentToolStart(event) {
@@ -2245,7 +2247,6 @@ func (h *HermesAgentService) handleGatewayEvent(event gatewayEvent) {
 	case "error":
 		messageID, _, _, startAt, _, _ := h.assistantCompletionState(event.SessionID)
 		h.emitQukaEvent(eventAssistantFailed, event.SessionID, messageID, "", 0, h.eventErrorMessage(event.Payload), startAt, nil)
-		h.emitQukaEvent(eventTurnDone, event.SessionID, messageID, "", 0, "", startAt, nil)
 	}
 }
 
@@ -2898,7 +2899,14 @@ func parseQukaAgentsResultFromPayload(payload json.RawMessage) (map[string]any, 
 	if err := json.Unmarshal(payload, &value); err != nil {
 		return nil, err
 	}
-	return normalizeQukaAgentsResult(value["result"], 0)
+	result, err := normalizeQukaAgentsResult(value["result"], 0)
+	if err == nil {
+		return result, nil
+	}
+	if fallback, fallbackErr := normalizeQukaAgentsResult(value, 0); fallbackErr == nil {
+		return fallback, nil
+	}
+	return nil, err
 }
 
 func qukaAgentsPayloadStillRunning(payload json.RawMessage) bool {
@@ -2955,31 +2963,83 @@ func normalizeQukaAgentsResult(value any, depth int) (map[string]any, error) {
 		if isQukaAgentsRunResult(resultMap) {
 			return resultMap, nil
 		}
-		for _, key := range []string{"stdout", "output", "content", "text", "result"} {
+		for _, key := range []string{"stdout", "output", "content", "text", "message", "response", "data", "result"} {
 			if nested, ok := resultMap[key]; ok && nested != nil {
 				if parsed, err := normalizeQukaAgentsResult(nested, depth+1); err == nil {
 					return parsed, nil
 				}
 			}
 		}
+		return nil, errors.New("quka-agents output does not contain a run result")
 	}
-	text := strings.TrimSpace(stringValue(value))
+	text, ok := value.(string)
+	if !ok {
+		text = strings.TrimSpace(stringValue(value))
+	}
+	text = strings.TrimSpace(text)
 	if text == "" {
 		return nil, errors.New("empty quka-agents output")
 	}
-	start := strings.Index(text, "{")
-	end := strings.LastIndex(text, "}")
-	if start < 0 || end < start {
-		return nil, errors.New("quka-agents output does not contain JSON")
+	if parsed, err := parseQukaAgentsJSONFromText(text, depth); err == nil {
+		return parsed, nil
 	}
-	var out map[string]any
-	if err := json.Unmarshal([]byte(text[start:end+1]), &out); err != nil {
-		return nil, err
+	return nil, errors.New("quka-agents output does not contain JSON")
+}
+
+func parseQukaAgentsJSONFromText(text string, depth int) (map[string]any, error) {
+	for start := strings.Index(text, "{"); start >= 0 && start < len(text); {
+		inString := false
+		escaped := false
+		level := 0
+		end := -1
+	scanObject:
+		for idx := start; idx < len(text); idx++ {
+			char := text[idx]
+			if inString {
+				if escaped {
+					escaped = false
+					continue
+				}
+				if char == '\\' {
+					escaped = true
+					continue
+				}
+				if char == '"' {
+					inString = false
+				}
+				continue
+			}
+			switch char {
+			case '"':
+				inString = true
+			case '{':
+				level++
+			case '}':
+				level--
+				if level == 0 {
+					end = idx + 1
+					break scanObject
+				}
+			}
+		}
+		if end > start {
+			var out map[string]any
+			if err := json.Unmarshal([]byte(text[start:end]), &out); err == nil {
+				if isQukaAgentsRunResult(out) {
+					return out, nil
+				}
+				if parsed, err := normalizeQukaAgentsResult(out, depth+1); err == nil {
+					return parsed, nil
+				}
+			}
+		}
+		next := strings.Index(text[start+1:], "{")
+		if next < 0 {
+			break
+		}
+		start = start + 1 + next
 	}
-	if isQukaAgentsRunResult(out) {
-		return out, nil
-	}
-	return normalizeQukaAgentsResult(out, depth+1)
+	return nil, errors.New("quka-agents output does not contain JSON")
 }
 
 func isQukaAgentsRunResult(value map[string]any) bool {
@@ -3067,6 +3127,20 @@ func (h *HermesAgentService) markToolBoundary(sessionID string) {
 	if turn := h.activeTurns[sessionID]; turn != nil && turn.Initialized {
 		turn.NeedsNewSegment = true
 	}
+}
+
+func (h *HermesAgentService) completeTurn(sessionID string) (string, int) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	turn := h.activeTurns[sessionID]
+	if turn == nil {
+		return "", 0
+	}
+	messageID := turn.MessageID
+	startAt := runeLen(turn.Text)
+	delete(h.activeTurns, sessionID)
+	return messageID, startAt
 }
 
 func (h *HermesAgentService) toolInfo(raw json.RawMessage) (string, string) {

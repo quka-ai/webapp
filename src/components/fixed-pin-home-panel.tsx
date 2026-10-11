@@ -15,36 +15,6 @@ function createEmptyPinBlocks(): FixedPinContent {
     return [{ type: 'paragraph', content: '' }];
 }
 
-function isEmptyPinContent(content: FixedPinContent | undefined) {
-    if (!content || content.length === 0) {
-        return true;
-    }
-
-    return content.every(block => {
-        if (!block.content) {
-            return true;
-        }
-
-        if (typeof block.content === 'string') {
-            return block.content.trim().length === 0;
-        }
-
-        if (!Array.isArray(block.content)) {
-            return false;
-        }
-
-        return block.content.every(item => {
-            if (typeof item === 'string') {
-                return item.trim().length === 0;
-            }
-
-            const textItem = item as { text?: string };
-
-            return !textItem || typeof textItem.text !== 'string' || textItem.text.trim().length === 0;
-        });
-    });
-}
-
 export default memo(function FixedPinHomePanel() {
     const { t } = useTranslation();
     const { currentSelectedSpace } = useSnapshot(spaceStore);
@@ -168,7 +138,7 @@ export default memo(function FixedPinHomePanel() {
                         <BlockNoteEditor
                             ref={editor}
                             readOnly={false}
-                            autofocus={isEmptyPinContent(blocks)}
+                            autofocus={false}
                             className="fixed-pin-home-panel__blocknote mx-0! sm:mx-0!"
                             data={blocks}
                             dataType="blocks_v2"

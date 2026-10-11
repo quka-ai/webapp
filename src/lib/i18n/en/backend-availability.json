@@ -1,0 +1,13 @@
+{
+    "title": "Backend service unavailable",
+    "description": "The connection to the backend failed. Retry or return to the login page to change the backend API address.",
+    "retryFailed": "The backend is still unavailable. Try again later or check the API address.",
+    "retry": "Retry",
+    "pageLoadFailed": "The page failed to load. Please try again.",
+    "returnToLogin": "Exit and reconfigure",
+    "apiAddress": "Backend API address",
+    "apiAddressPlaceholder": "Enter the backend API address",
+    "configureApiAddress": "Configure backend API address",
+    "workspaceLoading": "Loading workspaces…",
+    "workspaceLoadFailed": "Could not load workspaces. Please retry."
+}

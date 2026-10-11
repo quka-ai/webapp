@@ -1,0 +1,13 @@
+{
+    "title": "バックエンドサービスを利用できません",
+    "description": "バックエンドに接続できません。再試行するか、ログイン画面に戻って API アドレスを変更してください。",
+    "retryFailed": "まだ接続できません。時間をおいて再試行するか、API アドレスを確認してください。",
+    "retry": "再試行",
+    "pageLoadFailed": "ページを読み込めませんでした。再試行してください。",
+    "returnToLogin": "終了して再設定",
+    "apiAddress": "バックエンド API アドレス",
+    "apiAddressPlaceholder": "バックエンド API アドレスを入力",
+    "configureApiAddress": "バックエンド API アドレスを設定",
+    "workspaceLoading": "ワークスペースを読み込み中…",
+    "workspaceLoadFailed": "ワークスペースを読み込めませんでした。再試行してください。"
+}

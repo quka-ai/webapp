@@ -1222,6 +1222,7 @@ class HermesBridge:
                 else:
                     os.environ["HERMES_SESSION_ID"] = previous_hermes_session_id
                 state.stream_restorer = None
+                self.emit(state.session_id, "turn.complete", {})
 
 
 def _normalize_final_text(value: Any) -> str:
@@ -2314,6 +2315,12 @@ def prewarm_agent_import() -> None:
         )
 
 
+def runtime_import_smoke() -> None:
+    from run_agent import AIAgent  # noqa: F401
+    from model_tools import get_tool_definitions  # noqa: F401
+    from toolsets import resolve_toolset  # noqa: F401
+
+
 def create_status_response(bridge: HermesBridge, token: str, request: Request) -> Response:
     authorization = request.headers.get("Authorization")
     if token and authorization != f"Bearer {token}":
@@ -2462,9 +2469,13 @@ def main() -> None:
     parser.add_argument("--request-file", default="")
     parser.add_argument("--request-json", default="")
     parser.add_argument("--parent-session-id", default="")
+    parser.add_argument("--runtime-import-smoke", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args()
 
     os.environ.setdefault("QUKA_HERMES_BRIDGE_BIN", sys.executable)
+    if args.runtime_import_smoke:
+        runtime_import_smoke()
+        return
     if args.run_agents:
         raise SystemExit(run_agents_cli(args))
     if args.port is None:

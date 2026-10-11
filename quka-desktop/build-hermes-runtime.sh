@@ -6,13 +6,24 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 BUILD_DIR="$SCRIPT_DIR/build/hermes-runtime-build"
 VENV_DIR="$BUILD_DIR/venv"
 DIST_DIR="$BUILD_DIR/dist"
+SOURCE_DIR="$BUILD_DIR/hermes-agent-source"
+CACHE_ROOT="$SCRIPT_DIR/build/hermes-runtime-cache"
 DEST_DIR="$APP_PATH/Contents/Resources/hermes-agent"
 BRIDGE_SCRIPT="$SCRIPT_DIR/hermes-runtime/quka_hermes_bridge.py"
 PLUGIN_DIR="$SCRIPT_DIR/hermes-runtime/plugins"
 SKILL_DIR="$SCRIPT_DIR/hermes-runtime/skills"
+DEFAULT_HERMES_AGENT_REPO="https://github.com/NousResearch/hermes-agent.git"
+DEFAULT_HERMES_AGENT_REF="a1da384c6d968000773ba0d1617d6931dfe25748"
 
 log() {
     echo "[build-hermes-runtime] $*"
+}
+
+cleanup_build_dir() {
+    if [ "${HERMES_RUNTIME_KEEP_BUILD_DIR:-0}" = "1" ]; then
+        return
+    fi
+    rm -rf "$BUILD_DIR"
 }
 
 is_installable_python_source() {
@@ -26,25 +37,141 @@ default_hermes_source() {
     elif is_installable_python_source "/tmp/hermes-agent"; then
         echo "/tmp/hermes-agent"
     else
-        echo "git+https://github.com/NousResearch/hermes-agent.git"
+        echo "${HERMES_AGENT_REPO:-$DEFAULT_HERMES_AGENT_REPO}#${HERMES_AGENT_REF:-$DEFAULT_HERMES_AGENT_REF}"
     fi
 }
 
-pip_install_hermes_agent() {
+hash_file() {
+    shasum -a 256 "$1" | awk '{print $1}'
+}
+
+source_identity() {
     local source="$1"
-    local install_spec
-    if [ -d "$source" ] && ! is_installable_python_source "$source"; then
-        if [ -n "${HERMES_AGENT_SOURCE:-}" ]; then
+    if [ -d "$source" ]; then
+        if git -C "$source" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+            local rev
+            rev="$(git -C "$source" rev-parse HEAD)"
+            if [ -n "$(git -C "$source" status --porcelain)" ]; then
+                echo "local-git-dirty:$source:$rev"
+            else
+                echo "local-git:$source:$rev"
+            fi
+        else
+            echo "local-path:$source"
+        fi
+        return
+    fi
+    echo "$source"
+}
+
+materialize_hermes_source() {
+    local source="$1"
+
+    if [ -d "$source" ]; then
+        if ! is_installable_python_source "$source"; then
             log "Hermes Agent source is not installable: $source"
             log "expected pyproject.toml or setup.py; set HERMES_AGENT_SOURCE to an installable package root"
             exit 1
         fi
-        log "skipping non-installable local Hermes Agent source: $source"
-        source="git+https://github.com/NousResearch/hermes-agent.git"
+        HERMES_SOURCE_DIR="$source"
+        return
     fi
-    install_spec="$source"
-    log "installing Hermes Agent package from: $install_spec"
-    python -m pip install "$install_spec"
+
+    local repo="$source"
+    local ref=""
+    if [[ "$source" == git+* ]]; then
+        repo="${source#git+}"
+    fi
+    if [[ "$repo" == *"#"* ]]; then
+        ref="${repo##*#}"
+        repo="${repo%#*}"
+    elif [[ "$repo" == *"@"* ]]; then
+        ref="${repo##*@}"
+        repo="${repo%@*}"
+    fi
+    if [ -z "$ref" ]; then
+        ref="${HERMES_AGENT_REF:-$DEFAULT_HERMES_AGENT_REF}"
+    fi
+
+    rm -rf "$SOURCE_DIR"
+    log "cloning Hermes Agent source: $repo"
+    git clone --filter=blob:none --quiet "$repo" "$SOURCE_DIR"
+    log "checking out Hermes Agent ref: $ref"
+    git -C "$SOURCE_DIR" checkout --quiet "$ref"
+    HERMES_SOURCE_DIR="$SOURCE_DIR"
+}
+
+install_hermes_agent_editable() {
+    local source="$1"
+    materialize_hermes_source "$source"
+    log "installing Hermes Agent editable from: $HERMES_SOURCE_DIR"
+    if command -v uv >/dev/null 2>&1; then
+        uv pip install -e "$HERMES_SOURCE_DIR"
+    else
+        python -m pip install -e "$HERMES_SOURCE_DIR"
+    fi
+}
+
+cache_key() {
+    local source="$1"
+    local python_version="$2"
+    local build_mode="$3"
+    {
+        echo "cache-version=3"
+        echo "source=$(source_identity "$source")"
+        echo "python=$python_version"
+        echo "build-mode=$build_mode"
+        echo "bridge=$(hash_file "$BRIDGE_SCRIPT")"
+        echo "builder=$(hash_file "$SCRIPT_DIR/build-hermes-runtime.sh")"
+    } | shasum -a 256 | awk '{print substr($1, 1, 24)}'
+}
+
+copy_hermes_top_level_modules() {
+    local target_dir="$1"
+    local module
+
+    mkdir -p "$target_dir"
+    for module in "$HERMES_SOURCE_DIR"/*.py; do
+        [ -f "$module" ] || continue
+        cp "$module" "$target_dir/"
+    done
+}
+
+verify_packaged_runtime() {
+    local executable="$1"
+
+    "$executable" --runtime-import-smoke
+}
+
+copy_runtime_payload() {
+    local runtime_dir="$1"
+
+    "$SCRIPT_DIR/prepare-hermes-build.sh" "$APP_PATH"
+    rm -rf "$DEST_DIR"
+    mkdir -p "$DEST_DIR"
+    cp -R "$runtime_dir/." "$DEST_DIR/"
+    chmod +x "$DEST_DIR/quka-hermes-bridge"
+    if [ -d "$PLUGIN_DIR" ]; then
+        rm -rf "$DEST_DIR/plugins"
+        mkdir -p "$DEST_DIR/plugins"
+        cp -R "$PLUGIN_DIR/." "$DEST_DIR/plugins/"
+        find "$DEST_DIR/plugins" -type d \( -name "__pycache__" -o -name "tests" \) -prune -exec rm -rf {} +
+        find "$DEST_DIR/plugins" -type f -name "*.pyc" -delete
+        log "bundled Hermes plugins from $PLUGIN_DIR"
+    fi
+    if [ -d "$SKILL_DIR" ]; then
+        rm -rf "$DEST_DIR/skills"
+        mkdir -p "$DEST_DIR/skills"
+        cp -R "$SKILL_DIR/." "$DEST_DIR/skills/"
+        find "$DEST_DIR/skills" -type d \( -name "__pycache__" -o -name "tests" \) -prune -exec rm -rf {} +
+        find "$DEST_DIR/skills" -type f -name "*.pyc" -delete
+        find "$DEST_DIR/skills" -type d -exec chmod 0555 {} +
+        find "$DEST_DIR/skills" -type f -exec chmod 0444 {} +
+        find "$DEST_DIR/skills" -type f -name "*.py" -exec chmod 0555 {} +
+        log "bundled Hermes skills from $SKILL_DIR"
+    fi
+
+    log "embedded Hermes bridge bundled at $DEST_DIR/quka-hermes-bridge"
 }
 
 require_supported_python() {
@@ -76,11 +203,22 @@ fi
 PYTHON_BIN="${PYTHON_BIN:-python3}"
 HERMES_SOURCE="$(default_hermes_source)"
 BUILD_MODE="${HERMES_RUNTIME_BUILD_MODE:-fast}"
+PYTHON_VERSION="$($PYTHON_BIN --version 2>&1)"
+CACHE_KEY="$(cache_key "$HERMES_SOURCE" "$PYTHON_VERSION" "$BUILD_MODE")"
+CACHE_DIR="$CACHE_ROOT/$CACHE_KEY"
+CACHE_RUNTIME_DIR="$CACHE_DIR/quka-hermes-bridge"
 
-log "using Python: $($PYTHON_BIN --version 2>&1)"
+log "using Python: $PYTHON_VERSION"
 log "using Hermes Agent source: $HERMES_SOURCE"
 log "using build mode: $BUILD_MODE"
 require_supported_python
+
+if [ "${HERMES_RUNTIME_REBUILD:-0}" != "1" ] && [ -x "$CACHE_RUNTIME_DIR/quka-hermes-bridge" ]; then
+    log "using cached Hermes runtime: $CACHE_DIR"
+    copy_runtime_payload "$CACHE_RUNTIME_DIR"
+    cleanup_build_dir
+    exit 0
+fi
 
 rm -rf "$BUILD_DIR"
 mkdir -p "$BUILD_DIR"
@@ -90,7 +228,7 @@ mkdir -p "$BUILD_DIR"
 source "$VENV_DIR/bin/activate"
 
 python -m pip install --upgrade pip setuptools wheel
-pip_install_hermes_agent "$HERMES_SOURCE"
+install_hermes_agent_editable "$HERMES_SOURCE"
 python -m pip install "websockets>=14,<16"
 python -m pip install "pyinstaller>=6.11,<7"
 python - <<'PY'
@@ -116,11 +254,20 @@ PYINSTALLER_ARGS=(
     --distpath "$DIST_DIR"
     --workpath "$BUILD_DIR/pyinstaller"
     --specpath "$BUILD_DIR"
+    --paths "$HERMES_SOURCE_DIR"
     --hidden-import run_agent
     --hidden-import model_tools
     --hidden-import toolsets
+    --hidden-import agent
+    --hidden-import hermes_cli
+    --hidden-import gateway
+    --hidden-import cron
     --collect-all tools
     --collect-all plugins.web
+    --collect-all agent
+    --collect-all hermes_cli
+    --collect-all gateway
+    --collect-all cron
 )
 
 case "$BUILD_MODE" in
@@ -145,30 +292,14 @@ esac
 
 rm -rf "$DIST_DIR"
 pyinstaller "${PYINSTALLER_ARGS[@]}" "$BRIDGE_SCRIPT"
+copy_hermes_top_level_modules "$DIST_DIR/quka-hermes-bridge/_internal"
+log "verifying packaged Hermes runtime imports"
+verify_packaged_runtime "$DIST_DIR/quka-hermes-bridge/quka-hermes-bridge"
 
-"$SCRIPT_DIR/prepare-hermes-build.sh" "$APP_PATH"
-rm -rf "$DEST_DIR"
-mkdir -p "$DEST_DIR"
-cp -R "$DIST_DIR/quka-hermes-bridge/." "$DEST_DIR/"
-chmod +x "$DEST_DIR/quka-hermes-bridge"
-if [ -d "$PLUGIN_DIR" ]; then
-    rm -rf "$DEST_DIR/plugins"
-    mkdir -p "$DEST_DIR/plugins"
-    cp -R "$PLUGIN_DIR/." "$DEST_DIR/plugins/"
-    find "$DEST_DIR/plugins" -type d \( -name "__pycache__" -o -name "tests" \) -prune -exec rm -rf {} +
-    find "$DEST_DIR/plugins" -type f -name "*.pyc" -delete
-    log "bundled Hermes plugins from $PLUGIN_DIR"
-fi
-if [ -d "$SKILL_DIR" ]; then
-    rm -rf "$DEST_DIR/skills"
-    mkdir -p "$DEST_DIR/skills"
-    cp -R "$SKILL_DIR/." "$DEST_DIR/skills/"
-    find "$DEST_DIR/skills" -type d \( -name "__pycache__" -o -name "tests" \) -prune -exec rm -rf {} +
-    find "$DEST_DIR/skills" -type f -name "*.pyc" -delete
-    find "$DEST_DIR/skills" -type d -exec chmod 0555 {} +
-    find "$DEST_DIR/skills" -type f -exec chmod 0444 {} +
-    find "$DEST_DIR/skills" -type f -name "*.py" -exec chmod 0555 {} +
-    log "bundled Hermes skills from $SKILL_DIR"
-fi
+rm -rf "$CACHE_DIR"
+mkdir -p "$CACHE_DIR"
+cp -R "$DIST_DIR/quka-hermes-bridge" "$CACHE_RUNTIME_DIR"
+log "cached Hermes runtime: $CACHE_DIR"
 
-log "embedded Hermes bridge bundled at $DEST_DIR/quka-hermes-bridge"
+copy_runtime_payload "$CACHE_RUNTIME_DIR"
+cleanup_build_dir

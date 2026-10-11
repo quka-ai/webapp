@@ -8,7 +8,7 @@ import { useImmer } from 'use-immer';
 import { useSnapshot } from 'valtio';
 
 import { GenChatMessageID, GetChatSessionHistory, GetMessageExt, MessageDetail, NamedChatSession, SendMessage, StopChatStream } from '@/apis/chat';
-import { ensureHermesAgentConfigured, HasHermesProviderConfigured, isHermesDesktopAvailable, ListHermesAgents, SubscribeHermesChatStreamEvent, type HermesAgentProfile } from '@/apis/hermes-desktop';
+import { ensureHermesAgentConfigured, HasHermesProviderConfigured, type HermesAgentProfile, isHermesDesktopAvailable, ListHermesAgents, SubscribeHermesChatStreamEvent } from '@/apis/hermes-desktop';
 import KnowledgeModal from '@/components/knowledge-modal';
 import { LogoIcon } from '@/components/logo';
 import AnimatedShinyText from '@/components/shiny-text';
@@ -124,6 +124,7 @@ export default function Chat() {
     const autoScrollRef = useRef(true);
     const hermesTurnActiveRef = useRef(false);
     const hermesAssistantStreamingTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const messagesRef = useRef<Message[]>([]);
 
     const getScrollBottom = useScrollBottom(ssDom);
 
@@ -187,6 +188,10 @@ export default function Chat() {
         setHermesTurnActive(running);
     }, []);
 
+    useEffect(() => {
+        messagesRef.current = messages;
+    }, [messages]);
+
     const markHermesAssistantStreaming = useCallback((streaming: boolean, settleDelay = 0) => {
         if (hermesAssistantStreamingTimerRef.current) {
             clearTimeout(hermesAssistantStreamingTimerRef.current);
@@ -217,6 +222,25 @@ export default function Chat() {
             }
         };
     }, []);
+
+    const settleHermesTurnIfIdle = useCallback(
+        (settleDelay = 0) => {
+            setTimeout(() => {
+                if (!desktopMode) {
+                    return;
+                }
+
+                const hasOngoing = messagesRef.current.some(msg => msg.status === 'continue');
+
+                if (hasOngoing) {
+                    return;
+                }
+
+                markHermesAssistantStreaming(false);
+            }, settleDelay);
+        },
+        [desktopMode, markHermesAssistantStreaming]
+    );
 
     const loadMessageExt = useCallback(
         async (messageID: string) => {
@@ -447,6 +471,7 @@ export default function Chat() {
                                     loadMessageExt(data.messageID);
                                 }
                             });
+                            settleHermesTurnIfIdle(300);
                             break;
                         case EventType.EVENT_TOOL_CONTINUE:
                             setMessages((prev: Message[]) => {
@@ -489,6 +514,8 @@ export default function Chat() {
                                     }
                                     return prev;
                                 });
+                            } else {
+                                settleHermesTurnIfIdle(300);
                             }
                             break;
                         case EventType.EVENT_TOOL_FAILED:
@@ -537,6 +564,8 @@ export default function Chat() {
                                     }
                                     return prev;
                                 });
+                            } else {
+                                settleHermesTurnIfIdle(300);
                             }
                             break;
                         case EventType.EVENT_AGENT_INIT:
@@ -553,6 +582,7 @@ export default function Chat() {
                                 const nextStatus = data.type === EventType.EVENT_AGENT_FAILED ? 'failed' : 'success';
                                 upsertAgentMessageDraft(prev, data, currentSelectedSpace, nextStatus);
                             });
+                            settleHermesTurnIfIdle(300);
                             break;
                         case EventType.EVENT_ASSISTANT_FAILED:
                             console.log(`[FAILED] Assistant message failed, messageID: ${data.messageID}`);
@@ -584,6 +614,8 @@ export default function Chat() {
                             // 消息失败时也应该重置 aiTyping
                             if (!desktopMode) {
                                 setAiTyping(false);
+                            } else {
+                                settleHermesTurnIfIdle(300);
                             }
                             break;
 
@@ -743,7 +775,7 @@ export default function Chat() {
             isExist = true;
             unSubscribe();
         };
-    }, [connectionStatus, currentSelectedSpace, sessionID, desktopMode, providerConfigured, markHermesAssistantStreaming, setHermesTurnRunning]);
+    }, [connectionStatus, currentSelectedSpace, sessionID, desktopMode, providerConfigured, markHermesAssistantStreaming, setHermesTurnRunning, settleHermesTurnIfIdle]);
 
     const loadData = useCallback(
         async (page: number): Promise<number | void> => {
@@ -865,7 +897,8 @@ export default function Chat() {
             }
 
             const displayMessage = message.replace(/\n/g, '  \n');
-            const availableHermesAgentProfiles = desktopMode && hermesAgentProfiles.length === 0 && Array.isArray(location.state?.hermesAgentProfiles) ? location.state.hermesAgentProfiles : hermesAgentProfiles;
+            const availableHermesAgentProfiles =
+                desktopMode && hermesAgentProfiles.length === 0 && Array.isArray(location.state?.hermesAgentProfiles) ? location.state.hermesAgentProfiles : hermesAgentProfiles;
             const outgoingMessage = desktopMode ? buildHermesAgentHandoffMessage(displayMessage, availableHermesAgentProfiles) : displayMessage;
 
             try {

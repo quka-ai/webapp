@@ -39,7 +39,7 @@ export const loadUserSpaces = async () => {
     try {
         let resp = await ListUserSpace();
 
-        setUserSpaces(resp);
+        setUserSpaces(Array.isArray(resp) ? resp : []);
     } catch (e: any) {
         console.error(e);
     }

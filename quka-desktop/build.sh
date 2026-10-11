@@ -1,6 +1,27 @@
 #!/bin/bash
+set -euo pipefail
 
 echo "🚀 开始构建 QukaAI 桌面应用..."
+
+remove_build_path() {
+    local path="$1"
+    if [ ! -e "$path" ]; then
+        return
+    fi
+
+    chmod -R u+rwX "$path" 2>/dev/null || true
+    find "$path" -name ".DS_Store" -delete 2>/dev/null || true
+    rm -rf "$path"
+    if [ -e "$path" ]; then
+        chmod -R u+rwX "$path" 2>/dev/null || true
+        find "$path" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+        rmdir "$path" 2>/dev/null || true
+    fi
+    if [ -e "$path" ]; then
+        echo "❌ 无法清理构建目录: $path"
+        exit 1
+    fi
+}
 
 # 解析命令行参数
 ARCH="arm64"  # 默认 Apple Silicon
@@ -33,6 +54,11 @@ done
 
 echo "🎯 目标平台: $PLATFORM"
 
+# 清理 Hermes runtime 临时源码，避免 Vite 扫描到上游 website/tsconfig.json。
+if [ "${HERMES_RUNTIME_KEEP_BUILD_DIR:-0}" != "1" ] && [ -d build/hermes-runtime-build ]; then
+    remove_build_path build/hermes-runtime-build
+fi
+
 # 0. 构建前端项目
 npm run build-beta
 
@@ -44,8 +70,9 @@ echo "📦 复制前端资源..."
 echo "🔨 构建应用..."
 export PATH="$HOME/go/bin:$PATH"
 ./prepare-hermes-build.sh "build/bin/QukaAI.app"
-rm -rf build/bin
-wails build -clean -platform "$PLATFORM"
+remove_build_path build/bin
+# build/bin has already been cleaned above; avoid Wails cleaning the same path again.
+wails build -platform "$PLATFORM"
 
 # 3. 检查构建是否成功
 if [ $? -eq 0 ]; then
