@@ -214,6 +214,27 @@ export default function Chat() {
         setHermesAssistantStreaming(false);
     }, []);
 
+    const finishHermesTurn = useCallback(() => {
+        markHermesAssistantStreaming(false);
+        setHermesTurnRunning(false);
+        setAiTyping(false);
+        setMessages((prev: Message[]) => {
+            prev.forEach(message => {
+                if (message.status !== 'continue') {
+                    return;
+                }
+
+                removeMessageDaemon(message.key);
+                message.status = 'success';
+                message.toolTips?.forEach(toolTip => {
+                    if (toolTip.status === ToolStatus.TOOL_STATUS_RUNNING) {
+                        toolTip.status = ToolStatus.TOOL_STATUS_SUCCESS;
+                    }
+                });
+            });
+        });
+    }, [markHermesAssistantStreaming, setHermesTurnRunning, setMessages]);
+
     useEffect(() => {
         return () => {
             if (hermesAssistantStreamingTimerRef.current) {
@@ -343,9 +364,7 @@ export default function Chat() {
                             break;
                         case EventType.EVENT_TURN_DONE:
                             if (desktopMode) {
-                                markHermesAssistantStreaming(false);
-                                setHermesTurnRunning(false);
-                                setAiTyping(false);
+                                finishHermesTurn();
                             }
                             break;
                         case EventType.EVENT_TOOL_INIT:
@@ -465,6 +484,9 @@ export default function Chat() {
                                 console.log(`[DONE] found message:`, todo ? `len=${todo.len}, expected=${data.startAt}` : 'not found');
                                 if (!todo || todo.len !== data.startAt) {
                                     console.warn('reload history due to message length mismatch or message not found');
+                                    if (todo) {
+                                        todo.status = 'success';
+                                    }
                                     reloadFunc();
                                 } else {
                                     todo.status = 'success';
@@ -775,7 +797,7 @@ export default function Chat() {
             isExist = true;
             unSubscribe();
         };
-    }, [connectionStatus, currentSelectedSpace, sessionID, desktopMode, providerConfigured, markHermesAssistantStreaming, setHermesTurnRunning, settleHermesTurnIfIdle]);
+    }, [connectionStatus, currentSelectedSpace, sessionID, desktopMode, providerConfigured, markHermesAssistantStreaming, setHermesTurnRunning, finishHermesTurn, settleHermesTurnIfIdle]);
 
     const loadData = useCallback(
         async (page: number): Promise<number | void> => {

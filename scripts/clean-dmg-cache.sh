@@ -6,6 +6,14 @@
 echo "🧹 清理 DMG 和 Finder 缓存..."
 echo ""
 
+remove_path() {
+    local target="$1"
+    if [ -e "$target" ]; then
+        chmod -R u+rwX "$target" 2>/dev/null || true
+        rm -rf "$target"
+    fi
+}
+
 # 1. 卸载所有已挂载的 QukaAI Installer
 echo "📤 卸载已挂载的 DMG..."
 hdiutil detach "/Volumes/QukaAI Installer" 2>/dev/null && echo "  ✓ 已卸载" || echo "  ℹ️  没有已挂载的 DMG"
@@ -14,7 +22,7 @@ hdiutil detach "/Volumes/QukaAI Installer" 2>/dev/null && echo "  ✓ 已卸载"
 echo "🗑️  删除旧的 DMG 文件..."
 rm -f quka-desktop/build/bin/QukaAI-macOS-universal.dmg
 rm -f quka-desktop/build/bin/temp.dmg
-rm -rf quka-desktop/build/bin/dmg_staging
+remove_path quka-desktop/build/bin/dmg_staging
 echo "  ✓ 旧文件已删除"
 
 # 3. 清除 Finder 的 .DS_Store 缓存

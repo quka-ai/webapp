@@ -926,6 +926,7 @@ export const BlockNoteEditor = memo(
         const zoomCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
         const zoomOpenTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
         const renderingRef = useRef(false);
+        const initialAutofocusRef = useRef(autofocus);
         const isComposingRef = useRef(false);
         const compositionEndedAtRef = useRef(0);
         const flushAfterCompositionRef = useRef(false);
@@ -948,7 +949,7 @@ export const BlockNoteEditor = memo(
 
         const editor = useCreateBlockNote(
             {
-                autofocus: !readOnly && autofocus,
+                autofocus: !readOnly && initialAutofocusRef.current,
                 dictionary,
                 initialContent: [{ type: 'paragraph', content: '' }],
                 placeholders: placeholder ? { default: placeholder } : undefined,
@@ -1033,6 +1034,7 @@ export const BlockNoteEditor = memo(
             },
             [readOnly, currentSelectedSpace, dictionary, placeholder]
         );
+        const renderedEditorRef = useRef<typeof editor | null>(null);
 
         const scheduleValueChange = useCallback(
             (currentEditor: ReturnType<typeof useCreateBlockNote>) => {
@@ -1150,12 +1152,15 @@ export const BlockNoteEditor = memo(
         );
 
         useEffect(() => {
-            if (data && data === lastEmittedValueRef.current) {
+            const editorChanged = renderedEditorRef.current !== editor;
+
+            if (!editorChanged && data && data === lastEmittedValueRef.current) {
                 return;
             }
 
+            renderedEditorRef.current = editor;
             renderData(data, dataType);
-        }, [data, dataType, renderData]);
+        }, [data, dataType, editor, renderData]);
 
         useImperativeHandle(ref, () => ({
             reRender: (nextData, nextDataType = dataType) => {

@@ -402,6 +402,42 @@ func TestQukaKnowledgeSkillKeepsRootSpaceRoutes(t *testing.T) {
 	}
 }
 
+func TestQukaKnowledgeSkillSupportsKnowledgeCRUDCommands(t *testing.T) {
+	helper := readBundledQukaSkillHelper(t)
+	for _, want := range []string{
+		`def command_knowledge_create(args):`,
+		`def command_knowledge_update(args):`,
+		`def command_knowledge_delete(args):`,
+		`def command_knowledge_get(args):`,
+		`def command_knowledge_list(args):`,
+		`space_path(cfg, "/knowledge")`,
+		`space_path(cfg, "/knowledge/list")`,
+		`sub.add_parser("knowledge-create")`,
+		`sub.add_parser("knowledge-update")`,
+		`sub.add_parser("knowledge-delete")`,
+		`sub.add_parser("resource-list")`,
+	} {
+		if !strings.Contains(helper, want) {
+			t.Fatalf("quka knowledge helper missing %q", want)
+		}
+	}
+}
+
+func TestQukaKnowledgeSkillDocumentsWriteCommands(t *testing.T) {
+	skill := readBundledSkillFile(t, "quka-ai", "SKILL.md")
+	for _, want := range []string{
+		"knowledge-create",
+		"knowledge-update",
+		"knowledge-delete",
+		"Knowledge Create And Update",
+		"Do not create, update, or delete knowledge unless the user explicitly asks",
+	} {
+		if !strings.Contains(skill, want) {
+			t.Fatalf("quka knowledge skill missing %q", want)
+		}
+	}
+}
+
 func TestWriteQukaSkillConfigWritesRemoteAPIAuthContext(t *testing.T) {
 	home := t.TempDir()
 	t.Setenv("QUKA_HERMES_HOME", home)
@@ -537,6 +573,76 @@ func TestEnsureHermesBundledSkillsConfiguredRegistersBundledJournalSkill(t *test
 	}
 }
 
+func TestEnsureHermesBundledSkillsConfiguredArchivesReservedUserSkillCopies(t *testing.T) {
+	home := t.TempDir()
+	t.Setenv("QUKA_HERMES_HOME", home)
+
+	userSkillsDir := filepath.Join(home, "skills")
+	staleSkillDir := filepath.Join(userSkillsDir, "quka-ai")
+	if err := os.MkdirAll(staleSkillDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(staleSkillDir, "SKILL.md"), []byte("---\nname: quka-ai\n---\n# stale\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	rawConfig, err := yaml.Marshal(map[string]any{
+		"skills": map[string]any{
+			"external_dirs": []string{userSkillsDir},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(home, "config.yaml"), rawConfig, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := ensureHermesBundledSkillsConfigured(); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := os.Stat(staleSkillDir); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected stale reserved skill to be archived, stat err=%v", err)
+	}
+	archiveEntries, err := os.ReadDir(filepath.Join(userSkillsDir, ".archive", "reserved-builtins"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	archived := ""
+	for _, entry := range archiveEntries {
+		if strings.HasPrefix(entry.Name(), "quka-ai-") {
+			archived = filepath.Join(userSkillsDir, ".archive", "reserved-builtins", entry.Name())
+			break
+		}
+	}
+	if archived == "" {
+		t.Fatalf("expected archived quka-ai skill, entries=%v", archiveEntries)
+	}
+	if _, err := os.Stat(filepath.Join(archived, "SKILL.md")); err != nil {
+		t.Fatal(err)
+	}
+
+	rawConfig, err = os.ReadFile(filepath.Join(home, "config.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	config := map[string]any{}
+	if err := yaml.Unmarshal(rawConfig, &config); err != nil {
+		t.Fatal(err)
+	}
+	externalDirs := stringSliceValue(mapValue(config["skills"])["external_dirs"])
+	if stringSliceContains(externalDirs, userSkillsDir) {
+		t.Fatalf("external_dirs should not include default user skills dir: %v", externalDirs)
+	}
+	bundledSkillsDir, err := resolveHermesBundledSkillsDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !stringSliceContains(externalDirs, bundledSkillsDir) {
+		t.Fatalf("skills.external_dirs = %v, want %q", externalDirs, bundledSkillsDir)
+	}
+}
+
 func TestQukaAgentsSkillIsBundledAndReserved(t *testing.T) {
 	skill := readBundledSkillFile(t, "quka-agents", "SKILL.md")
 	if !strings.Contains(skill, "Multi-Agent Collaboration") {
@@ -632,6 +738,27 @@ func TestHermesAgentProfilesProtectBuiltIns(t *testing.T) {
 	}
 	if err := hermesDeleteAgentProfile("researcher"); err == nil {
 		t.Fatalf("expected built-in delete to fail")
+	}
+}
+
+func TestHermesBuiltInAgentProfilesExposeAllToolsets(t *testing.T) {
+	expectedToolsets := strings.Join(fullHermesAgentToolsets(), ",")
+	expectedPolicies := map[string]string{
+		"researcher":        "read_only",
+		"knowledge-analyst": "read_only",
+		"journal-analyst":   "read_only",
+		"engineer":          "restricted",
+		"critic":            "read_only",
+		"writer":            "no_tools",
+	}
+
+	for _, profile := range builtInHermesAgentProfiles() {
+		if got := strings.Join(profile.EnabledToolsets, ","); got != expectedToolsets {
+			t.Fatalf("%s EnabledToolsets = %q, want %q", profile.ID, got, expectedToolsets)
+		}
+		if got := profile.ToolPolicy; got != expectedPolicies[profile.ID] {
+			t.Fatalf("%s ToolPolicy = %q, want %q", profile.ID, got, expectedPolicies[profile.ID])
+		}
 	}
 }
 

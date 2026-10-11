@@ -208,6 +208,130 @@ def read_json_argument(value, path, field_name):
         }, ensure_ascii=False, indent=2)) from exc
 
 
+def read_text_argument(value, path, field_name, required=True):
+    if value and path:
+        raise SystemExit(json.dumps({
+            "ok": False,
+            "error": f"Use either --{field_name} or --{field_name}-file, not both.",
+        }, ensure_ascii=False, indent=2))
+    if path:
+        with open(path, "r", encoding="utf-8") as f:
+            return f.read()
+    if value is not None and value != "":
+        return value
+    if required:
+        raise SystemExit(json.dumps({
+            "ok": False,
+            "error": f"Missing --{field_name} or --{field_name}-file.",
+        }, ensure_ascii=False, indent=2))
+    return None
+
+
+def read_knowledge_content_argument(args, required=True):
+    has_text = bool(getattr(args, "content", None) or getattr(args, "content_file", None))
+    has_json = bool(getattr(args, "content_json", None) or getattr(args, "content_json_file", None))
+    if has_text and has_json:
+        raise SystemExit(json.dumps({
+            "ok": False,
+            "error": "Use either text content or JSON content, not both.",
+        }, ensure_ascii=False, indent=2))
+    if has_json:
+        if args.content_json and args.content_json_file:
+            raise SystemExit(json.dumps({
+                "ok": False,
+                "error": "Use either --content-json or --content-json-file, not both.",
+            }, ensure_ascii=False, indent=2))
+        if args.content_json_file:
+            with open(args.content_json_file, "r", encoding="utf-8") as f:
+                raw = f.read()
+        else:
+            raw = args.content_json
+        try:
+            return json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise SystemExit(json.dumps({
+                "ok": False,
+                "error": "content JSON must be valid JSON",
+                "detail": str(exc),
+            }, ensure_ascii=False, indent=2)) from exc
+    return read_text_argument(
+        getattr(args, "content", None),
+        getattr(args, "content_file", None),
+        "content",
+        required=required,
+    )
+
+
+def parse_tags(tag_values, tags_csv, current_tags=None):
+    if not tag_values and tags_csv is None:
+        return current_tags
+    tags = []
+    if tags_csv:
+        tags.extend([item.strip() for item in tags_csv.split(",")])
+    if tag_values:
+        for value in tag_values:
+            tags.extend([item.strip() for item in value.split(",")])
+    return [tag for tag in tags if tag]
+
+
+def coerce_content_for_payload(content, content_type):
+    if content is None:
+        return content
+    if str(content_type or "").lower() in ("blocks", "blocks_v2") and isinstance(content, str):
+        stripped = content.strip()
+        if stripped.startswith("{") or stripped.startswith("["):
+            try:
+                return json.loads(stripped)
+            except json.JSONDecodeError:
+                return content
+    return content
+
+
+def fetch_knowledge(cfg, knowledge_id, raw=False):
+    return api_request(
+        cfg,
+        "GET",
+        space_path(cfg, "/knowledge"),
+        params={"id": knowledge_id, "only_preview": False},
+        client_source="" if raw else "app",
+    )
+
+
+def knowledge_update_payload(cfg, args, current=None):
+    current = current or {}
+    content_type = args.content_type or current.get("content_type") or "markdown"
+    content = read_knowledge_content_argument(args, required=False)
+    if content is None:
+        content = current.get("content", "")
+    tags = parse_tags(getattr(args, "tag", None), getattr(args, "tags", None), current.get("tags"))
+    payload = {
+        "id": args.knowledge_id,
+        "title": args.title if args.title is not None else current.get("title", ""),
+        "content": coerce_content_for_payload(content, content_type),
+        "content_type": content_type,
+        "resource": args.resource or current.get("resource") or cfg.get("resource") or "knowledge",
+        "kind": args.kind or current.get("kind") or "text",
+    }
+    if tags:
+        payload["tags"] = tags
+    return payload
+
+
+def has_knowledge_update_changes(args):
+    return any([
+        args.title is not None,
+        bool(args.content),
+        bool(args.content_file),
+        bool(args.content_json),
+        bool(args.content_json_file),
+        bool(args.content_type),
+        bool(args.resource),
+        bool(args.kind),
+        bool(args.tag),
+        args.tags is not None,
+    ])
+
+
 def enrich_journal_item(raw_item, markdown_item):
     if not isinstance(raw_item, dict):
         return raw_item
@@ -339,6 +463,90 @@ def command_knowledge_query(args):
     print_json(api_request(cfg, "POST", space_path(cfg, "/knowledge/query"), payload))
 
 
+def command_knowledge_get(args):
+    cfg = load_config()
+    print_json(fetch_knowledge(cfg, args.knowledge_id, raw=args.raw))
+
+
+def command_knowledge_list(args):
+    cfg = load_config()
+    params = {
+        "page": args.page,
+        "pagesize": args.page_size,
+        "keywords": args.keywords,
+        "resource": args.resource or cfg.get("resource"),
+    }
+    print_json(api_request(cfg, "GET", space_path(cfg, "/knowledge/list"), params=params))
+
+
+def command_knowledge_create(args):
+    cfg = load_config()
+    content = read_knowledge_content_argument(args, required=True)
+    payload = {
+        "resource": args.resource or cfg.get("resource") or "knowledge",
+        "content": coerce_content_for_payload(content, args.content_type),
+        "content_type": args.content_type,
+        "kind": args.kind,
+        "async": args.async_process,
+    }
+    create_response = api_request(cfg, "POST", space_path(cfg, "/knowledge"), payload)
+    knowledge_id = ((create_response.get("data") or {}).get("id") if isinstance(create_response, dict) else None)
+    tags = parse_tags(args.tag, args.tags)
+    if create_response.get("ok") and knowledge_id and (args.title or tags):
+        update_args = argparse.Namespace(
+            knowledge_id=knowledge_id,
+            title=args.title,
+            content=content if isinstance(content, str) else None,
+            content_file="",
+            content_json=json.dumps(content, ensure_ascii=False) if not isinstance(content, str) else "",
+            content_json_file="",
+            content_type=args.content_type,
+            resource=payload["resource"],
+            kind=args.kind,
+            tag=args.tag,
+            tags=args.tags,
+        )
+        update_payload = knowledge_update_payload(cfg, update_args, current={})
+        update_response = api_request(cfg, "PUT", space_path(cfg, "/knowledge"), update_payload)
+        create_response["post_create_update"] = update_response
+    print_json(create_response)
+
+
+def command_knowledge_update(args):
+    cfg = load_config()
+    if not has_knowledge_update_changes(args):
+        print_json({
+            "ok": False,
+            "error": "No knowledge fields to update. Provide content, title, tags, resource, kind, or content_type.",
+            "id": args.knowledge_id,
+        })
+        return
+    current_response = fetch_knowledge(cfg, args.knowledge_id, raw=True)
+    if not current_response.get("ok"):
+        print_json(current_response)
+        return
+    current = current_response.get("data") or {}
+    if not isinstance(current, dict) or not current.get("id"):
+        print_json({
+            "ok": False,
+            "error": "Knowledge not found.",
+            "id": args.knowledge_id,
+        })
+        return
+    payload = knowledge_update_payload(cfg, args, current=current)
+    print_json(api_request(cfg, "PUT", space_path(cfg, "/knowledge"), payload))
+
+
+def command_knowledge_delete(args):
+    cfg = load_config()
+    print_json(api_request(cfg, "DELETE", space_path(cfg, "/knowledge"), {"id": args.knowledge_id}))
+
+
+def command_resource_list(args):
+    cfg = load_config()
+    print_json(api_request(cfg, "GET", space_path(cfg, "/resource/list")))
+
+
 def command_user_memory_recall(args):
     cfg = load_config()
     payload = {
@@ -442,6 +650,52 @@ def main():
     p.add_argument("--agent", default="")
     p.add_argument("--resource", default="")
     p.set_defaults(func=command_knowledge_query)
+
+    p = sub.add_parser("knowledge-get")
+    p.add_argument("--knowledge-id", required=True)
+    p.add_argument("--raw", action="store_true")
+    p.set_defaults(func=command_knowledge_get)
+
+    p = sub.add_parser("knowledge-list")
+    p.add_argument("--keywords", default="")
+    p.add_argument("--resource", default="")
+    p.add_argument("--page", type=int, default=1)
+    p.add_argument("--page-size", type=int, default=10)
+    p.set_defaults(func=command_knowledge_list)
+
+    p = sub.add_parser("knowledge-create")
+    p.add_argument("--content", default=None)
+    p.add_argument("--content-file", default="")
+    p.add_argument("--content-json", default="")
+    p.add_argument("--content-json-file", default="")
+    p.add_argument("--content-type", default="markdown")
+    p.add_argument("--resource", default="")
+    p.add_argument("--kind", default="text")
+    p.add_argument("--title", default="")
+    p.add_argument("--tag", action="append")
+    p.add_argument("--tags", default=None)
+    p.add_argument("--async-process", action=argparse.BooleanOptionalAction, default=True)
+    p.set_defaults(func=command_knowledge_create)
+
+    p = sub.add_parser("knowledge-update")
+    p.add_argument("--knowledge-id", required=True)
+    p.add_argument("--title", default=None)
+    p.add_argument("--content", default=None)
+    p.add_argument("--content-file", default="")
+    p.add_argument("--content-json", default="")
+    p.add_argument("--content-json-file", default="")
+    p.add_argument("--content-type", default="")
+    p.add_argument("--resource", default="")
+    p.add_argument("--kind", default="")
+    p.add_argument("--tag", action="append")
+    p.add_argument("--tags", default=None)
+    p.set_defaults(func=command_knowledge_update)
+
+    p = sub.add_parser("knowledge-delete")
+    p.add_argument("--knowledge-id", required=True)
+    p.set_defaults(func=command_knowledge_delete)
+
+    sub.add_parser("resource-list").set_defaults(func=command_resource_list)
 
     p = sub.add_parser("user-memory-recall", aliases=["memory-recall"])
     p.add_argument("--query", required=True)

@@ -11,17 +11,20 @@ metadata:
 
 # QukaAI Multi-Agent Collaboration
 
-Use this skill when a task benefits from several specialist agents working under the current main Hermes session.
+Use this skill only when a task benefits from two or more specialist agents working under the current main Hermes session.
+
+If the task only needs one specialist or exactly one user-created agent profile, do not use this skill. Temporarily adopt that agent's identity, system prompt, enabled skills, toolsets, and working style in the main assistant session, complete the task directly, and reply to the user normally.
 
 Good fits:
 
 - The user asks for multiple roles, reviewers, researchers, writers, critics, engineers, or parallel analysis.
 - The task has independent research branches that can run at the same time.
 - The task needs a researcher to gather facts and a critic/engineer/writer to evaluate or synthesize.
-- The user mentions `@Agent` or asks QukaAI Desktop to delegate work to sub agents.
-- The task clearly matches a user-created QukaAI Desktop agent profile, such as a GitHub agent handling milestones, issues, PRs, repositories, releases, or workflows.
+- The user mentions two or more `@Agent` profiles or asks QukaAI Desktop to coordinate multiple sub agents.
+- The task needs multiple profiles, including user-created QukaAI Desktop agent profiles, to work together.
 
 You are the coordinator. Sub agents do not reply to the user directly. They run independent sub sessions under the current main session and return structured findings for you to merge into the final answer.
+Do not create a single-node run just to use one profile; single-profile work should stay in the main session via temporary identity switching.
 
 Run the helper from this skill directory:
 
@@ -52,7 +55,6 @@ The request must be a JSON object:
       "task": "Find the relevant facts and uncertainties.",
       "expected_output": "Concise findings with evidence.",
       "depends_on": [],
-      "tool_policy": "read_only",
       "context": {
         "important_inputs": ["Only include the context this sub agent needs."]
       }
@@ -62,14 +64,14 @@ The request must be a JSON object:
       "agent_id": "critic",
       "task": "Review the research result for gaps and risks.",
       "expected_output": "Risks, counterexamples, and missing checks.",
-      "depends_on": ["research"],
-      "tool_policy": "read_only"
+      "depends_on": ["research"]
     }
   ]
 }
 ```
 
 `strategy` can be `parallel` or `dag`. Independent `read_only` or `no_tools` nodes may run in parallel. Nodes with dependencies wait for their `depends_on` results.
+Omit `toolsets` for built-in agents unless you intentionally want to reduce available tool types; their profiles already enable all QukaAI Desktop toolsets.
 
 ## Agent Roles
 
@@ -83,6 +85,7 @@ Built-in role profiles include:
 - `writer`: synthesizes material into a polished deliverable.
 
 You may use another `agent_id`; it will run as a generic specialist.
+Built-in roles default to `toolsets=web,terminal,skills,memory`.
 
 User-created QukaAI Desktop agent profiles are stored in `$HERMES_HOME/agents/profiles.json`.
 The main coordinator prompt lists the currently available profiles. When the user's request matches a user-created profile's id, name, description, system prompt, skills, or toolsets, prefer that user-created profile over a generic built-in role. You can target it by setting `agent_id` to the profile id.

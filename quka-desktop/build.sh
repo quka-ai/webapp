@@ -3,6 +3,26 @@ set -euo pipefail
 
 echo "🚀 开始构建 QukaAI 桌面应用..."
 
+sign_app_bundle() {
+    local app_path="$1"
+    local identity="${CODESIGN_IDENTITY:--}"
+
+    if ! command -v codesign >/dev/null 2>&1; then
+        echo "⚠️  警告：找不到 codesign，跳过应用签名"
+        return
+    fi
+
+    echo "🔏 重新签名应用..."
+    xattr -cr "$app_path" 2>/dev/null || true
+    codesign --force --deep --sign "$identity" "$app_path"
+    codesign --verify --deep --strict --verbose=2 "$app_path"
+    if [ "$identity" = "-" ]; then
+        echo "✅ 已使用 ad-hoc 签名修复应用封签"
+    else
+        echo "✅ 已使用证书签名：$identity"
+    fi
+}
+
 remove_build_path() {
     local path="$1"
     if [ ! -e "$path" ]; then
@@ -75,13 +95,24 @@ remove_build_path build/bin
 wails build -platform "$PLATFORM"
 
 # 3. 检查构建是否成功
-if [ $? -eq 0 ]; then
+if [ -d "build/bin/QukaAI.app" ]; then
     echo "✅ 构建成功！"
 
     # 4. 打包 Hermes Agent runtime
     echo "🤖 打包 Hermes Agent runtime..."
     chmod +x bundle-hermes.sh 2>/dev/null
     ./bundle-hermes.sh "build/bin/QukaAI.app"
+
+    HERMES_BRIDGE="build/bin/QukaAI.app/Contents/Resources/hermes-agent/quka-hermes-bridge"
+    HERMES_SKILLS="build/bin/QukaAI.app/Contents/Resources/hermes-agent/skills"
+    if [ ! -x "$HERMES_BRIDGE" ]; then
+        echo "❌ Hermes Agent runtime 缺失或不可执行：$HERMES_BRIDGE"
+        exit 1
+    fi
+    if [ ! -d "$HERMES_SKILLS/quka-ai" ] || [ ! -d "$HERMES_SKILLS/quka-journal" ] || [ ! -d "$HERMES_SKILLS/quka-agents" ]; then
+        echo "❌ Hermes Agent skills 缺失：$HERMES_SKILLS"
+        exit 1
+    fi
 
     # 5. 更新应用图标
     echo "🎨 更新应用图标..."
@@ -93,6 +124,10 @@ if [ $? -eq 0 ]; then
     else
         echo "⚠️  警告：找不到 icon.icns 文件"
     fi
+
+    # Wails 构建后会生成 app 签名；后续写入 Hermes runtime 和 icon 会让签名封签失效。
+    # 必须在所有 bundle 内容稳定后重新签名，否则分发安装后 macOS 可能提示“应用已损坏”。
+    sign_app_bundle "build/bin/QukaAI.app"
 
     echo ""
     echo "🎉 完成！应用位于：build/bin/QukaAI.app"

@@ -116,6 +116,30 @@ class QukaAgentsApprovalTest(unittest.TestCase):
         self.assertIn("GitHub CLI", explanation)
         self.assertIn("获取或处理", explanation)
 
+    def test_explains_python_heredoc_repo_filter_work(self):
+        command = """python3 << 'EOF'
+import json
+repos = json.load(open("/tmp/repos.json"))
+print(f"type: {type(repos).__name__}")
+if isinstance(repos, dict):
+    print(json.dumps(repos, indent=2)[:500])
+else:
+    print(f"total: {len(repos)}")
+    for r in repos:
+        n = r["name"].lower()
+        if "portal" in n or "nextrouter" in n or "router" in n:
+            print(r["full_name"], "private" if r["private"] else "public")
+EOF"""
+
+        explanation = build_terminal_command_explanation(command)
+
+        self.assertIn("读取 /tmp/repos.json 中的", explanation)
+        self.assertIn("GitHub 仓库列表", explanation)
+        self.assertIn("portal、nextrouter 或 router", explanation)
+        self.assertIn("仓库全名", explanation)
+        self.assertIn("公开/私有状态", explanation)
+        self.assertNotIn("想运行一段 Python 程序", explanation)
+
     def test_extracts_sub_agent_assistant_messages_as_output(self):
         text = _assistant_messages_text([
             {"role": "user", "content": "task"},

@@ -3,7 +3,7 @@
 # QukaAI 桌面应用打包脚本
 # 用于创建可分发的 DMG 安装包
 
-set -e
+set -euo pipefail
 
 echo "📦 QukaAI 桌面应用打包工具"
 echo ""
@@ -11,10 +11,47 @@ echo ""
 # 配置
 APP_NAME="QukaAI.app"
 APP_PATH="quka-desktop/build/bin/$APP_NAME"
-# ARCH=$(uname -m)
+ARCH="universal"
 DMG_NAME="QukaAI-macOS-universal.dmg"
 BUILD_DIR="quka-desktop/build/bin"
 OUTPUT_DMG="$BUILD_DIR/$DMG_NAME"
+
+sign_app_bundle() {
+    local app_path="$1"
+    local identity="${CODESIGN_IDENTITY:-}"
+
+    if ! command -v codesign >/dev/null 2>&1; then
+        echo "❌ 找不到 codesign，无法生成可分发的 macOS app"
+        exit 1
+    fi
+
+    if [ -z "$identity" ] && [ -t 0 ]; then
+        read -p "请输入签名证书名称（直接回车使用 ad-hoc 签名）: " identity
+    fi
+    if [ -z "$identity" ]; then
+        identity="-"
+    fi
+
+    echo "🔏 签名应用..."
+    xattr -cr "$app_path" 2>/dev/null || true
+    codesign --force --deep --sign "$identity" "$app_path"
+    codesign --verify --deep --strict --verbose=2 "$app_path"
+
+    if [ "$identity" = "-" ]; then
+        echo "✅ 已使用 ad-hoc 签名修复应用封签"
+        echo "ℹ️  对外分发仍建议设置 CODESIGN_IDENTITY 为 Developer ID Application 证书并完成 notarization"
+    else
+        echo "✅ 已使用证书签名：$identity"
+    fi
+}
+
+remove_path() {
+    local target="$1"
+    if [ -e "$target" ]; then
+        chmod -R u+rwX "$target" 2>/dev/null || true
+        rm -rf "$target"
+    fi
+}
 
 # 检查应用是否存在
 if [ ! -d "$APP_PATH" ]; then
@@ -27,39 +64,10 @@ echo "📍 应用路径: $APP_PATH"
 echo "📦 输出文件: $OUTPUT_DMG"
 echo ""
 
-# 可选：代码签名（如果有本地证书）
-read -p "是否要对应用进行签名？(y/N): " -n 1 -r
+echo "🔐 可用签名证书："
+security find-identity -v -p codesigning 2>/dev/null || true
 echo ""
-if [[ $REPLY =~ ^[Yy]$ ]]; then
-    echo "🔐 查找可用的签名证书..."
-
-    # 列出所有可用的签名证书
-    security find-identity -v -p codesigning
-
-    echo ""
-    read -p "请输入证书名称（或按 Enter 跳过）: " CERT_NAME
-
-    if [ -n "$CERT_NAME" ]; then
-        echo "🔏 正在签名应用..."
-        codesign --deep --force --verbose --sign "$CERT_NAME" "$APP_PATH"
-
-        if [ $? -eq 0 ]; then
-            echo "✅ 签名成功"
-            # 验证签名
-            codesign --verify --verbose "$APP_PATH"
-        else
-            echo "⚠️  签名失败，将使用未签名的应用"
-        fi
-    fi
-else
-    echo "⏭️  跳过签名步骤"
-    echo ""
-    echo "💡 提示：未签名的应用在其他电脑上首次打开时需要："
-    echo "   1. 右键点击应用 → 选择'打开'"
-    echo "   2. 或在 系统偏好设置 → 隐私与安全性 → 点击'仍要打开'"
-fi
-
-echo ""
+sign_app_bundle "$APP_PATH"
 
 # 创建 DMG
 echo "📦 创建 DMG 安装包..."
@@ -70,12 +78,13 @@ rm -rf "$BUILD_DIR/.fseventsd" "$BUILD_DIR/.Spotlight-V100" 2>/dev/null
 
 # 创建临时目录用于 DMG 内容
 STAGING_DIR="$BUILD_DIR/dmg_staging"
-rm -rf "$STAGING_DIR"
+remove_path "$STAGING_DIR"
 mkdir -p "$STAGING_DIR"
 
 # 复制应用到临时目录
 echo "📋 准备 DMG 内容..."
-cp -R "$APP_PATH" "$STAGING_DIR/"
+ditto "$APP_PATH" "$STAGING_DIR/$APP_NAME"
+codesign --verify --deep --strict --verbose=2 "$STAGING_DIR/$APP_NAME"
 
 # 创建 Applications 文件夹的符号链接
 echo "🔗 创建 Applications 快捷方式..."
@@ -175,7 +184,7 @@ hdiutil convert \
 
 # 清理临时文件
 rm -f "$BUILD_DIR/temp.dmg"
-rm -rf "$STAGING_DIR"
+remove_path "$STAGING_DIR"
 
 # 获取文件大小
 DMG_SIZE=$(du -h "$OUTPUT_DMG" | cut -f1)

@@ -31,7 +31,7 @@ export function buildHermesAgentHandoffMessage(message: string, profiles: Hermes
         })
         .join('\n');
 
-    return `${message}\n\n[Hermes Agent Delegation]\nThe user explicitly mentioned existing custom Hermes agents in this message. Treat these mentions as a delegation request.\nWhen a mentioned custom agent exists, hand the task off to that agent instead of handling it only in the main assistant. If multiple agents are mentioned, create and run work for all of them, in parallel when safe, then summarize their results for the user.\nMentioned custom agents:\n${agentList}\n[/Hermes Agent Delegation]`;
+    return `${message}\n\n[Hermes Agent Delegation]\nThe user explicitly mentioned existing custom Hermes agents in this message. Treat these mentions as an agent-routing request.\nIf exactly one custom agent is mentioned and the task can be handled by that agent alone, do not create a sub-agent run. Instead, temporarily adopt that agent's identity, system prompt, enabled skills, toolsets, and working style inside the main assistant session, then complete the task directly.\nIf two or more agents are mentioned, or the task genuinely needs multiple agents, create and run work for those agents in parallel when safe, then summarize their results for the user.\nMentioned custom agents:\n${agentList}\n[/Hermes Agent Delegation]`;
 }
 
 function getMentionedHermesAgents(message: string, profiles: HermesAgentProfile[]): HermesAgentProfile[] {

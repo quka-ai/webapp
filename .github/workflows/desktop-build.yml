@@ -97,18 +97,31 @@ jobs:
                   fi
               shell: bash
 
+            - name: Sign macOS app
+              if: matrix.os == 'macos-latest'
+              working-directory: quka-desktop
+              run: |
+                  xattr -cr build/bin/QukaAI.app 2>/dev/null || true
+                  codesign --force --deep --sign - build/bin/QukaAI.app
+                  codesign --verify --deep --strict --verbose=2 build/bin/QukaAI.app
+              shell: bash
+
             - name: Package macOS app as DMG
               if: matrix.os == 'macos-latest'
               working-directory: quka-desktop
               run: |
                   # Create staging directory for DMG contents
                   STAGING_DIR="build/bin/dmg_staging"
-                  rm -rf "$STAGING_DIR"
+                  if [ -e "$STAGING_DIR" ]; then
+                    chmod -R u+rwX "$STAGING_DIR" 2>/dev/null || true
+                    rm -rf "$STAGING_DIR"
+                  fi
                   mkdir -p "$STAGING_DIR"
 
                   # Copy app to staging directory
                   echo "Preparing DMG contents..."
-                  cp -R "build/bin/QukaAI.app" "$STAGING_DIR/"
+                  ditto "build/bin/QukaAI.app" "$STAGING_DIR/QukaAI.app"
+                  codesign --verify --deep --strict --verbose=2 "$STAGING_DIR/QukaAI.app"
 
                   # Create Applications symlink
                   echo "Creating Applications shortcut..."
@@ -186,7 +199,10 @@ jobs:
 
                   # Clean up
                   rm -f "build/bin/temp.dmg"
-                  rm -rf "$STAGING_DIR"
+                  if [ -e "$STAGING_DIR" ]; then
+                    chmod -R u+rwX "$STAGING_DIR" 2>/dev/null || true
+                    rm -rf "$STAGING_DIR"
+                  fi
 
                   # Verify DMG was created
                   ls -lh build/bin/*.dmg

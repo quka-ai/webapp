@@ -188,6 +188,31 @@ PY
     fi
 }
 
+is_supported_python_bin() {
+    local candidate="$1"
+    "$candidate" - <<'PY' >/dev/null 2>&1
+import sys
+raise SystemExit(0 if (3, 11) <= sys.version_info[:2] < (3, 14) else 1)
+PY
+}
+
+detect_python_bin() {
+    if [ -n "${PYTHON_BIN:-}" ]; then
+        echo "$PYTHON_BIN"
+        return
+    fi
+
+    local candidate
+    for candidate in python3.13 python3.12 python3.11 python3 /opt/homebrew/bin/python3.13 /opt/homebrew/bin/python3.12 /opt/homebrew/bin/python3.11 /usr/local/bin/python3.13 /usr/local/bin/python3.12 /usr/local/bin/python3.11; do
+        if command -v "$candidate" >/dev/null 2>&1 && is_supported_python_bin "$candidate"; then
+            command -v "$candidate"
+            return
+        fi
+    done
+
+    echo "python3"
+}
+
 if [ ! -d "$APP_PATH" ]; then
     log "app bundle not found: $APP_PATH"
     exit 1
@@ -200,7 +225,7 @@ fi
 
 "$SCRIPT_DIR/prepare-hermes-build.sh" "$APP_PATH"
 
-PYTHON_BIN="${PYTHON_BIN:-python3}"
+PYTHON_BIN="$(detect_python_bin)"
 HERMES_SOURCE="$(default_hermes_source)"
 BUILD_MODE="${HERMES_RUNTIME_BUILD_MODE:-fast}"
 PYTHON_VERSION="$($PYTHON_BIN --version 2>&1)"

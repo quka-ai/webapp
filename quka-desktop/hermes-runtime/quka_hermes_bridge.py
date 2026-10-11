@@ -14,6 +14,7 @@ environment built by build-hermes-runtime.sh, not from the repository root.
 from __future__ import annotations
 
 import argparse
+import ast
 import asyncio
 import contextlib
 import concurrent.futures
@@ -65,6 +66,7 @@ configure_desktop_tempdir()
 
 DEFAULT_MODEL = os.environ.get("QUKA_HERMES_MODEL") or os.environ.get("HERMES_MODEL") or "anthropic/claude-sonnet-4"
 DEFAULT_TOOLSETS = os.environ.get("QUKA_HERMES_TOOLSETS") or "web,terminal,skills,memory"
+FULL_AGENT_TOOLSETS = ["web", "terminal", "skills", "memory"]
 FAKE_AGENT_MODE = os.environ.get("QUKA_HERMES_FAKE_AGENT") == "1"
 PREWARM_AGENT_IMPORT = os.environ.get("QUKA_HERMES_PREWARM_AGENT_IMPORT", "1") != "0"
 HERMES_FORCE_ENV_PREFIX = "_HERMES_FORCE_"
@@ -100,8 +102,9 @@ QUKA_AI_CONTEXT_PROMPT = """\
 - 如果需要把生成文件提供给用户，优先返回该文件的 file:// 链接或清晰的本地绝对路径。
 
 多 agent 协同：
-- 当任务明显需要多个视角、并行检索/评审/分析、研究后写作、方案对比、代码审查加修复建议，或用户明确提到多个角色 agent 协作时，优先使用 quka-agents skill 启动子 agent。
-- 你是主 agent/coordinator。子 agent 不直接回复用户，而是围绕你给出的结构化任务独立工作，并返回结论、依据、风险和建议。
+- 如果任务只需要一个特定角色或一个匹配的用户自定义 agent，你不要启动 quka-agents 子进程；直接临时采用该 agent 的身份、system prompt、toolsets、skills 和工作风格完成任务，并以主 session 回复用户。
+- 只有当任务需要两个及以上 agent、多个独立分支、并行检索/评审/分析、研究后写作、方案对比、代码审查加修复建议，或用户明确要求多 agent 协作时，才使用 quka-agents skill 启动子 agent。
+- 你是主 agent/coordinator。需要多 agent 协作时，子 agent 不直接回复用户，而是围绕你给出的结构化任务独立工作，并返回结论、依据、风险和建议。
 - 给子 agent 的任务上下文必须包含用户目标、必要背景、输入资料摘要、期望输出和边界；不要把整段聊天历史无选择地塞给子 agent。
 - 多个互不依赖的只读任务可以并行；需要写文件、执行高风险命令或依赖前置结果的任务应串行或用 DAG depends_on 表达。
 - 子 agent 完成后，你必须等待所有结果，合并分歧和证据，再用自己的话给用户最终答复。不要把原始 JSON 当作最终回答直接丢给用户。
@@ -309,7 +312,7 @@ def build_terminal_command_explanation(command: str, description: str = "") -> s
     executable = Path(normalized[0]).name
     lower = executable.lower()
     args = normalized[1:]
-    purpose = _command_purpose(lower, args)
+    purpose = _command_purpose(lower, args, clean_command)
     if not purpose:
         purpose = f"Hermes 想运行本地程序 {executable}，用它处理当前任务需要的数据、文件或系统信息"
     return _sentence(purpose)
@@ -388,13 +391,13 @@ def _sentence(value: str) -> str:
     return str(value or "").strip().rstrip("。") + "。"
 
 
-def _command_purpose(command: str, args: list[str]) -> str:
+def _command_purpose(command: str, args: list[str], command_text: str = "") -> str:
     if command in {"gh", "github"}:
         return _gh_command_purpose(args)
     if command == "git":
         return _git_command_purpose(args)
     if command in {"python", "python3"} or command.startswith("python3."):
-        return _python_command_purpose(args)
+        return _python_command_purpose(args, command_text)
     if command in {"node", "npm", "pnpm", "yarn", "bun"}:
         return _node_command_purpose(command, args)
     if command in {"ls", "pwd", "find", "rg", "grep", "cat", "head", "tail", "wc"}:
@@ -538,7 +541,11 @@ def _git_command_purpose(args: list[str]) -> str:
     return "Hermes 想执行 Git 仓库相关操作"
 
 
-def _python_command_purpose(args: list[str]) -> str:
+def _python_command_purpose(args: list[str], command_text: str = "") -> str:
+    if args and args[0] in {"<<", "<<-"}:
+        code = _extract_python_heredoc_code(command_text)
+        if code:
+            return _python_code_purpose(code)
     if args and args[0] in {"-c", "-m"}:
         if args[0] == "-m" and len(args) > 1:
             return f"Hermes 想运行 Python 模块 {args[1]}"
@@ -556,7 +563,34 @@ def _python_command_purpose(args: list[str]) -> str:
     return "Hermes 想运行一段 Python 程序"
 
 
+def _extract_python_heredoc_code(command: str) -> str:
+    lines = command.splitlines()
+    if not lines:
+        return ""
+    first_line = lines[0]
+    marker = "<<-" if "<<-" in first_line else "<<" if "<<" in first_line else ""
+    if not marker:
+        return ""
+    try:
+        delimiter_tokens = shlex.split(first_line.split(marker, 1)[1].strip())
+    except ValueError:
+        return ""
+    if not delimiter_tokens:
+        return ""
+    delimiter = delimiter_tokens[0]
+    body: list[str] = []
+    for line in lines[1:]:
+        candidate = line.lstrip("\t") if marker == "<<-" else line
+        if candidate.strip() == delimiter:
+            return "\n".join(body).strip()
+        body.append(line)
+    return ""
+
+
 def _python_code_purpose(code: str) -> str:
+    repo_filter_purpose = _python_repo_filter_code_purpose(code)
+    if repo_filter_purpose:
+        return repo_filter_purpose
     lowered = code.lower()
     if "subprocess" in lowered and "gh" in lowered:
         return "Hermes 想运行一段 Python 程序来调用 GitHub CLI，获取或处理 GitHub 相关信息"
@@ -571,6 +605,111 @@ def _python_code_purpose(code: str) -> str:
     if "json" in lowered:
         return "Hermes 想运行一段 Python 程序来整理或转换 JSON 数据"
     return "Hermes 想运行一段 Python 程序来完成当前任务中的数据处理步骤"
+
+
+def _python_repo_filter_code_purpose(code: str) -> str:
+    try:
+        tree = ast.parse(code)
+    except SyntaxError:
+        return ""
+
+    paths = _python_opened_paths(tree)
+    fields = _python_subscript_fields(tree)
+    keywords = _python_string_in_keywords(tree)
+    is_repo_shape = bool({"full_name", "private"} & fields) or any("repo" in path.lower() for path in paths)
+    if not is_repo_shape:
+        return ""
+
+    source = f" {paths[0]} 中的 " if paths else ""
+    keyword_phrase = ""
+    if keywords:
+        keyword_phrase = "筛选名称包含 " + _join_chinese_list(keywords[:5]) + " 的仓库，"
+    output_bits: list[str] = []
+    if "full_name" in fields:
+        output_bits.append("仓库全名")
+    if "private" in fields:
+        output_bits.append("公开/私有状态")
+    if output_bits:
+        output_phrase = "并输出" + "和".join(output_bits)
+    else:
+        output_phrase = "并输出匹配结果"
+    return f"Hermes 想用 Python 读取{source}GitHub 仓库列表，{keyword_phrase}{output_phrase}"
+
+
+def _python_opened_paths(tree: ast.AST) -> list[str]:
+    paths: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call) or not node.args:
+            continue
+        if isinstance(node.func, ast.Name) and node.func.id == "open":
+            value = _literal_string(node.args[0])
+            if value:
+                paths.append(value)
+        if isinstance(node.func, ast.Name) and node.func.id == "Path":
+            value = _literal_string(node.args[0])
+            if value:
+                paths.append(value)
+    return _dedupe_strings(paths)
+
+
+def _python_subscript_fields(tree: ast.AST) -> set[str]:
+    fields: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Subscript):
+            continue
+        value = _literal_string(node.slice)
+        if value:
+            fields.add(value)
+    return fields
+
+
+def _python_string_in_keywords(tree: ast.AST) -> list[str]:
+    keywords: list[str] = []
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Compare):
+            continue
+        operands = [node.left, *node.comparators]
+        for index, operator in enumerate(node.ops):
+            if not isinstance(operator, ast.In):
+                continue
+            for candidate in (operands[index], operands[index + 1]):
+                value = _literal_string(candidate)
+                if value and _looks_like_filter_keyword(value):
+                    keywords.append(value)
+    return _dedupe_strings(keywords)
+
+
+def _literal_string(node: ast.AST) -> str:
+    if isinstance(node, ast.Constant) and isinstance(node.value, str):
+        return node.value.strip()
+    return ""
+
+
+def _looks_like_filter_keyword(value: str) -> bool:
+    if not value or len(value) > 40:
+        return False
+    if "/" in value or "\\" in value:
+        return False
+    return value.lower() not in {"public", "private", "true", "false", "total", "type"}
+
+
+def _dedupe_strings(values: list[str]) -> list[str]:
+    seen: set[str] = set()
+    out: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        out.append(value)
+    return out
+
+
+def _join_chinese_list(values: list[str]) -> str:
+    if len(values) <= 1:
+        return "".join(values)
+    if len(values) == 2:
+        return " 或 ".join(values)
+    return "、".join(values[:-1]) + " 或 " + values[-1]
 
 
 def _node_command_purpose(command: str, args: list[str]) -> str:
@@ -1705,7 +1844,7 @@ def _built_in_collab_agent_profiles() -> dict[str, dict[str, Any]]:
             "description": "Searches, extracts facts, and marks uncertainty.",
             "systemPrompt": "Break the task into research questions, gather relevant facts, separate evidence from assumptions, and call out uncertainty.",
             "toolPolicy": "read_only",
-            "enabledToolsets": ["web", "skills", "memory"],
+            "enabledToolsets": FULL_AGENT_TOOLSETS,
         },
         "knowledge-analyst": {
             "id": "knowledge-analyst",
@@ -1713,7 +1852,7 @@ def _built_in_collab_agent_profiles() -> dict[str, dict[str, Any]]:
             "description": "Retrieves and summarizes QukaAI knowledge with citations.",
             "systemPrompt": "Use the quka-ai skill for private space knowledge and summarize retrieved material faithfully.",
             "toolPolicy": "read_only",
-            "enabledToolsets": ["skills", "memory"],
+            "enabledToolsets": FULL_AGENT_TOOLSETS,
             "enabledSkills": ["quka-ai"],
         },
         "journal-analyst": {
@@ -1722,7 +1861,7 @@ def _built_in_collab_agent_profiles() -> dict[str, dict[str, Any]]:
             "description": "Reads QukaAI journal data and summarizes time ranges or memory candidates.",
             "systemPrompt": "Use the quka-journal skill to inspect daily journal entries, summarize time ranges, and identify memory candidates.",
             "toolPolicy": "read_only",
-            "enabledToolsets": ["skills", "memory"],
+            "enabledToolsets": FULL_AGENT_TOOLSETS,
             "enabledSkills": ["quka-journal"],
         },
         "engineer": {
@@ -1731,7 +1870,7 @@ def _built_in_collab_agent_profiles() -> dict[str, dict[str, Any]]:
             "description": "Inspects code and proposes implementation or fixes.",
             "systemPrompt": "Inspect code paths carefully, prefer existing project patterns, identify options and risks, and propose concrete changes or tests.",
             "toolPolicy": "restricted",
-            "enabledToolsets": ["terminal", "skills", "memory"],
+            "enabledToolsets": FULL_AGENT_TOOLSETS,
         },
         "critic": {
             "id": "critic",
@@ -1739,7 +1878,7 @@ def _built_in_collab_agent_profiles() -> dict[str, dict[str, Any]]:
             "description": "Finds risks, omissions, regressions, and missing tests.",
             "systemPrompt": "Look for bugs, missing edge cases, behavioral regressions, unclear assumptions, and test gaps.",
             "toolPolicy": "read_only",
-            "enabledToolsets": ["terminal", "skills", "memory"],
+            "enabledToolsets": FULL_AGENT_TOOLSETS,
         },
         "writer": {
             "id": "writer",
@@ -1747,7 +1886,7 @@ def _built_in_collab_agent_profiles() -> dict[str, dict[str, Any]]:
             "description": "Synthesizes material into a polished deliverable.",
             "systemPrompt": "Turn provided findings into clear, well-structured output. Preserve caveats and avoid inventing facts.",
             "toolPolicy": "no_tools",
-            "enabledToolsets": [],
+            "enabledToolsets": FULL_AGENT_TOOLSETS,
         },
     }
 
@@ -1802,11 +1941,11 @@ def build_main_context_prompt() -> str:
         [
             "",
             "sub agent 自动委派规则：",
-            "- 用户显式提到 `@agent_id`、agent 名称，或要求某个角色/专家处理任务时，优先使用 quka-agents skill 委派给对应 agent。",
-            "- 当任务主题明显匹配某个用户创建 agent 的 name、description、system prompt、enabled skills 或 toolsets 时，优先委派给该用户创建 agent，而不是用内置通用角色替代。",
-            "- GitHub milestone、issue、PR、repository、release、workflow 等任务，如果存在描述或指令中包含 GitHub 能力的用户创建 agent，应优先委派给该 agent；只有任务非常简单且用户没有要求协作时才可直接处理。",
-            "- 当需要多个独立分支并行研究、多个角色交叉评审，或需要先研究再总结/审查时，用 quka-agents 创建 parallel 或 DAG 请求，并等待所有 sub agent 结果后再汇总。",
-            "- 在 QukaAI Desktop chat 中调用 quka-agents 时必须使用 `--request-json`，并在 JSON 的 `nodes` 中列出每一个将要启动的 sub agent。桌面端会根据 `nodes` 立即展示 N 个 sub session card；不要用 `--request-file` 作为常规委派方式，否则 UI 无法在运行开始时知道具体的 N 个 sub agent。",
+            "- 用户显式提到单个 `@agent_id`、单个 agent 名称，或任务只明显匹配一个角色/专家时，不要调用 quka-agents；你应临时切换为该 agent 的身份、system prompt、toolsets、enabled skills 和工作风格，直接在主 session 完成任务并回复用户。",
+            "- 当任务主题明显匹配某个用户创建 agent 的 name、description、system prompt、enabled skills 或 toolsets 时，优先采用该用户创建 agent 的身份和能力，而不是用内置通用角色替代；如果只匹配一个 agent，直接由主 agent 扮演它完成。",
+            "- GitHub milestone、issue、PR、repository、release、workflow 等任务，如果存在描述或指令中包含 GitHub 能力的用户创建 agent，应优先采用该 agent 的身份处理；只有需要两个及以上 agent 协作时才启动 quka-agents。",
+            "- 只有当需要两个及以上 agent、多个独立分支并行研究、多个角色交叉评审，或需要先研究再总结/审查时，才用 quka-agents 创建 parallel 或 DAG 请求，并等待所有 sub agent 结果后再汇总。",
+            "- 在 QukaAI Desktop chat 中调用 quka-agents 时必须使用 `--request-json`，并在 JSON 的 `nodes` 中列出每一个将要启动的 sub agent。只有多 agent 协作才调用它；不要为了单个 agent 创建单节点 run。桌面端会根据 `nodes` 立即展示 N 个 sub session card；不要用 `--request-file` 作为常规委派方式，否则 UI 无法在运行开始时知道具体的 N 个 sub agent。",
             "- 用户创建、修改或删除 agent 后不需要重启应用；这些配置来自 HERMES_HOME/agents/profiles.json，并会在 QukaAI Desktop reload runtime 后对下一轮对话生效。",
         ]
     )
